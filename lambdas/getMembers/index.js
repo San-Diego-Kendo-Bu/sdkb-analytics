@@ -9,6 +9,7 @@ const client = new DynamoDBClient({});
 const ddb = DynamoDBDocumentClient.from(client);
 
 exports.handler = async (event) => {
+  // howdy!
   try {
     const command = new ScanCommand({ TableName: "sdkb" });
     const result = await ddb.send(command);
@@ -34,7 +35,7 @@ exports.handler = async (event) => {
       body: JSON.stringify({
         message: "Failed to retrieve members",
         error: err.message
-      }) 
+      })
     };
   }
 };

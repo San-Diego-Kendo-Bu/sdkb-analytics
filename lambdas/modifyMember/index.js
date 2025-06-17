@@ -10,7 +10,8 @@ const ddb = DynamoDBDocumentClient.from(client);
 
 exports.handler = async (event) => {
   console.log("Lambda invoked");
-  try { 
+  // yoohoo!
+  try {
     const data = JSON.parse(event.body);
     const { member_id, member_type, ...fieldsToUpdate } = data;
 
@@ -47,7 +48,7 @@ exports.handler = async (event) => {
     });
 
     const result = await ddb.send(updateCommand);
- 
+
     return {
       statusCode: 200,
       body: JSON.stringify({

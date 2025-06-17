@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>San Diego Kendo Bu</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            padding: 40px;
+        }
+
+        h1 {
+            margin-bottom: 10px;
+        }
+
+        form {
+            margin-bottom: 20px;
+        }
+
+        #shelf {
+            display: flex;
+            gap: 10px;
+            padding: 20px;
+            background-color: #f0e6d6;
+            border: 2px solid #aaa;
+            border-radius: 5px;
+            justify-content: center;
+            align-items: flex-end;
+            height: 200px;
+        }
+
+        .slot {
+            width: 60px;
+            height: 150px;
+            background-color: #e0d4b7;
+            border: 2px dashed #999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background-color 0.2s, border-color 0.2s;
+        }
+
+        .slot.drag-over {
+            border-color: #333;
+            background-color: #f5d98e;
+        }
+
+        .tab {
+            width: 60px;
+            height: 150px;
+            background-color: #c79b63;
+            border: 2px solid #555;
+            cursor: grab;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            text-align: center;
+            user-select: none;
+        }
+
+        #tabPool {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>San Diego Kendo Bu</h1>
+
+    <form id="tabForm">
+        <input type="text" id="tabText" placeholder="Enter member" required />
+        <button type="submit">Add Tab</button>
+    </form>
+
+    <div id="tabPool" ondragover="allowDrop(event)" ondrop="dropToPool(event)"></div>
+
+    <div id="shelf">
+        <div class="slot"></div>
+        <div class="slot"></div>
+        <div class="slot"></div>
+        <div class="slot"></div>
+        <div class="slot"></div>
+    </div>
+
+    <script>
+        const defaultMembers = ["Kikunaga", "Goto", "Mai"];
+        let tabId = 0;
+
+        function createTab(text) {
+            const tab = document.createElement("div");
+            tab.className = "tab";
+            tab.textContent = text;
+            tab.draggable = true;
+            tab.id = "tab" + tabId++;
+
+            tab.addEventListener("dragstart", drag);
+            tab.addEventListener("dragend", dragEnd);
+
+            return tab;
+        }
+
+        function initializeTabs() {
+            const pool = document.getElementById("tabPool");
+            defaultMembers.forEach(name => {
+                const tab = createTab(name);
+                pool.appendChild(tab);
+            });
+        }
+
+        document.getElementById("tabForm").addEventListener("submit", function (e) {
+            e.preventDefault();
+            const text = document.getElementById("tabText").value.trim();
+            if (!text) return;
+
+            const newTab = createTab(text);
+            document.getElementById("tabPool").appendChild(newTab);
+            document.getElementById("tabText").value = "";
+        });
+
+        function drag(ev) {
+            ev.dataTransfer.setData("text/plain", ev.target.id);
+        }
+
+        function dragEnd(ev) {
+            document.querySelectorAll('.slot.drag-over').forEach(slot => {
+                slot.classList.remove('drag-over');
+            });
+        }
+
+        function allowDrop(ev) {
+            ev.preventDefault();
+            if (ev.target.classList.contains("slot")) {
+                ev.target.classList.add("drag-over");
+            }
+        }
+
+        function drop(ev) {
+            ev.preventDefault();
+            const tabId = ev.dataTransfer.getData("text/plain");
+            const tab = document.getElementById(tabId);
+
+            if (ev.target.classList.contains("slot")) {
+                ev.target.innerHTML = "";
+                ev.target.appendChild(tab);
+                ev.target.classList.remove("drag-over");
+            }
+        }
+
+        function dropToPool(ev) {
+            ev.preventDefault();
+            const tabId = ev.dataTransfer.getData("text/plain");
+            const tab = document.getElementById(tabId);
+            document.getElementById("tabPool").appendChild(tab);
+        }
+
+        // Remove highlight when dragging leaves a slot
+        document.querySelectorAll(".slot").forEach(slot => {
+            slot.addEventListener("dragleave", () => {
+                slot.classList.remove("drag-over");
+            });
+            slot.addEventListener("dragover", allowDrop);
+            slot.addEventListener("drop", drop);
+        });
+
+        // Initialize default tabs
+        initializeTabs();
+    </script>
+</body>
+
+</html>

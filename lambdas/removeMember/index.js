@@ -8,6 +8,7 @@ const client = new DynamoDBClient({});
 const ddb = DynamoDBDocumentClient.from(client);
 
 exports.handler = async (event) => {
+  // konbanwa!
   try {
     const data = JSON.parse(event.body);
 
