@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 
@@ -5,170 +6,410 @@
     <meta charset="UTF-8" />
     <title>San Diego Kendo Bu</title>
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
-            font-family: sans-serif;
-            padding: 40px;
+            font-family: 'Arial', sans-serif;
+            min-height: 100vh;
+            background-color: #f4f4f4;
         }
 
-        h1 {
-            margin-bottom: 10px;
+        .nafuda {
+            width: 70px;
+            height: 300px;
+            perspective: 1000px;
         }
 
-        form {
-            margin-bottom: 20px;
+        .slip {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.6s;
+            background-color: #c79b63;
+            background-image: url("bamboo.png");
+            border: 2px solid #555;
+        }
+
+        .slip.flipped {
+            transform: rotateY(180deg);
+        }
+
+        .front, .back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            backface-visibility: hidden;
+            flex-wrap: wrap;
+            overflow: hidden;
+        }
+
+        .back {
+            transform: rotateY(180deg);
+        }
+
+        .kanjiLarge {
+            font-size: 3em;
+            font-weight: bold;
+            color: black;
+        }
+
+        .kanjiMed {
+            font-size: 2em;
+            font-weight: bold;
+            color: black;
+        }
+
+        .kanjiSmall {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: black;
+        }
+
+        .character {
+            font-size: 1.4em;
+            font-weight: bold;
+            color: black;
+        }
+
+        .front {
+            color: white;
         }
 
         #shelf {
             display: flex;
-            gap: 10px;
+            gap: 5px;
             padding: 20px;
             background-color: #f0e6d6;
             border: 2px solid #aaa;
             border-radius: 5px;
             justify-content: center;
             align-items: flex-end;
-            height: 200px;
         }
 
-        .slot {
-            width: 60px;
-            height: 150px;
-            background-color: #e0d4b7;
-            border: 2px dashed #999;
-            display: flex;
-            align-items: center;
+        .rank {
+            background-image: url("rank.png") !important;
+        }
+
+        #modalOverlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.8);
+            display: none;
             justify-content: center;
-            transition: background-color 0.2s, border-color 0.2s;
-        }
-
-        .slot.drag-over {
-            border-color: #333;
-            background-color: #f5d98e;
-        }
-
-        .tab {
-            width: 60px;
-            height: 150px;
-            background-color: #c79b63;
-            border: 2px solid #555;
-            cursor: grab;
-            display: flex;
             align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            text-align: center;
-            user-select: none;
+            z-index: 999;
         }
 
-        #tabPool {
+        #modalForm {
+            background: white;
+            padding: 20px 30px;
+            border: 2px solid #333;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.3);
             display: flex;
+            flex-direction: column;
             gap: 10px;
-            margin-bottom: 30px;
+            max-width: 300px;
         }
+
+        #modalForm label {
+            display: flex;
+            flex-direction: column;
+            font-size: 0.9em;
+        }
+
+        .modal-buttons {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 10px;
+        }
+
     </style>
 </head>
 
 <body>
     <h1>San Diego Kendo Bu</h1>
 
-    <form id="tabForm">
-        <input type="text" id="tabText" placeholder="Enter member" required />
-        <button type="submit">Add Tab</button>
-    </form>
+    <div id="shelf"></div>
 
-    <div id="tabPool" ondragover="allowDrop(event)" ondrop="dropToPool(event)"></div>
-
-    <div id="shelf">
-        <div class="slot"></div>
-        <div class="slot"></div>
-        <div class="slot"></div>
-        <div class="slot"></div>
-        <div class="slot"></div>
+    <div id="modalOverlay">
+        <div id="modalForm">
+            <h2>Edit Member</h2>
+            <label>
+                First Name:
+                <input type="text" id="editFirstName">
+            </label>
+            <label>
+                Last Name:
+                <input type="text" id="editLastName">
+            </label>
+            <label>
+                Zekken Text:
+                <input type="text" id="editZekken">
+            </label>
+            <label>
+                Rank:
+                <div style="display:flex;">
+                    <input type="number" id="editRankNumber" min="0" max="8" style="width:40%;">
+                    <select id="editRankType" style="width:60%;">
+                        <option value="dan">Dan</option>
+                        <option value="kyu">Kyu</option>
+                        <option value="shihan">Shihan</option>
+                    </select>
+                </div>
+            </label>
+            <label>
+                Member Type
+                <select id="editMemberType">
+                    <option value="member">Member</option>
+                    <option value="sensei">Sensei</option>
+                </select>
+            </label>
+            <div class="modal-buttons">
+                <button id="saveButton">Save</button>
+                <button id="cancelButton">Cancel</button>
+            </div>
+        </div>
     </div>
 
-    <script>
-        const defaultMembers = ["Kikunaga", "Goto", "Mai"];
-        let tabId = 0;
-
-        function createTab(text) {
-            const tab = document.createElement("div");
-            tab.className = "tab";
-            tab.textContent = text;
-            tab.draggable = true;
-            tab.id = "tab" + tabId++;
-
-            tab.addEventListener("dragstart", drag);
-            tab.addEventListener("dragend", dragEnd);
-
-            return tab;
-        }
-
-        function initializeTabs() {
-            const pool = document.getElementById("tabPool");
-            defaultMembers.forEach(name => {
-                const tab = createTab(name);
-                pool.appendChild(tab);
-            });
-        }
-
-        document.getElementById("tabForm").addEventListener("submit", function (e) {
-            e.preventDefault();
-            const text = document.getElementById("tabText").value.trim();
-            if (!text) return;
-
-            const newTab = createTab(text);
-            document.getElementById("tabPool").appendChild(newTab);
-            document.getElementById("tabText").value = "";
-        });
-
-        function drag(ev) {
-            ev.dataTransfer.setData("text/plain", ev.target.id);
-        }
-
-        function dragEnd(ev) {
-            document.querySelectorAll('.slot.drag-over').forEach(slot => {
-                slot.classList.remove('drag-over');
-            });
-        }
-
-        function allowDrop(ev) {
-            ev.preventDefault();
-            if (ev.target.classList.contains("slot")) {
-                ev.target.classList.add("drag-over");
-            }
-        }
-
-        function drop(ev) {
-            ev.preventDefault();
-            const tabId = ev.dataTransfer.getData("text/plain");
-            const tab = document.getElementById(tabId);
-
-            if (ev.target.classList.contains("slot")) {
-                ev.target.innerHTML = "";
-                ev.target.appendChild(tab);
-                ev.target.classList.remove("drag-over");
-            }
-        }
-
-        function dropToPool(ev) {
-            ev.preventDefault();
-            const tabId = ev.dataTransfer.getData("text/plain");
-            const tab = document.getElementById(tabId);
-            document.getElementById("tabPool").appendChild(tab);
-        }
-
-        // Remove highlight when dragging leaves a slot
-        document.querySelectorAll(".slot").forEach(slot => {
-            slot.addEventListener("dragleave", () => {
-                slot.classList.remove("drag-over");
-            });
-            slot.addEventListener("dragover", allowDrop);
-            slot.addEventListener("drop", drop);
-        });
-
-        // Initialize default tabs
-        initializeTabs();
-    </script>
 </body>
+
+<script>
+    function rankToNum(num, type) {
+        if(type === "shihan") return 10;
+        if(type === "dan") return num;
+        if(num === 0) return -10;
+        return -1 * num;
+    }
+
+    function compareRank(a, b) {
+        const aNum = rankToNum(a['rank_number'], a['rank_type']);
+        const bNum = rankToNum(b['rank_number'], b['rank_type']);
+        if(aNum > bNum) return -1; // higher rank, comes first
+        if(aNum === bNum) return 0; // equal rank
+        return 1; // lower rank, comes second
+    }
+
+    function formatName(first, last) {
+        const firstInitial = first?.[0]?.toUpperCase() || '';
+        const lastName = (last || '').toUpperCase();
+        return `${firstInitial}.${lastName}`;
+    }
+
+    function formatRank(num, type) {
+        if(type === 'shihan') return 'DOJO SHIHAN';
+        return `${num} ${type.toUpperCase()}`;
+    }
+
+    function generateSlip(frontText, backText, memberId) {
+
+        frontText = frontText.replace(/\./g, '·').replace(/ /g, '\u00A0').replace(/一/g, '|');
+        backText = backText.replace(/\./g, '·').replace(/ /g, '\u00A0').replace(/一/g, '|');
+
+
+        const nafuda = document.createElement('div');
+        nafuda.className = 'nafuda';
+
+        const slip = document.createElement('div');
+        if(memberId < 0) slip.className = 'slip rank';
+        else slip.className = 'slip';
+
+        const front = document.createElement('div');
+        front.className = 'front';
+
+        var kanjiSize;
+        if(frontText.length <= 4) kanjiSize = 'kanjiLarge';
+        else if(frontText.length <= 12) kanjiSize = 'kanjiMed';
+        else kanjiSize = 'kanjiSmall';
+
+        for (const char of frontText) {
+            const span = document.createElement('span');
+            span.className = kanjiSize;
+            span.textContent = char;
+            front.appendChild(span);
+        }
+
+        const back = document.createElement('div');
+        back.className = 'back';
+
+        for (const char of backText) {
+            const span = document.createElement('span');
+            span.className = 'character';
+            span.textContent = char;
+            back.appendChild(span);
+        }
+
+        slip.appendChild(front);
+        slip.appendChild(back);
+        nafuda.appendChild(slip);
+
+        nafuda.addEventListener('mouseenter', () => {
+            slip.classList.add('flipped');
+        });
+        nafuda.addEventListener('mouseleave', () => {
+            setTimeout(() => slip.classList.remove('flipped'), 150);
+        });
+        if(memberId >= 0) {
+            nafuda.addEventListener('click', () => {
+                openModal(memberId);
+            });
+            nafuda.style.cursor = 'pointer';
+        }
+
+        return nafuda;
+    }
+
+    function rankToKanji(num, type) {
+        if(type === 'shihan') return '師範';
+        
+        // testing
+        var nums;
+        if(type === 'dan') nums = ['無','初','弐','参','四','五','六','七','八'];
+        else nums = ['無','一','二','三','四','五','六','七','八'];
+        const types = {'kyu':'級','dan':'段'};
+
+        return `${nums[num]}${types[type]}`;
+    }
+
+    let members = null;
+
+    function renderTable() {
+        fetch('https://usk4xisdph.execute-api.us-east-2.amazonaws.com/members')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                members = data['items'];
+                members.sort(compareRank);
+                
+                var slips = [];
+                var curRank = 100;
+                members.forEach(member => {
+                    const memberId = member['member_id'];
+                    const rankNum = member['rank_number'];
+                    const rankType = member['rank_type'];
+                    const firstName = member['first_name'];
+                    const lastName = member['last_name'];
+                    const zekkenText = member['zekken_text'];
+
+                    if(curRank != rankToNum(rankNum, rankType)) {
+                        slips.push(generateSlip(rankToKanji(rankNum, rankType), formatRank(rankNum, rankType), -1));
+                        curRank = rankToNum(rankNum, rankType);
+                    }
+                    slips.push(generateSlip(zekkenText, formatName(firstName, lastName), memberId));
+                });
+                
+                const shelf = document.getElementById('shelf');
+                slips.reverse();
+                slips.forEach(slip => {
+                    shelf.appendChild(slip);
+                });
+            })
+            .catch(error => {
+                console.error(error);
+            });
+    }
+
+    let selectedMember = null;
+
+    function openModal(memberId) {
+        for (let i = 0; i < members.length; i++) {
+            if(members[i]['member_id'] === memberId) {
+                selectedMember = members[i];
+                break;
+            }
+        }
+        document.getElementById('editFirstName').value = selectedMember.first_name || '';
+        document.getElementById('editLastName').value = selectedMember.last_name || '';
+        document.getElementById('editZekken').value = selectedMember.zekken_text || '';
+        document.getElementById('editRankType').value = selectedMember.rank_type || 'dan';
+        document.getElementById('editRankNumber').value = selectedMember.rank_number || 0;
+        document.getElementById('editMemberType').value = selectedMember.member_type || '';
+        document.getElementById('modalOverlay').style.display = 'flex';
+
+        let rankNumberInput = document.getElementById('editRankNumber');
+        if (selectedMember['rank_type'] === 'shihan') {
+            rankNumberInput.value = 0;
+            rankNumberInput.placeholder = '';
+            rankNumberInput.disabled = true;
+        } else {
+            rankNumberInput.disabled = false;
+        }
+    }
+
+    function closeModal() {
+        document.getElementById('modalOverlay').style.display = 'none';
+        selectedMember = null;
+    }
+
+    document.getElementById('cancelButton').addEventListener('click', () => {
+        closeModal();
+    });
+
+    document.getElementById('saveButton').addEventListener('click', () => {
+
+        const newFirstName = document.getElementById('editFirstName').value;
+        const newLastName = document.getElementById('editLastName').value;
+        const newZekkenText = document.getElementById('editZekken').value;
+        const newRankType = document.getElementById('editRankType').value;
+        const newMemberType = document.getElementById('editMemberType').value;
+        const newRankNumber = parseInt(document.getElementById('editRankNumber').value, 10);
+
+        fetch('https://usk4xisdph.execute-api.us-east-2.amazonaws.com/members', {
+            'method': 'PATCH',
+            'headers': {
+                'Content-Type': 'application/json',
+            },
+            'body': JSON.stringify({
+                "rank_number": newRankNumber,
+                "last_name": newLastName,
+                "member_id": selectedMember['member_id'], 
+                "member_type": newMemberType,
+                "first_name": newFirstName,
+                "zekken_text": newZekkenText
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('shelf').innerHTML = '';
+            renderTable();
+        })
+        .catch(error => console.error(error));
+    });
+
+    const rankTypeSelect = document.getElementById('editRankType');
+    const rankNumberInput = document.getElementById('editRankNumber');
+
+    rankTypeSelect.addEventListener('change', () => {
+        if (rankTypeSelect.value === 'shihan') {
+            rankNumberInput.value = 0;
+            rankNumberInput.placeholder = '';
+            rankNumberInput.disabled = true;
+        } else {
+            rankNumberInput.disabled = false;
+        }
+    });
+
+
+    window.addEventListener('load', () => {
+        renderTable();
+    });
+
+</script>
 
 </html>

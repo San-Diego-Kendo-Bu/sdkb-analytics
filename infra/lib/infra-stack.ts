@@ -1,39 +1,125 @@
-import { Stack, StackProps } from 'aws-cdk-lib';
+import { Stack, StackProps, CfnOutput } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
+import * as path from 'path';
+
+import * as apigwv2 from 'aws-cdk-lib/aws-apigatewayv2';
+import * as integrations from 'aws-cdk-lib/aws-apigatewayv2-integrations';
+
+import * as iam from 'aws-cdk-lib/aws-iam';
+import * as s3 from 'aws-cdk-lib/aws-s3';
+import * as s3deploy from 'aws-cdk-lib/aws-s3-deployment';
 
 export class InfraStack extends Stack {
   constructor(scope: Construct, id: string, props?: StackProps) {
     super(scope, id, props);
 
+    // Import existing bucket
+    const siteBucket = s3.Bucket.fromBucketName(this, 'ExistingBucket', 'nafudakake');
+
+    // Deploy frontend/index.html to the bucket
+    new s3deploy.BucketDeployment(this, 'DeployFrontend', {
+      sources: [s3deploy.Source.asset(path.join(__dirname, '../../frontend'))],
+      destinationBucket: siteBucket,
+    });
+
+    // Lambda functions
     const createMemberLambda = new lambda.Function(this, 'CreateMemberLambda', {
-      functionName: 'createMember',
+      functionName: 'createMemberCDK',
       runtime: lambda.Runtime.NODEJS_18_X,
       handler: 'index.handler',
-      code: lambda.Code.fromAsset('../lambdas/createMember'),
+      code: lambda.Code.fromAsset(path.join(__dirname, '../../lambdas/createMember')),
     });
 
     const getMembersLambda = new lambda.Function(this, 'GetMembersLambda', {
-      functionName: 'getMembers',
+      functionName: 'getMembersCDK',
       runtime: lambda.Runtime.NODEJS_18_X,
       handler: 'index.handler',
-      code: lambda.Code.fromAsset('../lambdas/getMembers'),
+      code: lambda.Code.fromAsset(path.join(__dirname, '../../lambdas/getMembers')),
     });
 
     const removeMemberLambda = new lambda.Function(this, 'RemoveMemberLambda', {
-      functionName: 'removeMember',
+      functionName: 'removeMemberCDK',
       runtime: lambda.Runtime.NODEJS_18_X,
       handler: 'index.handler',
-      code: lambda.Code.fromAsset('../lambdas/removeMember'),
+      code: lambda.Code.fromAsset(path.join(__dirname, '../../lambdas/removeMember')),
     });
 
     const modifyMemberLambda = new lambda.Function(this, 'ModifyMemberLambda', {
-      functionName: 'modifyMember',
+      functionName: 'modifyMemberCDK',
       runtime: lambda.Runtime.NODEJS_18_X,
       handler: 'index.handler',
-      code: lambda.Code.fromAsset('../lambdas/modifyMember'),
+      code: lambda.Code.fromAsset(path.join(__dirname, '../../lambdas/modifyMember')),
     });
 
-    // You can now add permissions, API Gateway routes, etc.
+    // HTTP API Gateway (v2)
+    const httpApi = new apigwv2.HttpApi(this, 'MyHttpApi', {
+      apiName: 'membersAPI_CDK',
+      corsPreflight: {
+        allowHeaders: ['*'],
+        allowMethods: [
+          apigwv2.CorsHttpMethod.GET,
+          apigwv2.CorsHttpMethod.POST,
+          apigwv2.CorsHttpMethod.PATCH,
+          apigwv2.CorsHttpMethod.DELETE,
+        ],
+        allowOrigins: ['*'],
+      },
+    });
+
+    // add roles
+    getMembersLambda.addToRolePolicy(new iam.PolicyStatement({
+      effect: iam.Effect.ALLOW,
+      actions: ['dynamodb:Scan'],
+      resources: ['arn:aws:dynamodb:us-east-2:222575804757:table/sdkb'],
+    }));
+
+    createMemberLambda.addToRolePolicy(new iam.PolicyStatement({
+      effect: iam.Effect.ALLOW,
+      actions: ['dynamodb:PutItem'],
+      resources: ['arn:aws:dynamodb:us-east-2:222575804757:table/sdkb'],
+    }));
+
+    removeMemberLambda.addToRolePolicy(new iam.PolicyStatement({
+      effect: iam.Effect.ALLOW,
+      actions: ['dynamodb:DeleteItem'],
+      resources: ['arn:aws:dynamodb:us-east-2:222575804757:table/sdkb'],
+    }));
+
+    modifyMemberLambda.addToRolePolicy(new iam.PolicyStatement({
+      effect: iam.Effect.ALLOW,
+      actions: ['dynamodb:UpdateItem'],
+      resources: ['arn:aws:dynamodb:us-east-2:222575804757:table/sdkb'],
+    }));
+
+    // Add routes
+    httpApi.addRoutes({
+      path: '/items',
+      methods: [apigwv2.HttpMethod.GET],
+      integration: new integrations.HttpLambdaIntegration('GetIntegration', getMembersLambda),
+    });
+
+    httpApi.addRoutes({
+      path: '/items',
+      methods: [apigwv2.HttpMethod.POST],
+      integration: new integrations.HttpLambdaIntegration('PostIntegration', createMemberLambda),
+    });
+
+    httpApi.addRoutes({
+      path: '/items',
+      methods: [apigwv2.HttpMethod.PATCH],
+      integration: new integrations.HttpLambdaIntegration('PatchIntegration', modifyMemberLambda),
+    });
+
+    httpApi.addRoutes({
+      path: '/items',
+      methods: [apigwv2.HttpMethod.DELETE],
+      integration: new integrations.HttpLambdaIntegration('DeleteIntegration', removeMemberLambda),
+    });
+
+    // Output the HTTP API URL
+    new CfnOutput(this, 'HttpApiUrl', {
+      value: httpApi.apiEndpoint,
+    });
   }
 }
