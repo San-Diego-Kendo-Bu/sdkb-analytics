@@ -10,10 +10,9 @@ const ddb = DynamoDBDocumentClient.from(client);
 
 exports.handler = async (event) => {
   console.log("Lambda invoked");
-  // yoohoo!
-  try {
+  try { 
     const data = JSON.parse(event.body);
-    const { member_id, member_type, ...fieldsToUpdate } = data;
+    const { member_id, ...fieldsToUpdate } = data;
 
     if (Object.keys(data).length === 0) {
       return {
@@ -28,7 +27,7 @@ exports.handler = async (event) => {
     const expressionAttributeValues = {};
 
     for (const [key, value] of Object.entries(data)) {
-      if (key != "member_id" && key != "member_type") {
+      if (key != "member_id") {
         updateExpressions.push(`#${key} = :${key}`);
         expressionAttributeNames[`#${key}`] = key;
         expressionAttributeValues[`:${key}`] = value;
@@ -36,10 +35,9 @@ exports.handler = async (event) => {
     }
 
     const updateCommand = new UpdateCommand({
-      TableName: "sdkb",
+      TableName: "members",
       Key: {
         member_id,
-        member_type
       },
       UpdateExpression: `SET ${updateExpressions.join(", ")}`,
       ExpressionAttributeNames: expressionAttributeNames,
@@ -48,7 +46,7 @@ exports.handler = async (event) => {
     });
 
     const result = await ddb.send(updateCommand);
-
+ 
     return {
       statusCode: 200,
       body: JSON.stringify({

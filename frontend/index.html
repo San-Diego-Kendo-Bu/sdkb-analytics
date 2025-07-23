@@ -426,7 +426,6 @@
         const newLastName = document.getElementById('editLastName').value;
         const newZekkenText = document.getElementById('editZekken').value;
         const newRankType = document.getElementById('editRankType').value;
-        const newMemberType = document.getElementById('editMemberType').value;
         const newRankNumber = parseInt(document.getElementById('editRankNumber').value, 10);
 
         fetch('https://usk4xisdph.execute-api.us-east-2.amazonaws.com/members', {   // This is the gateway thru which we can call lambda funcs
@@ -439,7 +438,6 @@
                 "rank_type": newRankType,
                 "last_name": newLastName,
                 "member_id": selectedMember['member_id'], 
-                "member_type": newMemberType,
                 "first_name": newFirstName,
                 "zekken_text": newZekkenText
             })
@@ -453,8 +451,6 @@
     });
 
     document.getElementById('removeButton').addEventListener('click', () => {
-        const form = event.target;
-        const memberType = document.getElementById('editMemberType').value;
 
         fetch('https://usk4xisdph.execute-api.us-east-2.amazonaws.com/members', {
             'method': 'DELETE',
@@ -462,7 +458,6 @@
                 'Content-Type': 'application/json',
             },
             'body': JSON.stringify({
-                "member_type": memberType,
                 "member_id": selectedMember['member_id'], 
             })
         })
