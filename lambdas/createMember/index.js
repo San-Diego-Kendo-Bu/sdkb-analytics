@@ -25,9 +25,8 @@ exports.handler = async (event) => {
     const data = JSON.parse(event.body);
 
     const params = {
-      TableName: "sdkb",
+      TableName: "members",
       Item: {
-        member_type: data.member_type,
         member_id: newMemberId,
         first_name: data.first_name,
         last_name: data.last_name,
