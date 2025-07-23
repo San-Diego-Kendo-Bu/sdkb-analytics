@@ -130,6 +130,15 @@
             font-size: 0.9em;
         }
 
+        #modalForm header{
+            display: flex;
+            gap:20px;
+        }
+
+        #removeButton{
+            color: red;
+        }
+
         .modal-buttons {
             display: flex;
             justify-content: space-between;
@@ -161,7 +170,10 @@
     <div id="shelf"></div>
     <div id="modalOverlay">
         <div id="modalForm">
-            <h2>Edit Member</h2>
+            <header>
+                <h2>Edit Member</h2>
+                <button id="removeButton">Remove</button>
+            </header>
             <label>
                 First Name:
                 <input type="text" id="editFirstName">
@@ -200,7 +212,6 @@
     </div>
     
     <button id="openAddButton">Add Member</button>
-    <button id="openRemoveButton">Remove Member</button>
     <form id='addForm' class='formOverlay' action='https://usk4xisdph.execute-api.us-east-2.amazonaws.com/members' method='POST'>
         <label for="addFirstName">First Name (Required)</label>
         <input type="text" id="addFirstName" name="first_name" required>
@@ -225,20 +236,6 @@
         <div class="modal-buttons">
             <input id="addButton" type="submit" value="Add">
             <button id="cancelAddButton" type="button">Cancel</button>
-        </div>
-    </form>
-    <form id="removeForm" class="formOverlay" action="https://usk4xisdph.execute-api.us-east-2.amazonaws.com/members" method="DELETE">
-        <label for="removeMemberType">Role</label>
-        <select id="removeMemberType" name="member_type" required>
-            <option value="member">Member</option>
-            <option value="sensei">Sensei</option>
-            <option value="shihan">Shihan</option>
-        </select>
-        <label for="removeMemberId">Member ID</label>
-        <input type="number" id="removeMemberId" name="member_id" required>
-        <div class="modal-buttons">
-            <input id="removeButton" type="submit" value="Remove">
-            <button id="cancelRemoveButton" type="button">Cancel</button>
         </div>
     </form>
 
@@ -455,6 +452,32 @@
         .catch(error => console.error(error));
     });
 
+    document.getElementById('removeButton').addEventListener('click', () => {
+        const form = event.target;
+        const memberType = document.getElementById('editMemberType').value;
+
+        fetch('https://usk4xisdph.execute-api.us-east-2.amazonaws.com/members', {
+            'method': 'DELETE',
+            'headers': {
+                'Content-Type': 'application/json',
+            },
+            'body': JSON.stringify({
+                "member_type": memberType,
+                "member_id": selectedMember['member_id'], 
+            })
+        })
+        .then(response => {
+            response.json();
+            console.log(response);
+        })
+        .then(data => {
+            document.getElementById('shelf').innerHTML = '';
+            renderTable();
+            closeModal();
+        })
+        .catch(error => console.log(error));
+    });
+
     document.getElementById('openAddButton').addEventListener('click', ()=> {
         document.getElementById('addForm').style.display = 'flex';
     });
@@ -496,43 +519,6 @@
             
             addForm.style.display = 'none';
             addForm.reset();
-        })
-        .catch(error => console.log(error));
-    });
-
-
-    document.getElementById('openRemoveButton').addEventListener('click', ()=> {
-        document.getElementById('removeForm').style.display = 'flex';
-    });
-    document.getElementById('cancelRemoveButton').addEventListener('click', ()=> {
-        document.getElementById('removeForm').style.display = 'none';
-    });
-    document.getElementById('removeForm').addEventListener('submit', function(event){
-        event.preventDefault();
-        const removeForm = event.target;
-        const memberType = document.getElementById('removeMemberType').value;
-        const memberId = parseInt(document.getElementById('removeMemberId').value, 10);
-        
-        fetch('https://usk4xisdph.execute-api.us-east-2.amazonaws.com/members', {
-            'method': 'DELETE',
-            'headers': {
-                'Content-Type': 'application/json',
-            },
-            'body': JSON.stringify({
-                "member_type": memberType,
-                "member_id": memberId, 
-            })
-        })
-        .then(response => {
-            response.json();
-            console.log(response);
-        })
-        .then(data => {
-            document.getElementById('shelf').innerHTML = '';
-            renderTable();
-            
-            removeForm.style.display = 'none';
-            removeForm.reset();
         })
         .catch(error => console.log(error));
     });
