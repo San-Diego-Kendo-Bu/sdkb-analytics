@@ -520,7 +520,7 @@
             addForm.style.display = 'none';
             addForm.reset();
         })
-        .catch(error => console.log(error));
+        .catch(error => console.error("Full error:", JSON.stringify(err, Object.getOwnPropertyNames(err), 2)));
     });
 
     const rankTypeSelect = document.getElementById('editRankType');
