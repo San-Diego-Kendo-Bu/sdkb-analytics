@@ -197,13 +197,6 @@
                     </select>
                 </div>
             </label>
-            <label>
-                Member Type
-                <select id="editMemberType">
-                    <option value="member">Member</option>
-                    <option value="sensei">Sensei</option>
-                </select>
-            </label>
             <div class="modal-buttons">
                 <button id="saveButton">Save</button>
                 <button id="cancelButton">Cancel</button>
@@ -223,14 +216,10 @@
             <select id="addRankType" name="rank_type" style="width:60%;">
                 <option value="kyu">Kyu</option>
                 <option value="dan">Dan</option>
+                <option value="shihan">Shihan</option>
             </select>
         </div>
-        <label for="addMemberType">Role</label>
-        <select id="addMemberType" name="member_type" required>
-            <option value="member">Member</option>
-            <option value="sensei">Sensei</option>
-            <option value="shihan">Shihan</option>
-        </select>
+
         <label for="addZekken">Zekken</label>
         <input type="text" id="addZekken" name="zekken_text">
         <div class="modal-buttons">
@@ -394,7 +383,6 @@
         document.getElementById('editZekken').value = selectedMember.zekken_text || '';
         document.getElementById('editRankType').value = selectedMember.rank_type || 'dan';
         document.getElementById('editRankNumber').value = selectedMember.rank_number || 0;
-        document.getElementById('editMemberType').value = selectedMember.member_type || '';
         document.getElementById('modalOverlay').style.display = 'flex';
 
         let rankNumberInput = document.getElementById('editRankNumber');
@@ -486,7 +474,6 @@
         const newLastName = document.getElementById('addLastName').value;
         const newZekkenText = document.getElementById('addZekken').value;
         const newRankType = document.getElementById('addRankType').value;
-        const newMemberType = document.getElementById('addMemberType').value;
         const newRankNumber = parseInt(document.getElementById('addRankNumber').value, 10);
         
         fetch('https://usk4xisdph.execute-api.us-east-2.amazonaws.com/members', {
@@ -499,7 +486,6 @@
                 "rank_type": newRankType,
                 "last_name": newLastName,
                 "member_id": 99, 
-                "member_type": newMemberType,
                 "first_name": newFirstName,
                 "zekken_text": newZekkenText
             })
