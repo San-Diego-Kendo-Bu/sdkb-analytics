@@ -8,14 +8,12 @@ const client = new DynamoDBClient({});
 const ddb = DynamoDBDocumentClient.from(client);
 
 exports.handler = async (event) => {
-  // konbanwa!
   try {
     const data = JSON.parse(event.body);
 
     const params = {
-      TableName: "sdkb",
+      TableName: "members",
       Key: {
-        member_type: data.member_type,
         member_id: data.member_id
       }
     };
