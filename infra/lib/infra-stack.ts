@@ -10,12 +10,23 @@ import * as iam from 'aws-cdk-lib/aws-iam';
 import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as s3deploy from 'aws-cdk-lib/aws-s3-deployment';
 
+import { UserPool, UserPoolClient } from 'aws-cdk-lib/aws-cognito';
+import { HttpUserPoolAuthorizer } from 'aws-cdk-lib/aws-apigatewayv2-authorizers';
+
 export class InfraStack extends Stack {
   constructor(scope: Construct, id: string, props?: StackProps) {
     super(scope, id, props);
 
     // Import existing bucket
     const siteBucket = s3.Bucket.fromBucketName(this, 'ExistingBucket', 'nafudakake');
+
+    // Import existing user pool and app client
+    const userPool = UserPool.fromUserPoolId(this, 'UserPool', 'us-east-2_pOKlRyKnT');
+    const userPoolClient = UserPoolClient.fromUserPoolClientId(this, 'UserPoolClient', '7uqje135h2m1tu0t1j2bdasgq3');
+
+    const authorizer = new HttpUserPoolAuthorizer('MyCognitoAuth', userPool, {
+      userPoolClients: [userPoolClient],
+    });
 
     // Deploy frontend/index.html to the bucket
     new s3deploy.BucketDeployment(this, 'DeployFrontend', {
@@ -103,18 +114,21 @@ export class InfraStack extends Stack {
       path: '/items',
       methods: [apigwv2.HttpMethod.POST],
       integration: new integrations.HttpLambdaIntegration('PostIntegration', createMemberLambda),
+      authorizer: authorizer,
     });
 
     httpApi.addRoutes({
       path: '/items',
       methods: [apigwv2.HttpMethod.PATCH],
       integration: new integrations.HttpLambdaIntegration('PatchIntegration', modifyMemberLambda),
+      authorizer: authorizer,
     });
 
     httpApi.addRoutes({
       path: '/items',
       methods: [apigwv2.HttpMethod.DELETE],
       integration: new integrations.HttpLambdaIntegration('DeleteIntegration', removeMemberLambda),
+      authorizer: authorizer,
     });
 
     // Output the HTTP API URL
