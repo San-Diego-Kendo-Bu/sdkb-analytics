@@ -413,13 +413,13 @@
         await signOutRedirect();
     });
 
-    const token = sessionStorage.getItem("access-token-stored");
-
     userManager.getUser().then(user => {
         if (user && !user.expired) {
             sessionStorage.setItem("access-token-stored", user.access_token);
         }
     });
+
+    const token = sessionStorage.getItem("access-token-stored");
 
     document.getElementById('cancelButton').addEventListener('click', () => {
         closeModal();
