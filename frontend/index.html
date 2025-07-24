@@ -414,7 +414,6 @@
     });
 
     const token = sessionStorage.getItem("access-token-stored");
-    console.log("Stored Access Token:", token);
 
     userManager.getUser().then(user => {
         if (user && !user.expired) {
