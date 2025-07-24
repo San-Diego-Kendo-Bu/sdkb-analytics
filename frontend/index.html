@@ -234,7 +234,9 @@
 
 </body>
 
-<script>
+<script type="module">
+    import { userManager, signOutRedirect } from "./cognitoManager.js";
+    
     function rankToNum(num, type) {
         if(type === "shihan") return 10;
         if(type === "dan") return num;
