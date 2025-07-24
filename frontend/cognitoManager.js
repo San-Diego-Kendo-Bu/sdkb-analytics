@@ -5,8 +5,8 @@ const cognitoDomain = "https://us-east-2poklryknt.auth.us-east-2.amazoncognito.c
 const clientId = "7uqje135h2m1tu0t1j2bdasgq3";
 
 // Replace with your actual S3 static site URL
-const redirectUri = "http://nafudakake.s3-website.us-east-2.amazonaws.com/callback.html";
-const logoutUri = "http://nafudakake.s3-website.us-east-2.amazonaws.com";
+const redirectUri = "https://d3j7mmciz70vi1.cloudfront.net/callback.html";
+const logoutUri = "https://d3j7mmciz70vi1.cloudfront.net/";
 
 export const userManager = new UserManager({
     authority: cognitoDomain,
