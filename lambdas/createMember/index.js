@@ -1,24 +1,36 @@
 const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
 const {
   DynamoDBDocumentClient,
-  PutCommand
+  PutCommand,
+  UpdateCommand
 } = require("@aws-sdk/lib-dynamodb");
 
 const client = new DynamoDBClient({});
 const ddb = DynamoDBDocumentClient.from(client);
 
 exports.handler = async (event) => {
-  // hello world!
   try {
+    // Increment the idCounter in the appConfigs table
+    const updateParams = {
+      TableName: "appConfigs",
+      Key: { type:"idCounter" },
+      UpdateExpression: "ADD #counter :val",
+      ExpressionAttributeNames: { "#counter": "idCounter" },
+      ExpressionAttributeValues: {':val': 1},
+      ReturnValues: "ALL_NEW"
+    };
+    const updateResult = await ddb.send(new UpdateCommand(updateParams));
+    const newMemberId = updateResult.Attributes.idCounter;
+
     const data = JSON.parse(event.body);
 
     const params = {
-      TableName: "sdkb",
+      TableName: "members",
       Item: {
-        member_type: data.member_type,
-        member_id: data.member_id,
+        member_id: newMemberId,
         first_name: data.first_name,
         last_name: data.last_name,
+        zekken_text: data.zekken_text,
         rank_number: data.rank_number,
         rank_type: data.rank_type
       }
