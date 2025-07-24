@@ -441,6 +441,7 @@
             'method': 'PATCH',  // Like PUT, but applies partial modifications to certain fields instead of completely replacing the resource
             'headers': {
                 'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
             },
             'body': JSON.stringify({
                 "rank_number": newRankNumber,
@@ -465,6 +466,7 @@
             'method': 'DELETE',
             'headers': {
                 'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
             },
             'body': JSON.stringify({
                 "member_id": selectedMember['member_id'], 
@@ -501,6 +503,7 @@
             'method': 'POST',
             'headers': {
                 'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
             },
             'body': JSON.stringify({
                 "rank_number": newRankNumber,
