@@ -168,7 +168,7 @@
     <div style="display: flex; align-items: center;">
         <h1 style="margin: 0;">San Diego Kendo Bu</h1>
         <button id="signIn" style="margin-left: 40px;" class="sign-in-btn">Sign In</button>
-        <button id="signOut" style="margin-left: 70px;" class="sign-in-btn">Log Out</button>
+        <button id="signOut" style="margin-left: 70px;" class="sign-in-btn">Sign Out</button>
     </div>
 
     <div id="shelf"></div>
@@ -403,6 +403,23 @@
         document.getElementById('modalOverlay').style.display = 'none';
         selectedMember = null;
     }
+
+    document.getElementById("signIn").addEventListener("click", async () => {
+        await userManager.signinRedirect();
+    });
+
+    document.getElementById("signOut").addEventListener("click", async () => {
+        await signOutRedirect();
+    });
+
+    const token = sessionStorage.getItem("access-token-stored");
+    console.log("Stored Access Token:", token);
+
+    userManager.getUser().then(user => {
+        if (user && !user.expired) {
+            sessionStorage.setItem("access-token-stored", user.access_token);
+        }
+    });
 
     document.getElementById('cancelButton').addEventListener('click', () => {
         closeModal();
