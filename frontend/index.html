@@ -384,7 +384,7 @@
                 break;
             }
         }
-        
+
         document.getElementById('editFirstName').value = selectedMember.first_name || '';
         document.getElementById('editLastName').value = selectedMember.last_name || '';
         document.getElementById('editZekken').value = selectedMember.zekken_text || '';
@@ -440,8 +440,8 @@
         try {
             const user = await userManager.getUser();
             if (!user || user.expired) {
-            alert("You must be signed in to save changes.");
-            return;
+                alert("You must be signed in to save changes.");
+                return;
             }
 
             const newFirstName = document.getElementById('editFirstName').value;
@@ -451,23 +451,23 @@
             const newRankNumber = parseInt(document.getElementById('editRankNumber').value, 10);
 
             const response = await fetch('https://usk4xisdph.execute-api.us-east-2.amazonaws.com/members', {
-            method: 'PATCH',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${user.access_token}`
-            },
-            body: JSON.stringify({
-                rank_number: newRankNumber,
-                rank_type: newRankType,
-                last_name: newLastName,
-                member_id: selectedMember['member_id'],
-                first_name: newFirstName,
-                zekken_text: newZekkenText
-            })
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${user.access_token}`
+                },
+                body: JSON.stringify({
+                    rank_number: newRankNumber,
+                    rank_type: newRankType,
+                    last_name: newLastName,
+                    member_id: selectedMember['member_id'],
+                    first_name: newFirstName,
+                    zekken_text: newZekkenText
+                })
             });
 
             if (!response.ok) {
-            throw new Error(`Server returned ${response.status}`);
+                throw new Error(`Server returned ${response.status}`);
             }
 
             // Clear and re-render the shelf
@@ -486,23 +486,23 @@
         try {
             const user = await userManager.getUser();
             if (!user || user.expired) {
-            alert("You must be signed in to remove a member.");
-            return;
+                alert("You must be signed in to remove a member.");
+                return;
             }
 
             const response = await fetch('https://usk4xisdph.execute-api.us-east-2.amazonaws.com/members', {
-            method: 'DELETE',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${user.access_token}`
-            },
-            body: JSON.stringify({
-                member_id: selectedMember['member_id']
-            })
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${user.access_token}`
+                },
+                body: JSON.stringify({
+                    member_id: selectedMember['member_id']
+                })
             });
 
             if (!response.ok) {
-            throw new Error(`Server returned ${response.status}`);
+                throw new Error(`Server returned ${response.status}`);
             }
 
             console.log("✅ Member deleted:", data);
@@ -532,8 +532,8 @@
         try {
             const user = await userManager.getUser();
             if (!user || user.expired) {
-            alert("You must be signed in to add a member.");
-            return;
+                alert("You must be signed in to add a member.");
+                return;
             }
 
             const newFirstName = document.getElementById('addFirstName').value;
@@ -543,23 +543,23 @@
             const newRankNumber = parseInt(document.getElementById('addRankNumber').value, 10);
 
             const response = await fetch('https://usk4xisdph.execute-api.us-east-2.amazonaws.com/members', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${user.access_token}`
-            },
-            body: JSON.stringify({
-                rank_number: newRankNumber,
-                rank_type: newRankType,
-                last_name: newLastName,
-                member_id: null, // backend will generate this
-                first_name: newFirstName,
-                zekken_text: newZekkenText
-            })
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${user.access_token}`
+                },
+                body: JSON.stringify({
+                    rank_number: newRankNumber,
+                    rank_type: newRankType,
+                    last_name: newLastName,
+                    member_id: null, // backend will generate this
+                    first_name: newFirstName,
+                    zekken_text: newZekkenText
+                })
             });
 
             if (!response.ok) {
-            throw new Error(`Server returned ${response.status}`);
+                throw new Error(`Server returned ${response.status}`);
             }
 
             const data = await response.json();
