@@ -346,7 +346,7 @@
             members.sort(compareRank);
 
             const slips = [];
-            let curRank = 100;
+            let curRank = null;
 
             for (const member of members) {
                 const memberId = member['member_id'];
@@ -356,7 +356,7 @@
                 const lastName = member['last_name'];
                 const zekkenText = member['zekken_text'];
 
-                if (curRank !== rankToNum(rankNum, rankType)) {
+                if (curRank == null || curRank !== rankToNum(rankNum, rankType)) {
                     const rankSlip = await generateSlip(rankToKanji(rankNum, rankType), formatRank(rankNum, rankType), -1);
                     slips.push(rankSlip);
                     curRank = rankToNum(rankNum, rankType);
