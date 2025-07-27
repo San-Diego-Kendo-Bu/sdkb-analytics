@@ -102,57 +102,6 @@ async function generateSlip(frontText, backText, memberId) {
     return nafuda;
 }
 
-function rankToKanji(num, type) {
-    if(type === 'shihan') return '師範';
-    
-    // testing
-    var nums;
-    if(type === 'dan') nums = ['無','初','二','三','四','五','六','七','八'];
-    else nums = ['無','一','二','三','四','五','六','七','八'];
-    const types = {'kyu':'級','dan':'段'};
-
-    return `${nums[num]}${types[type]}`;
-}
-
-async function renderTable() {
-    try {
-        const response = await fetch('https://usk4xisdph.execute-api.us-east-2.amazonaws.com/members');
-        if (!response.ok) throw new Error(`HTTP error ${response.status}`);
-
-        const data = await response.json();
-        members = data.items;
-        members.sort(compareRank);
-
-        const slips = [];
-        let curRank = null;
-
-        for (const member of members) {
-            const memberId = member['member_id'];
-            const rankNum = member['rank_number'];
-            const rankType = member['rank_type'];
-            const firstName = member['first_name'];
-            const lastName = member['last_name'];
-            const zekkenText = member['zekken_text'];
-
-            if (curRank == null || curRank !== rankToNum(rankNum, rankType)) {
-                const rankSlip = await generateSlip(rankToKanji(rankNum, rankType), formatRank(rankNum, rankType), -1);
-                slips.push(rankSlip);
-                curRank = rankToNum(rankNum, rankType);
-            }
-
-            const memberSlip = await generateSlip(zekkenText, formatName(firstName, lastName), memberId);
-            slips.push(memberSlip);
-        }
-
-        const shelf = document.getElementById('shelf');
-        slips.reverse();
-        slips.forEach(slip => shelf.appendChild(slip));
-
-    } catch (error) {
-        console.error(error);
-    }
-}
-
 function openModal(memberId) {
     for (let i = 0; i < members.length; i++) {
         if(members[i]['member_id'] === memberId) {
