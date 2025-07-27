@@ -268,8 +268,6 @@ document.getElementById('removeButton').addEventListener('click', async () => {
             throw new Error(`Server returned ${response.status}`);
         }
 
-        console.log("✅ Member deleted:", data);
-
         document.getElementById('shelf').innerHTML = '';
         await renderTable();  // ✅ Wait for re-render
         closeModal();         // ✅ Only close after table updated
