@@ -9,10 +9,10 @@
     <p>Processing login...</p>
 
     <script type="module">
-        import { userManager } from "./cognitoManager.js";
+        import { userManager } from "../js/cognitoManager.js";
 
         userManager.signinCallback().then(() => {
-            window.location.href = "index.html";
+            window.location.href = "../index.html";
         }).catch(err => {
             console.error("Signin callback error", err);
         });
