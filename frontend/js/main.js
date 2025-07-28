@@ -1,29 +1,46 @@
 import { userManager} from "./cognitoManager.js";
+import { rankToNum, compareRank, formatName, formatRank, rankToKanji } from "./nafudaTools.js";
 
-function rankToNum(num, type) {
-    if(type === "shihan") return 10;
-    if(type === "dan") return num;
-    if(num === 0) return -10;
-    return -1 * num;
-}
+let selectedMember = null;
+let members = null;
 
-function compareRank(a, b) {
-    const aNum = rankToNum(a['rank_number'], a['rank_type']);
-    const bNum = rankToNum(b['rank_number'], b['rank_type']);
-    if(aNum > bNum) return -1; // higher rank, comes first
-    if(aNum === bNum) return 0; // equal rank
-    return 1; // lower rank, comes second
-}
+async function renderTable() {
+    try {
+        const response = await fetch('https://usk4xisdph.execute-api.us-east-2.amazonaws.com/members');
+        if (!response.ok) throw new Error(`HTTP error ${response.status}`);
 
-function formatName(first, last) {
-    const firstInitial = first?.[0]?.toUpperCase() || '';
-    const lastName = (last || '').toUpperCase();
-    return `${firstInitial}.${lastName}`;
-}
+        const data = await response.json();
+        members = data.items;
+        members.sort(compareRank);
 
-function formatRank(num, type) {
-    if(type === 'shihan') return 'DOJO SHIHAN';
-    return `${num} ${type.toUpperCase()}`;
+        const slips = [];
+        let curRank = null;
+
+        for (const member of members) {
+            const memberId = member['member_id'];
+            const rankNum = member['rank_number'];
+            const rankType = member['rank_type'];
+            const firstName = member['first_name'];
+            const lastName = member['last_name'];
+            const zekkenText = member['zekken_text'];
+
+            if (curRank == null || curRank !== rankToNum(rankNum, rankType)) {
+                const rankSlip = await generateSlip(rankToKanji(rankNum, rankType), formatRank(rankNum, rankType), -1);
+                slips.push(rankSlip);
+                curRank = rankToNum(rankNum, rankType);
+            }
+
+            const memberSlip = await generateSlip(zekkenText, formatName(firstName, lastName), memberId);
+            slips.push(memberSlip);
+        }
+
+        const shelf = document.getElementById('shelf');
+        slips.reverse();
+        slips.forEach(slip => shelf.appendChild(slip));
+
+    } catch (error) {
+        console.error(error);
+    }
 }
 
 async function generateSlip(frontText, backText, memberId) {
@@ -84,61 +101,6 @@ async function generateSlip(frontText, backText, memberId) {
 
     return nafuda;
 }
-
-function rankToKanji(num, type) {
-    if(type === 'shihan') return '師範';
-    
-    // testing
-    var nums;
-    if(type === 'dan') nums = ['無','初','弐','参','四','五','六','七','八'];
-    else nums = ['無','一','二','三','四','五','六','七','八'];
-    const types = {'kyu':'級','dan':'段'};
-
-    return `${nums[num]}${types[type]}`;
-}
-
-let members = null;
-
-async function renderTable() {
-    try {
-        const response = await fetch('https://usk4xisdph.execute-api.us-east-2.amazonaws.com/members');
-        if (!response.ok) throw new Error(`HTTP error ${response.status}`);
-
-        const data = await response.json();
-        members = data.items;
-        members.sort(compareRank);
-
-        const slips = [];
-        let curRank = null;
-
-        for (const member of members) {
-            const memberId = member['member_id'];
-            const rankNum = member['rank_number'];
-            const rankType = member['rank_type'];
-            const firstName = member['first_name'];
-            const lastName = member['last_name'];
-            const zekkenText = member['zekken_text'];
-
-            if (curRank == null || curRank !== rankToNum(rankNum, rankType)) {
-                const rankSlip = await generateSlip(rankToKanji(rankNum, rankType), formatRank(rankNum, rankType), -1);
-                slips.push(rankSlip);
-                curRank = rankToNum(rankNum, rankType);
-            }
-
-            const memberSlip = await generateSlip(zekkenText, formatName(firstName, lastName), memberId);
-            slips.push(memberSlip);
-        }
-
-        const shelf = document.getElementById('shelf');
-        slips.reverse();
-        slips.forEach(slip => shelf.appendChild(slip));
-
-    } catch (error) {
-        console.error(error);
-    }
-}
-
-let selectedMember = null;
 
 function openModal(memberId) {
     for (let i = 0; i < members.length; i++) {
@@ -277,7 +239,6 @@ document.getElementById('removeButton').addEventListener('click', async () => {
         alert("Failed to delete member. Please try again.");
     }
 });
-
 
 document.getElementById('openAddButton').addEventListener('click', ()=> {
     document.getElementById('addForm').style.display = 'flex';
