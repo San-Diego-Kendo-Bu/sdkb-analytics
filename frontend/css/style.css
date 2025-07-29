@@ -1,0 +1,155 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Arial', sans-serif;
+    min-height: 100vh;
+    background-color: #f4f4f4;
+}
+
+.nafuda {
+    width: 70px;
+    height: 300px;
+    perspective: 1000px;
+}
+
+.slip {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    transform-style: preserve-3d;
+    transition: transform 0.6s;
+    background-color: #c79b63;
+    background-image: url("../assets/images/bamboo.png");
+    border: 2px solid #555;
+}
+
+.slip.flipped {
+    transform: rotateY(180deg);
+}
+
+.front, .back {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    backface-visibility: hidden;
+    flex-wrap: wrap;
+    overflow: hidden;
+}
+
+.back {
+    transform: rotateY(180deg);
+}
+
+.kanjiLarge {
+    font-size: 3em;
+    font-weight: bold;
+    color: black;
+}
+
+.kanjiMed {
+    font-size: 2em;
+    font-weight: bold;
+    color: black;
+}
+
+.kanjiSmall {
+    font-size: 1.5em;
+    font-weight: bold;
+    color: black;
+}
+
+.character {
+    font-size: 1.4em;
+    font-weight: bold;
+    color: black;
+}
+
+.front {
+    color: white;
+}
+
+#shelf {
+    display: flex;
+    gap: 5px;
+    padding: 20px;
+    background-color: #f0e6d6;
+    border: 2px solid #aaa;
+    border-radius: 5px;
+    justify-content: center;
+    align-items: flex-end;
+}
+
+.rank {
+    background-image: url("../assets/images/rank.png") !important;
+}
+
+#modalOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.8);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 999;
+}
+
+#modalForm {
+    background: white;
+    padding: 20px 30px;
+    border: 2px solid #333;
+    border-radius: 10px;
+    box-shadow: 0 0 20px rgba(0,0,0,0.3);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-width: 300px;
+}
+
+#modalForm label {
+    display: flex;
+    flex-direction: column;
+    font-size: 0.9em;
+}
+
+#modalForm header{
+    display: flex;
+    gap:20px;
+}
+
+#removeButton{
+    color: red;
+}
+
+.modal-buttons {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 10px;
+}
+
+.formOverlay{
+    background: white;
+    padding: 20px 30px;
+    border: 2px solid #333;
+    border-radius: 10px;
+    box-shadow: 0 0 20px rgba(0,0,0,0.3);
+    display: none;
+    flex-direction: column;
+    gap: 10px;
+    max-width: 300px;
+}
+.formOverlay label{
+    display: flex;
+    flex-direction: column;
+    font-size: 0.9em;
+}
