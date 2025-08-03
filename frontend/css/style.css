@@ -87,6 +87,18 @@ body {
     align-items: flex-end;
 }
 
+.management-button{
+    color:#f0e6d6;
+    background-color: #64390e;
+    cursor: pointer;
+    border-style: none;
+    font-size: 1.0em;
+    width: 200px;
+    height: 40px;
+    border-radius: 5px;
+    font-family:Verdana, Geneva, Tahoma, sans-serif;
+}
+
 .rank {
     background-image: url("../assets/images/rank.png") !important;
 }

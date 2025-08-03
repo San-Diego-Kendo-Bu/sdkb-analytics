@@ -15,7 +15,8 @@
         <button id="signOut" style="margin-left: 70px;" class="sign-in-btn">Sign Out</button>
     </div>
 
-    <div id="shelf"></div>
+    <div id="shelf">
+    </div>
     <div id="modalOverlay">
         <div id="modalForm">
             <header>
@@ -51,8 +52,7 @@
             </div>
         </div>
     </div>
-    
-    <button id="openAddButton">Add Member</button>
+    <button id="openAddButton" class="management-button">ADD MEMBER</button>
     <form id='addForm' class='formOverlay' action='https://usk4xisdph.execute-api.us-east-2.amazonaws.com/members' method='POST'>
         <label for="addFirstName">First Name (Required)</label>
         <input type="text" id="addFirstName" name="first_name" required>
@@ -67,7 +67,6 @@
                 <option value="shihan">Shihan</option>
             </select>
         </div>
-
         <label for="addZekken">Zekken</label>
         <input type="text" id="addZekken" name="zekken_text">
         <div class="modal-buttons">
@@ -75,8 +74,7 @@
             <button id="cancelAddButton" type="button">Cancel</button>
         </div>
     </form>
-
-    <button id="openAddGroupButton">Add Group</button>
+    <button id="openAddGroupButton" class="management-button">ADD GROUP</button>
     <input type="file" id="groupCsvInput" accept=".csv" style="display:none;">
 
 </body>
