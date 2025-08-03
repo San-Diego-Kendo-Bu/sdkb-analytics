@@ -321,8 +321,6 @@ document.getElementById('groupCsvInput').addEventListener('change', async (event
         if (file) {
             // Example: Read the CSV file as text
             const reader = new FileReader();
-            // define response variable
-            const response = null;
 
             reader.onload = async function(e) {
                 const csvText = e.target.result;
@@ -365,7 +363,7 @@ document.getElementById('groupCsvInput').addEventListener('change', async (event
                         }
                     }
 
-                    response = await fetch('https://usk4xisdph.execute-api.us-east-2.amazonaws.com/members', {
+                    const response = await fetch('https://usk4xisdph.execute-api.us-east-2.amazonaws.com/members', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -380,6 +378,10 @@ document.getElementById('groupCsvInput').addEventListener('change', async (event
                             zekken_text: newZekkenText
                         })
                     });
+
+                    if (!response.ok) {
+                        throw new Error(`Server returned ${response.status}`);
+                    }
                 }
             };
             reader.readAsText(file);
