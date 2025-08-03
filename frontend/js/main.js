@@ -383,10 +383,11 @@ document.getElementById('groupCsvInput').addEventListener('change', async (event
                         throw new Error(`Server returned ${response.status}`);
                     }
                 }
+                
+                window.location.reload();
             };
             reader.readAsText(file);
         }
-        window.location.reload();
 
     } catch (err) {
         console.error("❌ Error adding group:", JSON.stringify(err, Object.getOwnPropertyNames(err), 2));
