@@ -243,6 +243,7 @@ document.getElementById('removeButton').addEventListener('click', async () => {
 document.getElementById('openAddButton').addEventListener('click', ()=> {
     document.getElementById('addForm').style.display = 'flex';
 });
+
 document.getElementById('cancelAddButton').addEventListener('click', ()=> {
     document.getElementById('addForm').style.display = 'none';
 });
@@ -296,6 +297,100 @@ document.getElementById('addForm').addEventListener('submit', async function(eve
     } catch (err) {
         console.error("❌ Error adding member:", JSON.stringify(err, Object.getOwnPropertyNames(err), 2));
         alert("Failed to add member. Please check the form and try again.");
+    }
+});
+
+document.getElementById('openAddGroupButton').addEventListener('click', () => {
+    document.getElementById('groupCsvInput').click();
+});
+
+document.getElementById('groupCsvInput').addEventListener('change', async (event) => {
+    try {
+        const user = await userManager.getUser();
+        if (!user || user.expired) {
+            alert("You must be signed in to remove a member.");
+            return;
+        }
+        const file = event.target.files[0];
+        let newFirstName = ''; // idx = 0
+        let newLastName = ''; // idx = 1
+        let newZekkenText = ''; // idx = 2
+        let newRankType = ''; // idx = 3
+        let newRankNumber = null; // idx = 4
+
+        if (file) {
+            // Example: Read the CSV file as text
+            const reader = new FileReader();
+
+            reader.onload = async function(e) {
+                const csvText = e.target.result;
+                // Split into rows
+                const rows = csvText.trim().split('\n');
+                for (let i = 1; i < rows.length; i++) {
+                    const row = rows[i];
+                    const cols = row.split(',');
+
+                    if (cols.length < 5) {
+                        alert(`Error: Row ${i + 1} is missing fields. Each row must have 5 columns.`);
+                        throw new Error(`CSV row ${i + 1} is missing fields`);
+                    }
+                    
+                    for (let j = 0; j < cols.length; j++) {
+                        const col = cols[j].trim();
+                        const idx = j;
+
+                        console.log(`Row: ${i} | Col ${idx}: ${col}`);
+                        if (idx == 0){
+                            newFirstName = col;
+                        } else if (idx == 1) {
+                            newLastName = col;
+                        } else if (idx == 2) {
+                            newZekkenText = col;
+                        } else if (idx == 3) {
+                            newRankType = col;
+                            if (newRankType !== 'shihan' && newRankType !== 'dan' && newRankType !== 'kyu') {
+                                alert(`Error: Invalid rank type "${newRankType}" in row ${i + 1}. Must be "shihan", "dan", or "kyu".`);
+                                throw new Error(`Invalid rank type "${newRankType}" in row ${i + 1}`);
+                            }
+                        } else if (idx == 4) {
+                            newRankNumber = parseInt(col.trim(), 10);
+
+                            if (isNaN(newRankNumber) || newRankNumber < 0 || (newRankType === 'dan' && (newRankNumber <= 0 || newRankNumber > 8)) 
+                                || (newRankType === 'kyu' && (newRankNumber < 0 || newRankNumber > 6))) {
+                                alert(`Error: Invalid rank number "${newRankNumber}" in row ${i + 1}`);
+                                throw new Error(`Invalid rank number "${newRankNumber}" in row ${i + 1}`);
+                            }
+                        }
+                    }
+
+                    const response = await fetch('https://usk4xisdph.execute-api.us-east-2.amazonaws.com/members', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${user.access_token}`
+                        },
+                        body: JSON.stringify({
+                            rank_number: newRankNumber,
+                            rank_type: newRankType,
+                            last_name: newLastName,
+                            member_id: null, // backend will generate this
+                            first_name: newFirstName,
+                            zekken_text: newZekkenText
+                        })
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`Server returned ${response.status}`);
+                    }
+                }
+            };
+            reader.readAsText(file);
+        }
+        window.location.reload();
+
+    } catch (err) {
+        console.error("❌ Error adding group:", JSON.stringify(err, Object.getOwnPropertyNames(err), 2));
+        alert("Failed to add group. Please resubmit .csv file and try again.");
     }
 });
 
