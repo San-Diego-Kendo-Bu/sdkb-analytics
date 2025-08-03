@@ -386,6 +386,8 @@ document.getElementById('groupCsvInput').addEventListener('change', async (event
             };
             reader.readAsText(file);
         }
+        window.location.reload();
+
     } catch (err) {
         console.error("❌ Error adding group:", JSON.stringify(err, Object.getOwnPropertyNames(err), 2));
         alert("Failed to add group. Please resubmit .csv file and try again.");
