@@ -312,11 +312,11 @@ document.getElementById('groupCsvInput').addEventListener('change', async (event
             return;
         }
         const file = event.target.files[0];
-        const newFirstName = ''; // idx = 0
-        const newLastName = ''; // idx = 1
-        const newZekkenText = ''; // idx = 2
-        const newRankType = ''; // idx = 3
-        const newRankNumber = null; // idx = 4
+        let newFirstName = ''; // idx = 0
+        let newLastName = ''; // idx = 1
+        let newZekkenText = ''; // idx = 2
+        let newRankType = ''; // idx = 3
+        let newRankNumber = null; // idx = 4
 
         if (file) {
             // Example: Read the CSV file as text
