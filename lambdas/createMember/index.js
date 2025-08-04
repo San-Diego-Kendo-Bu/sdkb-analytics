@@ -22,12 +22,8 @@ exports.handler = async (event) => {
     };
     const updateResult = await ddb.send(new UpdateCommand(updateParams));
     const newMemberId = updateResult.Attributes.idCounter;
-
     const data = JSON.parse(event.body);
-
     const dedupKey = `${data.first_name.toLowerCase()}#${data.last_name.toLowerCase()}#${data.rank_type.toLowerCase()}#${data.rank_number}#${data.zekken_text}`;
-
-    console.log(`Deduplication key: ${dedupKey}`);
 
     const query = new QueryCommand({
       TableName: 'members',
