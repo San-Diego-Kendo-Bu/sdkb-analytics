@@ -199,7 +199,8 @@ document.getElementById('saveButton').addEventListener('click', async () => {
         document.getElementById('shelf').innerHTML = '';
         await renderTable();  // ✅ WAIT for rendering to complete
 
-        console.log("✅ Save and render complete.");
+        const data = await response.json();
+        console.log("✅ Member added:", data);
 
     } catch (error) {
         console.error("❌ Failed to save or render table:", error);
