@@ -6,7 +6,7 @@ let members = null;
 
 async function renderTable() {
     try {
-        const response = await fetch('https://usk4xisdph.execute-api.us-east-2.amazonaws.com/members');
+        const response = await fetch('https://j5z43ef3j0.execute-api.us-east-2.amazonaws.com/items');
         if (!response.ok) throw new Error(`HTTP error ${response.status}`);
 
         const data = await response.json();
@@ -175,7 +175,7 @@ document.getElementById('saveButton').addEventListener('click', async () => {
         const newRankType = document.getElementById('editRankType').value;
         const newRankNumber = parseInt(document.getElementById('editRankNumber').value, 10);
 
-        const response = await fetch('https://usk4xisdph.execute-api.us-east-2.amazonaws.com/members', {
+        const response = await fetch('https://j5z43ef3j0.execute-api.us-east-2.amazonaws.com/items', {
             method: 'PATCH',
             headers: {
                 'Content-Type': 'application/json',
@@ -215,7 +215,7 @@ document.getElementById('removeButton').addEventListener('click', async () => {
             return;
         }
 
-        const response = await fetch('https://usk4xisdph.execute-api.us-east-2.amazonaws.com/members', {
+        const response = await fetch('https://j5z43ef3j0.execute-api.us-east-2.amazonaws.com/items', {
             method: 'DELETE',
             headers: {
                 'Content-Type': 'application/json',
@@ -265,7 +265,7 @@ document.getElementById('addForm').addEventListener('submit', async function(eve
         const newRankType = document.getElementById('addRankType').value;
         const newRankNumber = parseInt(document.getElementById('addRankNumber').value, 10);
 
-        const response = await fetch('https://usk4xisdph.execute-api.us-east-2.amazonaws.com/members', {
+        const response = await fetch('https://j5z43ef3j0.execute-api.us-east-2.amazonaws.com/items', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -308,7 +308,7 @@ document.getElementById('groupCsvInput').addEventListener('change', async (event
     try {
         const user = await userManager.getUser();
         if (!user || user.expired) {
-            alert("You must be signed in to remove a member.");
+            alert("You must be signed in to add a member.");
             return;
         }
         const file = event.target.files[0];
@@ -363,7 +363,7 @@ document.getElementById('groupCsvInput').addEventListener('change', async (event
                         }
                     }
 
-                    const response = await fetch('https://usk4xisdph.execute-api.us-east-2.amazonaws.com/members', {
+                    const response = await fetch('https://j5z43ef3j0.execute-api.us-east-2.amazonaws.com/items', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
