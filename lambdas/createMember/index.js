@@ -24,6 +24,8 @@ exports.handler = async (event) => {
 
     const data = JSON.parse(event.body);
 
+    const dedupKey = `${data.first_name.toLowerCase()}#${data.last_name.toLowerCase()}#${data.rank_type.toLowerCase()}#${data.rank_number}#${data.zekken_text}`;
+
     const params = {
       TableName: "members",
       Item: {
