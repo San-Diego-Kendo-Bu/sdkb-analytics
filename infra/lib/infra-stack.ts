@@ -119,6 +119,15 @@ export class InfraStack extends Stack {
       resources: ['arn:aws:dynamodb:us-east-2:222575804757:table/members'],
     }));
 
+    modifyMemberLambda.addToRolePolicy(new iam.PolicyStatement({
+      effect: iam.Effect.ALLOW,
+      actions: ['dynamodb:Query'],
+      resources: [
+        'arn:aws:dynamodb:us-east-2:222575804757:table/members',
+        'arn:aws:dynamodb:us-east-2:222575804757:table/members/index/dedup_key-index'
+      ],
+    }));
+
     // Add routes
     httpApi.addRoutes({
       path: '/items',
