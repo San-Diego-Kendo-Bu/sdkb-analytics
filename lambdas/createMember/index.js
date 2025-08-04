@@ -26,6 +26,25 @@ exports.handler = async (event) => {
 
     const dedupKey = `${data.first_name.toLowerCase()}#${data.last_name.toLowerCase()}#${data.rank_type.toLowerCase()}#${data.rank_number}#${data.zekken_text}`;
 
+    const query = new QueryCommand({
+      TableName: 'members',
+      IndexName: 'dedup_key-index',
+      KeyConditionExpression: 'dedup_key = :dedupKey',
+      ExpressionAttributeValues: {
+        ':dedupKey': { S: dedupKey }
+      }
+    });
+
+    const result = await client.send(query);
+
+    if (result.Count > 0) {
+      console.warn(`Duplicate member detected: ${dedupKey}. Skipping insert.`);
+      return {
+        statusCode: 200,
+        body: JSON.stringify({ message: "Duplicate detected. Insert skipped." })
+      };
+    }
+
     const params = {
       TableName: "members",
       Item: {
@@ -34,7 +53,8 @@ exports.handler = async (event) => {
         last_name: data.last_name,
         zekken_text: data.zekken_text,
         rank_number: data.rank_number,
-        rank_type: data.rank_type
+        rank_type: data.rank_type,
+        dedup_key: dedupKey,
       }
     };
 
