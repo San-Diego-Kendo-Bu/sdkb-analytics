@@ -1,6 +1,7 @@
-const { DynamoDBClient, QueryCommand } = require("@aws-sdk/client-dynamodb");
+const { DynamoDBClient} = require("@aws-sdk/client-dynamodb");
 const {
   DynamoDBDocumentClient,
+  QueryCommand,
   PutCommand,
   UpdateCommand
 } = require("@aws-sdk/lib-dynamodb");
@@ -26,19 +27,22 @@ exports.handler = async (event) => {
 
     const dedupKey = `${data.first_name.toLowerCase()}#${data.last_name.toLowerCase()}#${data.rank_type.toLowerCase()}#${data.rank_number}#${data.zekken_text}`;
 
+    console.log(`Deduplication key: ${dedupKey}`);
+
     const query = new QueryCommand({
       TableName: 'members',
       IndexName: 'dedup_key-index',
       KeyConditionExpression: 'dedup_key = :dedupKey',
       ExpressionAttributeValues: {
-        ':dedupKey': { S: dedupKey }
+        ':dedupKey': dedupKey
       }
     });
 
-    const result = await client.send(query);
+    const result = await ddb.send(query);
 
     if (result.Count > 0) {
       console.warn(`Duplicate member detected: ${dedupKey}. Skipping insert.`);
+
       return {
         statusCode: 200,
         body: JSON.stringify({ message: "Duplicate detected. Insert skipped." })
