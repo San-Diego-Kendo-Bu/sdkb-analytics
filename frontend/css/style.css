@@ -153,3 +153,7 @@ body {
     flex-direction: column;
     font-size: 0.9em;
 }
+.slip-row {
+    display: flex;
+    flex-basis:100%;
+}
