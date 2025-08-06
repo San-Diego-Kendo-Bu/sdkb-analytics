@@ -34,13 +34,65 @@ async function renderTable() {
             slips.push(memberSlip);
         }
 
+        const slipWidth = 70;
         const shelf = document.getElementById('shelf');
-        slips.reverse();
-        slips.forEach(slip => shelf.appendChild(slip));
+        const shelfWidth = shelf.clientWidth;
+        const slipsPerRow = Math.max(2,Math.floor(shelfWidth / slipWidth));
+
+        let row = [];
+        const rows = [];
+
+        for (let i = 0; i < slips.length; i++) {
+            const slip  = slips[i];
+            console.log(slip.classList);
+            if(slip.firstChild.classList.contains('rank') && row.length === slipsPerRow - 1) {
+                row.unshift(createEmptySlip());
+                i--;
+            } else {
+                row.unshift(slip);
+            }
+
+            if (row.length === slipsPerRow) {
+                rows.push(row);
+                row = [];
+            }
+        }
+        console.log(rows);
+
+        if (row.length > 0) {
+            while (row.length < slipsPerRow) {
+                row.unshift(createEmptySlip());
+            }
+            rows.push(row);
+        }
+
+        shelf.innerHTML = '';
+        for (const r of rows) {
+            const rowDiv = document.createElement('div');
+            rowDiv.classList.add('slip-row');
+            r.forEach(slip => rowDiv.appendChild(slip));
+            shelf.appendChild(rowDiv);
+        }
 
     } catch (error) {
         console.error(error);
     }
+}
+
+function createEmptySlip() {
+    const nafuda = document.createElement('div');
+    nafuda.className = 'nafuda';
+
+    const slip = document.createElement('div');
+    slip.className = 'slip';
+
+    const front = document.createElement('div');
+    front.className = 'front';
+
+    slip.appendChild(front);
+    nafuda.appendChild(slip);
+
+    return nafuda;
 }
 
 async function generateSlip(frontText, backText, memberId) {
@@ -416,3 +468,4 @@ window.addEventListener('load', async () => {
         console.error("❌ Failed to render table on load:", err);
     }
 });
+
