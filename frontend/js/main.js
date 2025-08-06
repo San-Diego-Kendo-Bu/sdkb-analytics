@@ -133,6 +133,22 @@ function closeModal() {
     selectedMember = null;
 }
 
+document.addEventListener('click', function(event){
+    /**
+     * Check if user has clicked away from the add member dropdown. If they did, then close it if it's open.
+     */
+    const addManagementButton = document.getElementById('addManagementButton');
+    const addMember = document.getElementById('add-member');
+    const csvInput = document.getElementById('groupCsvInput');
+    if(
+        event.target !== addMember && !addMember.contains(event.target) &&
+        event.target !== addManagementButton && !addManagementButton.contains(event.target) &&
+        event.target !==  csvInput && !csvInput.contains(event.target)
+    ){
+        if(addMember.style.display == 'flex') addMember.style.display = 'none';
+    }
+});
+
 document.getElementById("signIn").addEventListener("click", async () => {
     await userManager.signinRedirect();
 });
@@ -238,6 +254,11 @@ document.getElementById('removeButton').addEventListener('click', async () => {
         console.error("❌ Failed to delete member:", error);
         alert("Failed to delete member. Please try again.");
     }
+});
+
+document.getElementById('addManagementButton').addEventListener('click', ()=>{
+    let addMember = document.getElementById('add-member');
+    addMember.style.display = (addMember.style.display == 'flex') ? 'none' : 'flex';
 });
 
 document.getElementById('openAddButton').addEventListener('click', ()=> {
