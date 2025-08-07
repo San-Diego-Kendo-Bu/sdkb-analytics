@@ -87,6 +87,22 @@ body {
     align-items: flex-end;
 }
 
+/* Mobile override: Add this at the end of your CSS file */
+@media (max-width: 600px) {
+    #shelf {
+        flex-direction: column-reverse;
+        align-items: stretch;
+        padding: 5px;
+        gap: 10px;
+    }
+    .nafuda {
+        width: 90vw;
+        height: 40vw;
+        max-width: 98vw;
+        max-height: 60vh;
+    }
+}
+
 .rank {
     background-image: url("../assets/images/rank.png") !important;
 }
