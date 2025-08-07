@@ -6,7 +6,7 @@ let members = null;
 
 async function renderTable() {
     try {
-        const response = await fetch('https://usk4xisdph.execute-api.us-east-2.amazonaws.com/members');
+        const response = await fetch('https://j5z43ef3j0.execute-api.us-east-2.amazonaws.com/items');
         if (!response.ok) throw new Error(`HTTP error ${response.status}`);
 
         const data = await response.json();
@@ -154,7 +154,6 @@ window.addEventListener('DOMContentLoaded', async () => {
         } else {
             console.warn("No user found in session.");
         }
-
         // Force a page refresh to reflect the new state
         window.location.reload();
     });
@@ -181,7 +180,7 @@ window.addEventListener('DOMContentLoaded', async () => {
             const newRankType = document.getElementById('editRankType').value;
             const newRankNumber = parseInt(document.getElementById('editRankNumber').value, 10);
 
-            const response = await fetch('https://usk4xisdph.execute-api.us-east-2.amazonaws.com/members', {
+            const response = await fetch('https://j5z43ef3j0.execute-api.us-east-2.amazonaws.com/items', {
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',
@@ -204,8 +203,9 @@ window.addEventListener('DOMContentLoaded', async () => {
             // Clear and re-render the shelf
             document.getElementById('shelf').innerHTML = '';
             await renderTable();  // ✅ WAIT for rendering to complete
-
-            console.log("✅ Save and render complete.");
+          
+            const data = await response.json();
+            console.log("✅ Member added:", data);
 
         } catch (error) {
             console.error("❌ Failed to save or render table:", error);
@@ -221,7 +221,7 @@ window.addEventListener('DOMContentLoaded', async () => {
                 return;
             }
 
-            const response = await fetch('https://usk4xisdph.execute-api.us-east-2.amazonaws.com/members', {
+            const response = await fetch('https://j5z43ef3j0.execute-api.us-east-2.amazonaws.com/items', {
                 method: 'DELETE',
                 headers: {
                     'Content-Type': 'application/json',
@@ -245,6 +245,7 @@ window.addEventListener('DOMContentLoaded', async () => {
             alert("Failed to delete member. Please try again.");
         }
     });
+
 
     document.getElementById('openAddButton').addEventListener('click', ()=> {
         document.getElementById('addForm').style.display = 'flex';
@@ -296,6 +297,7 @@ window.addEventListener('DOMContentLoaded', async () => {
 
             document.getElementById('shelf').innerHTML = '';
             await renderTable(); // ✅ Wait for table refresh
+
 
             addForm.style.display = 'none';
             addForm.reset();
@@ -369,25 +371,24 @@ window.addEventListener('DOMContentLoaded', async () => {
                             }
                         }
 
-                        const response = await fetch('https://usk4xisdph.execute-api.us-east-2.amazonaws.com/members', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'Authorization': `Bearer ${user.access_token}`
-                            },
-                            body: JSON.stringify({
-                                rank_number: newRankNumber,
-                                rank_type: newRankType,
-                                last_name: newLastName,
-                                member_id: null, // backend will generate this
-                                first_name: newFirstName,
-                                zekken_text: newZekkenText
-                            })
-                        });
+                    const response = await fetch('https://j5z43ef3j0.execute-api.us-east-2.amazonaws.com/items', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${user.access_token}`
+                        },
+                        body: JSON.stringify({
+                            rank_number: newRankNumber,
+                            rank_type: newRankType,
+                            last_name: newLastName,
+                            member_id: null, // backend will generate this
+                            first_name: newFirstName,
+                            zekken_text: newZekkenText
+                        })
+                    });
 
-                        if (!response.ok) {
-                            throw new Error(`Server returned ${response.status}`);
-                        }
+                    if (!response.ok) {
+                        throw new Error(`Server returned ${response.status}`);
                     }
                     
                     window.location.reload();

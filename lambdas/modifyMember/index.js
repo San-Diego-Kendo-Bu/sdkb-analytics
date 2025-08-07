@@ -1,6 +1,7 @@
 const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
 const {
   DynamoDBDocumentClient,
+  QueryCommand,
   UpdateCommand
 } = require("@aws-sdk/lib-dynamodb");
 
@@ -18,6 +19,29 @@ exports.handler = async (event) => {
       return {
         statusCode: 400,
         body: JSON.stringify({ message: "Missing body data." })
+      };
+    }
+
+    const dedupKey = `${data.first_name.toLowerCase()}#${data.last_name.toLowerCase()}#${data.rank_type.toLowerCase()}#${data.rank_number}#${data.zekken_text}`;
+
+    // check if new update results in a duplicate member
+    const query = new QueryCommand({
+      TableName: 'members',
+      IndexName: 'dedup_key-index',
+      KeyConditionExpression: 'dedup_key = :dedupKey',
+      ExpressionAttributeValues: {
+        ':dedupKey': dedupKey
+      }
+    });
+
+    const query_result = await ddb.send(query);
+
+    if (query_result.Count > 0) {
+      console.warn(`Duplicate member detected: ${dedupKey}. Skipping update.`);
+
+      return {
+        statusCode: 200,
+        body: JSON.stringify({ message: "Duplicate detected. Update skipped." })
       };
     }
 

@@ -68,6 +68,7 @@ export class InfraStack extends Stack {
       apiName: 'membersAPI_CDK',
       corsPreflight: {
         allowHeaders: ['*'],
+        exposeHeaders: ['*'],
         allowMethods: [
           apigwv2.CorsHttpMethod.GET,
           apigwv2.CorsHttpMethod.POST,
@@ -82,25 +83,49 @@ export class InfraStack extends Stack {
     getMembersLambda.addToRolePolicy(new iam.PolicyStatement({
       effect: iam.Effect.ALLOW,
       actions: ['dynamodb:Scan'],
-      resources: ['arn:aws:dynamodb:us-east-2:222575804757:table/sdkb'],
+      resources: ['arn:aws:dynamodb:us-east-2:222575804757:table/members'],
     }));
 
     createMemberLambda.addToRolePolicy(new iam.PolicyStatement({
       effect: iam.Effect.ALLOW,
       actions: ['dynamodb:PutItem'],
-      resources: ['arn:aws:dynamodb:us-east-2:222575804757:table/sdkb'],
+      resources: ['arn:aws:dynamodb:us-east-2:222575804757:table/members'],
+    }));
+
+    createMemberLambda.addToRolePolicy(new iam.PolicyStatement({
+      effect: iam.Effect.ALLOW,
+      actions: ['dynamodb:UpdateItem'],
+      resources: ['arn:aws:dynamodb:us-east-2:222575804757:table/appConfigs'],
+    }));
+
+    createMemberLambda.addToRolePolicy(new iam.PolicyStatement({
+      effect: iam.Effect.ALLOW,
+      actions: ['dynamodb:Query'],
+      resources: [
+        'arn:aws:dynamodb:us-east-2:222575804757:table/members',
+        'arn:aws:dynamodb:us-east-2:222575804757:table/members/index/dedup_key-index'
+      ],
     }));
 
     removeMemberLambda.addToRolePolicy(new iam.PolicyStatement({
       effect: iam.Effect.ALLOW,
       actions: ['dynamodb:DeleteItem'],
-      resources: ['arn:aws:dynamodb:us-east-2:222575804757:table/sdkb'],
+      resources: ['arn:aws:dynamodb:us-east-2:222575804757:table/members'],
     }));
 
     modifyMemberLambda.addToRolePolicy(new iam.PolicyStatement({
       effect: iam.Effect.ALLOW,
       actions: ['dynamodb:UpdateItem'],
-      resources: ['arn:aws:dynamodb:us-east-2:222575804757:table/sdkb'],
+      resources: ['arn:aws:dynamodb:us-east-2:222575804757:table/members'],
+    }));
+
+    modifyMemberLambda.addToRolePolicy(new iam.PolicyStatement({
+      effect: iam.Effect.ALLOW,
+      actions: ['dynamodb:Query'],
+      resources: [
+        'arn:aws:dynamodb:us-east-2:222575804757:table/members',
+        'arn:aws:dynamodb:us-east-2:222575804757:table/members/index/dedup_key-index'
+      ],
     }));
 
     // Add routes

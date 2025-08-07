@@ -1,6 +1,7 @@
-const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
+const { DynamoDBClient} = require("@aws-sdk/client-dynamodb");
 const {
   DynamoDBDocumentClient,
+  QueryCommand,
   PutCommand,
   UpdateCommand
 } = require("@aws-sdk/lib-dynamodb");
@@ -21,8 +22,28 @@ exports.handler = async (event) => {
     };
     const updateResult = await ddb.send(new UpdateCommand(updateParams));
     const newMemberId = updateResult.Attributes.idCounter;
-
     const data = JSON.parse(event.body);
+    const dedupKey = `${data.first_name.toLowerCase()}#${data.last_name.toLowerCase()}#${data.rank_type.toLowerCase()}#${data.rank_number}#${data.zekken_text}`;
+
+    const query = new QueryCommand({
+      TableName: 'members',
+      IndexName: 'dedup_key-index',
+      KeyConditionExpression: 'dedup_key = :dedupKey',
+      ExpressionAttributeValues: {
+        ':dedupKey': dedupKey
+      }
+    });
+
+    const result = await ddb.send(query);
+
+    if (result.Count > 0) {
+      console.warn(`Duplicate member detected: ${dedupKey}. Skipping insert.`);
+
+      return {
+        statusCode: 200,
+        body: JSON.stringify({ message: "Duplicate detected. Insert skipped." })
+      };
+    }
 
     const params = {
       TableName: "members",
@@ -32,7 +53,8 @@ exports.handler = async (event) => {
         last_name: data.last_name,
         zekken_text: data.zekken_text,
         rank_number: data.rank_number,
-        rank_type: data.rank_type
+        rank_type: data.rank_type,
+        dedup_key: dedupKey,
       }
     };
 
