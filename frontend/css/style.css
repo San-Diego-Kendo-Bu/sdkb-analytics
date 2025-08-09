@@ -89,7 +89,7 @@ body {
 
 .management-button{
     color:white;
-    background-color: #caa736;
+    background-color: #b8860b;
     cursor: pointer;
     border-style: none;
     font-size: 1.0em;
@@ -100,37 +100,60 @@ body {
 }
 
 @keyframes on-hover {
-    from { background-color: #caa736;}
-    to { background-color: #987c23; }
+    from { background-color: #b8860b;}
+    to { background-color: #936d0d; }
 }
 @keyframes on-hover-exit {
-    from { background-color: #987c23; }
-    to { background-color: #caa736; }
+    from { background-color: #936d0d; }
+    to { background-color: #b8860b; }
 }
 #add-member{
     display: none;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    background-color: #caa736;
+    background-color: #b8860b;
     border-radius: 5px;
     width: 210px;
     height: 98px;
 }
 #add-member button{
     color:white;
-    background-color: #caa736;
+    background-color: #b8860b;
     margin: 4px;
     cursor: pointer;
     border-style: none;
-    font-size: 1.0em;
     border-radius: 5px;
+    font-size: 1.0em;
     width: 200px;
     height: 40px;
     font-family:Verdana, Geneva, Tahoma, sans-serif;
 }
 #add-member :hover{
     animation: on-hover 0.5s forwards;
+}
+
+.add-form-buttons {
+    display: flex;
+}
+.add-form-buttons *{
+    color:white;
+    background-color: #b8860b;
+    font-size: 1.0em;
+    font-family:Verdana, Geneva, Tahoma, sans-serif;
+    border-style: none;
+    border-radius: 20px;
+    width: 40%;
+    height: 30px;
+    cursor: pointer;
+}
+
+#cancelAddButton{
+    color:#b8860b;
+    border-style: solid;
+    border-color: #b8860b;
+    background-color: white;
+    margin-left: auto;
 }
 
 /* Mobile override: Add this at the end of your CSS file */
