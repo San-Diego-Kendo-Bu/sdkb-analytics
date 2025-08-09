@@ -54,11 +54,12 @@
     </div>
     
     <button id="addManagementButton" class="management-button">
-        <img src="./assets/icons/add_person_beige.png" width="50px">
+        <img src="./assets/icons/add_person_white.png" width="50px">
     </button>
     <div id="add-member">
         <button id="openAddButton">ADD MEMBER</button>
         <button id="openAddGroupButton">ADD FROM CSV</button>
+        <input type="file" id="groupCsvInput" accept=".csv" style="display:none;">
     </div>
     
     <form id='addForm' class='formOverlay' action='https://j5z43ef3j0.execute-api.us-east-2.amazonaws.com/items' method='POST'>
@@ -83,8 +84,6 @@
             <button id="cancelAddButton" type="button">Cancel</button>
         </div>
     </form>
-    <input type="file" id="groupCsvInput" accept=".csv" style="display:none;">
-
 </body>
 
 <script type="module" src="js/main.js"></script>

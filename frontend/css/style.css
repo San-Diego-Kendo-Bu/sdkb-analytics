@@ -88,8 +88,8 @@ body {
 }
 
 .management-button{
-    color:#f0e6d6;
-    background-color: #64390e;
+    color:white;
+    background-color: #caa736;
     cursor: pointer;
     border-style: none;
     font-size: 1.0em;
@@ -100,26 +100,27 @@ body {
 }
 
 @keyframes on-hover {
-    from { background-color: #64390e;}
-    to { background-color: #442c0a; }
+    from { background-color: #caa736;}
+    to { background-color: #987c23; }
 }
 @keyframes on-hover-exit {
-    from { background-color: #442c0a; }
-    to { background-color: #64390e; }
+    from { background-color: #987c23; }
+    to { background-color: #caa736; }
 }
 #add-member{
     display: none;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    background-color: #64390e;
+    background-color: #caa736;
     border-radius: 5px;
     width: 210px;
-    height: 90px;
+    height: 98px;
 }
 #add-member button{
-    color:#f0e6d6;
-    background-color: #64390e;
+    color:white;
+    background-color: #caa736;
+    margin: 4px;
     cursor: pointer;
     border-style: none;
     font-size: 1.0em;
