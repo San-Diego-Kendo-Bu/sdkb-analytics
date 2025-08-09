@@ -87,6 +87,51 @@ body {
     align-items: flex-end;
 }
 
+.management-button{
+    color:#f0e6d6;
+    background-color: #64390e;
+    cursor: pointer;
+    border-style: none;
+    font-size: 1.0em;
+    width: 70px;
+    height: 50px;
+    border-radius: 5px;
+    font-family:Verdana, Geneva, Tahoma, sans-serif;
+}
+
+@keyframes on-hover {
+    from { background-color: #64390e;}
+    to { background-color: #442c0a; }
+}
+@keyframes on-hover-exit {
+    from { background-color: #442c0a; }
+    to { background-color: #64390e; }
+}
+#add-member{
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background-color: #64390e;
+    border-radius: 5px;
+    width: 210px;
+    height: 90px;
+}
+#add-member button{
+    color:#f0e6d6;
+    background-color: #64390e;
+    cursor: pointer;
+    border-style: none;
+    font-size: 1.0em;
+    border-radius: 5px;
+    width: 200px;
+    height: 40px;
+    font-family:Verdana, Geneva, Tahoma, sans-serif;
+}
+#add-member :hover{
+    animation: on-hover 0.5s forwards;
+}
+
 /* Mobile override: Add this at the end of your CSS file */
 @media (max-width: 600px) {
     #shelf {

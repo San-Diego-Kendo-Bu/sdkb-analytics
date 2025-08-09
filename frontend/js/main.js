@@ -133,6 +133,22 @@ function closeModal() {
     selectedMember = null;
 }
 
+document.addEventListener('click', function(event){
+    /**
+     * Check if user has clicked away from the add member dropdown. If they did, then close it if it's open.
+     */
+    const addManagementButton = document.getElementById('addManagementButton');
+    const addMember = document.getElementById('add-member');
+    const csvInput = document.getElementById('groupCsvInput');
+    if(
+        event.target !== addMember && !addMember.contains(event.target) &&
+        event.target !== addManagementButton && !addManagementButton.contains(event.target) &&
+        event.target !==  csvInput && !csvInput.contains(event.target)
+    ){
+        if(addMember.style.display == 'flex') addMember.style.display = 'none';
+    }
+});
+
 window.addEventListener('DOMContentLoaded', async () => {
     try {
         await renderTable();  // ✅ Properly waits for table to render
@@ -246,7 +262,11 @@ window.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
-
+    document.getElementById('addManagementButton').addEventListener('click', ()=>{
+        let addMember = document.getElementById('add-member');
+        addMember.style.display = (addMember.style.display == 'flex') ? 'none' : 'flex';
+    });
+    
     document.getElementById('openAddButton').addEventListener('click', ()=> {
         document.getElementById('addForm').style.display = 'flex';
     });
@@ -395,8 +415,7 @@ window.addEventListener('DOMContentLoaded', async () => {
                 };
                 reader.readAsText(file);
             }
-
-        } catch (err) {
+        } } catch (err) {
             console.error("❌ Error adding group:", JSON.stringify(err, Object.getOwnPropertyNames(err), 2));
             alert("Failed to add group. Please resubmit .csv file and try again.");
         }
