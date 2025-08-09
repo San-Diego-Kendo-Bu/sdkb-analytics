@@ -10,6 +10,29 @@ body {
     background-color: #f4f4f4;
 }
 
+.top-bar{
+    display: flex; 
+    align-items: center;
+}
+
+.top-bar button{
+    width: 60px;
+    height: 30px;
+    background-color: white;
+    border-style: solid;
+    border-radius: 20px;
+    cursor: pointer;
+}
+
+#signIn{
+    border-color: #1a1a2e;
+    color: #1a1a2e;
+}
+#signOut{
+    border-color: #d32f2f;
+    color: #d32f2f;
+}
+
 .nafuda {
     width: 70px;
     height: 300px;
