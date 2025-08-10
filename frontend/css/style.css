@@ -110,18 +110,6 @@ body {
     align-items: flex-end;
 }
 
-.management-button{
-    color:white;
-    background-color: #b8860b;
-    cursor: pointer;
-    border-style: none;
-    font-size: 1.0em;
-    width: 70px;
-    height: 50px;
-    border-radius: 5px;
-    font-family:Verdana, Geneva, Tahoma, sans-serif;
-}
-
 @keyframes on-hover {
     from { background-color: #b8860b;}
     to { background-color: #936d0d; }
@@ -130,6 +118,7 @@ body {
     from { background-color: #936d0d; }
     to { background-color: #b8860b; }
 }
+
 #add-member{
     display: none;
     flex-direction: column;
@@ -140,6 +129,7 @@ body {
     width: 210px;
     height: 98px;
 }
+
 #add-member button{
     color:white;
     background-color: #b8860b;
@@ -152,6 +142,7 @@ body {
     height: 40px;
     font-family:Verdana, Geneva, Tahoma, sans-serif;
 }
+
 #add-member :hover{
     animation: on-hover 0.5s forwards;
 }
@@ -177,6 +168,18 @@ body {
     border-color: #b8860b;
     background-color: white;
     margin-left: auto;
+}
+
+#addDropdownButton{
+    color:white;
+    background-color: #b8860b;
+    cursor: pointer;
+    border-style: none;
+    font-size: 1.0em;
+    width: 70px;
+    height: 50px;
+    border-radius: 5px;
+    font-family:Verdana, Geneva, Tahoma, sans-serif;
 }
 
 /* Mobile override: Add this at the end of your CSS file */

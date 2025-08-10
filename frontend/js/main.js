@@ -137,12 +137,12 @@ document.addEventListener('click', function(event){
     /**
      * Check if user has clicked away from the add member dropdown. If they did, then close it if it's open.
      */
-    const addManagementButton = document.getElementById('addManagementButton');
+    const addDropdownButton = document.getElementById('addDropdownButton');
     const addMember = document.getElementById('add-member');
     const csvInput = document.getElementById('groupCsvInput');
     if(
         event.target !== addMember && !addMember.contains(event.target) &&
-        event.target !== addManagementButton && !addManagementButton.contains(event.target) &&
+        event.target !== addDropdownButton && !addDropdownButton.contains(event.target) &&
         event.target !==  csvInput && !csvInput.contains(event.target)
     ){
         if(addMember.style.display == 'flex') addMember.style.display = 'none';
@@ -262,7 +262,7 @@ window.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
-    document.getElementById('addManagementButton').addEventListener('click', ()=>{
+    document.getElementById('addDropdownButton').addEventListener('click', ()=>{
         let addMember = document.getElementById('add-member');
         addMember.style.display = (addMember.style.display == 'flex') ? 'none' : 'flex';
     });
@@ -391,31 +391,32 @@ window.addEventListener('DOMContentLoaded', async () => {
                             }
                         }
 
-                    const response = await fetch('https://j5z43ef3j0.execute-api.us-east-2.amazonaws.com/items', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${user.access_token}`
-                        },
-                        body: JSON.stringify({
-                            rank_number: newRankNumber,
-                            rank_type: newRankType,
-                            last_name: newLastName,
-                            member_id: null, // backend will generate this
-                            first_name: newFirstName,
-                            zekken_text: newZekkenText
-                        })
-                    });
+                        const response = await fetch('https://j5z43ef3j0.execute-api.us-east-2.amazonaws.com/items', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${user.access_token}`
+                            },
+                            body: JSON.stringify({
+                                rank_number: newRankNumber,
+                                rank_type: newRankType,
+                                last_name: newLastName,
+                                member_id: null, // backend will generate this
+                                first_name: newFirstName,
+                                zekken_text: newZekkenText
+                            })
+                        });
 
-                    if (!response.ok) {
-                        throw new Error(`Server returned ${response.status}`);
-                    }
+                        if (!response.ok) {
+                            throw new Error(`Server returned ${response.status}`);
+                        }
                     
-                    window.location.reload();
-                };
-                reader.readAsText(file);
-            }
-        } } catch (err) {
+                        window.location.reload();
+                    };
+                    reader.readAsText(file);
+                }
+            } 
+        } catch (err) {
             console.error("❌ Error adding group:", JSON.stringify(err, Object.getOwnPropertyNames(err), 2));
             alert("Failed to add group. Please resubmit .csv file and try again.");
         }
