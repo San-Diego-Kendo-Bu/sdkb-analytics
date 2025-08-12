@@ -331,7 +331,7 @@ window.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('openAddGroupButton').addEventListener('click', () => {
         document.getElementById('groupCsvInput').click();
     });
-
+    
     document.getElementById('groupCsvInput').addEventListener('change', async (event) => {
         try {
             const user = await userManager.getUser();
@@ -412,9 +412,10 @@ window.addEventListener('DOMContentLoaded', async () => {
                         }
                     
                         window.location.reload();
-                    };
-                    reader.readAsText(file);
-                }
+                    }
+                };
+                
+                reader.readAsText(file);
             } 
         } catch (err) {
             console.error("❌ Error adding group:", JSON.stringify(err, Object.getOwnPropertyNames(err), 2));
