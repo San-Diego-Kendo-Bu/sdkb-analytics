@@ -2,13 +2,16 @@ import { Stack, StackProps, CfnOutput } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as path from 'path';
+import * as fs from 'fs';
 
 import * as apigwv2 from 'aws-cdk-lib/aws-apigatewayv2';
 import * as integrations from 'aws-cdk-lib/aws-apigatewayv2-integrations';
+import * as cloudfront from 'aws-cdk-lib/aws-cloudfront';
 
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as s3deploy from 'aws-cdk-lib/aws-s3-deployment';
+import { Duration } from 'aws-cdk-lib';
 
 import { UserPool, UserPoolClient } from 'aws-cdk-lib/aws-cognito';
 import { HttpUserPoolAuthorizer } from 'aws-cdk-lib/aws-apigatewayv2-authorizers';
@@ -19,6 +22,12 @@ export class InfraStack extends Stack {
 
     // Import existing bucket
     const siteBucket = s3.Bucket.fromBucketName(this, 'ExistingBucket', 'nafudakake');
+    const frontendDir = path.join(__dirname, '../../frontend');
+
+    const distribution = cloudfront.Distribution.fromDistributionAttributes(this, 'ImportedDist', {
+      distributionId: 'E2BATTQHTLXB4Y',                 // ← find in console/CLI
+      domainName: 'd3j7mmciz70vi1.cloudfront.net',      // NOT your custom alias
+    });
 
     // Import existing user pool and app client
     const userPool = UserPool.fromUserPoolId(this, 'UserPool', 'us-east-2_pOKlRyKnT');
@@ -28,10 +37,48 @@ export class InfraStack extends Stack {
       userPoolClients: [userPoolClient],
     });
 
-    // Deploy frontend/index.html to the bucket
-    new s3deploy.BucketDeployment(this, 'DeployFrontend', {
-      sources: [s3deploy.Source.asset(path.join(__dirname, '../../frontend'))],
+    // Long-cache everything EXCEPT index.html and JS
+    new s3deploy.BucketDeployment(this, 'AssetsLongCache', {
+      sources: [s3deploy.Source.asset(frontendDir, { exclude: ['index.html', 'js/**'] })],
       destinationBucket: siteBucket,
+      prune: false,
+      cacheControl: [
+        s3deploy.CacheControl.maxAge(Duration.days(365)),
+        s3deploy.CacheControl.immutable(),
+      ],
+    });
+
+    // No-cache ALL JS (covers main.js and its imports)
+    new s3deploy.BucketDeployment(this, 'JSNoCache', {
+      sources: [ s3deploy.Source.asset(path.join(frontendDir, 'js')) ],
+      destinationBucket: siteBucket,
+      destinationKeyPrefix: 'js',  // ensures keys are js/<file>
+      prune: false,
+      cacheControl: [
+        s3deploy.CacheControl.noCache(),
+        s3deploy.CacheControl.noStore(),
+        s3deploy.CacheControl.mustRevalidate(),
+      ],
+    });
+
+    // No-cache index.html
+    new s3deploy.BucketDeployment(this, 'IndexNoCache', {
+      sources: [
+        s3deploy.Source.data(
+          'index.html',
+          fs.readFileSync(path.join(frontendDir, 'index.html'), 'utf8')
+        ),
+      ],
+      destinationBucket: siteBucket,
+      prune: false,
+      contentType: 'text/html; charset=utf-8',
+      cacheControl: [
+        s3deploy.CacheControl.noCache(),
+        s3deploy.CacheControl.noStore(),
+        s3deploy.CacheControl.mustRevalidate(),
+      ],
+      distribution,
+      distributionPaths: ['/*'],
     });
 
     // Lambda functions
