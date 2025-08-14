@@ -108,6 +108,7 @@ body {
     border-radius: 5px;
     justify-content: center;
     align-items: flex-end;
+    flex-wrap: wrap;
 }
 
 @keyframes on-hover {
@@ -268,3 +269,4 @@ body {
     display: flex;
     flex-basis:100%;
 }
+
