@@ -209,11 +209,21 @@ window.addEventListener('DOMContentLoaded', async () => {
         console.error("❌ Failed to render table on load:", err);
     }
 
-    document.getElementById("signIn").addEventListener("click", async () => {
+    const user = await userManager.getUser();
+    
+    const addDropdownButton = document.getElementById('addDropdownButton');
+    const signOut = document.getElementById('signOut');
+    const signIn = document.getElementById("signIn");
+
+    addDropdownButton.style.display = (user && !user.expired) ? "inline" : "none";
+    signOut.style.display = (user && !user.expired) ? "inline" : "none";
+    signIn.style.display = (user && !user.expired) ? "none" : "inline";
+    
+    signIn.addEventListener("click", async () => {
         await userManager.signinRedirect();
     });
 
-    document.getElementById("signOut").addEventListener("click", async () => {
+    signOut.addEventListener("click", async () => {
         const user = await userManager.getUser();
         if (user) {
             console.log("Logging out user:", user);
