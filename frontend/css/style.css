@@ -171,9 +171,9 @@ body {
 }
 
 #addDropdownButton{
-    display: none;
+    /*display: inline;*/
     color:white;
-    background-color: #b8860b;
+    /*background-color: #b8860b;*/
     cursor: pointer;
     border-style: none;
     font-size: 1.0em;
