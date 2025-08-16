@@ -171,6 +171,7 @@ body {
 }
 
 #addDropdownButton{
+    display: none;
     color:white;
     background-color: #b8860b;
     cursor: pointer;

@@ -262,6 +262,11 @@ window.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
+    const user = await userManager.getUser();
+    if (user && !user.expired) {
+        document.getElementById('addDropdownButton').style.display = "inline";
+    }
+
     document.getElementById('addDropdownButton').addEventListener('click', ()=>{
         let addMember = document.getElementById('add-member');
         addMember.style.display = (addMember.style.display == 'flex') ? 'none' : 'flex';
