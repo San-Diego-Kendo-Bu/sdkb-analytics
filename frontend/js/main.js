@@ -156,7 +156,16 @@ window.addEventListener('DOMContentLoaded', async () => {
     } catch (err) {
         console.error("❌ Failed to render table on load:", err);
     }
-
+    const user = await userManager.getUser();
+    if (user && !user.expired) {
+        document.getElementById('addDropdownButton').style.display = "inline";
+        document.getElementById("signOut").style.display = "inline";
+        document.getElementById("signIn").style.display = "none";
+    }else{
+        document.getElementById('addDropdownButton').style.display = "none";
+        document.getElementById("signOut").style.display = "none";
+        document.getElementById("signIn").style.display = "inline";
+    }
     document.getElementById("signIn").addEventListener("click", async () => {
         await userManager.signinRedirect();
     });
@@ -261,11 +270,6 @@ window.addEventListener('DOMContentLoaded', async () => {
             alert("Failed to delete member. Please try again.");
         }
     });
-
-    const user = await userManager.getUser();
-    if (user && !user.expired) {
-        document.getElementById('addDropdownButton').style.display = "inline";
-    }
 
     document.getElementById('addDropdownButton').addEventListener('click', ()=>{
         let addMember = document.getElementById('add-member');
