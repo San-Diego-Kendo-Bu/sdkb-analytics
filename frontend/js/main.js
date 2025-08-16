@@ -156,21 +156,22 @@ window.addEventListener('DOMContentLoaded', async () => {
     } catch (err) {
         console.error("❌ Failed to render table on load:", err);
     }
+
     const user = await userManager.getUser();
-    if (user && !user.expired) {
-        document.getElementById('addDropdownButton').style.display = "inline";
-        document.getElementById("signOut").style.display = "inline";
-        document.getElementById("signIn").style.display = "none";
-    }else{
-        document.getElementById('addDropdownButton').style.display = "none";
-        document.getElementById("signOut").style.display = "none";
-        document.getElementById("signIn").style.display = "inline";
-    }
-    document.getElementById("signIn").addEventListener("click", async () => {
+    
+    const addDropdownButton = document.getElementById('addDropdownButton');
+    const signOut = document.getElementById('signOut');
+    const signIn = document.getElementById("signIn");
+
+    addDropdownButton.style.display = (user && !user.expired) ? "inline" : "none";
+    signOut.style.display = (user && !user.expired) ? "inline" : "none";
+    signIn.style.display = (user && !user.expired) ? "none" : "inline";
+    
+    signIn.addEventListener("click", async () => {
         await userManager.signinRedirect();
     });
 
-    document.getElementById("signOut").addEventListener("click", async () => {
+    signOut.addEventListener("click", async () => {
         const user = await userManager.getUser();
         if (user) {
             console.log("Logging out user:", user);
