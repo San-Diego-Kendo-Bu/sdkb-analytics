@@ -39,7 +39,7 @@ export class InfraStack extends Stack {
 
     // Long-cache everything EXCEPT index.html and JS
     new s3deploy.BucketDeployment(this, 'AssetsLongCache', {
-      sources: [s3deploy.Source.asset(frontendDir, { exclude: ['index.html', 'js/**'] })],
+      sources: [s3deploy.Source.asset(frontendDir, { exclude: ['index.html', 'js/**', 'css/**'] })],
       destinationBucket: siteBucket,
       prune: false,
       cacheControl: [
@@ -53,6 +53,19 @@ export class InfraStack extends Stack {
       sources: [ s3deploy.Source.asset(path.join(frontendDir, 'js')) ],
       destinationBucket: siteBucket,
       destinationKeyPrefix: 'js',  // ensures keys are js/<file>
+      prune: false,
+      cacheControl: [
+        s3deploy.CacheControl.noCache(),
+        s3deploy.CacheControl.noStore(),
+        s3deploy.CacheControl.mustRevalidate(),
+      ],
+    });
+
+    // No-cache ALL CSS (covers main.js and its imports)
+    new s3deploy.BucketDeployment(this, 'CSSSNoCache', {
+      sources: [ s3deploy.Source.asset(path.join(frontendDir, 'css')) ],
+      destinationBucket: siteBucket,
+      destinationKeyPrefix: 'css',  // ensures keys are css/<file>
       prune: false,
       cacheControl: [
         s3deploy.CacheControl.noCache(),
