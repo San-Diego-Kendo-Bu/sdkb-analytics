@@ -59,6 +59,8 @@ export class InfraStack extends Stack {
         s3deploy.CacheControl.noStore(),
         s3deploy.CacheControl.mustRevalidate(),
       ],
+      distribution,
+      distributionPaths: ['/js/*'],
     });
 
     // No-cache ALL CSS (covers main.js and its imports)
@@ -72,6 +74,8 @@ export class InfraStack extends Stack {
         s3deploy.CacheControl.noStore(),
         s3deploy.CacheControl.mustRevalidate(),
       ],
+      distribution,
+      distributionPaths: ['/css/*'],
     });
 
     // No-cache index.html
