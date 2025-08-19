@@ -167,6 +167,7 @@ function openModal(memberId) {
     document.getElementById('editZekken').value = selectedMember.zekken_text || '';
     document.getElementById('editRankType').value = selectedMember.rank_type || 'dan';
     document.getElementById('editRankNumber').value = selectedMember.rank_number || 0;
+    document.getElementById('editEmail').value = selectedMember.email || '';
     document.getElementById('modalOverlay').style.display = 'flex';
 
     let rankNumberInput = document.getElementById('editRankNumber');
@@ -216,7 +217,7 @@ window.addEventListener('DOMContentLoaded', async () => {
     const signIn = document.getElementById("signIn");
 
     addDropdownButton.style.display = (user && !user.expired) ? "inline" : "none";
-    signOut.style.display = (user && !user.expired) ? "inline" : "none";
+    signOut.style.display = (user && !user.expiredc) ? "inline" : "none";
     signIn.style.display = (user && !user.expired) ? "none" : "inline";
     
     signIn.addEventListener("click", async () => {
@@ -257,6 +258,7 @@ window.addEventListener('DOMContentLoaded', async () => {
             const newZekkenText = document.getElementById('editZekken').value;
             const newRankType = document.getElementById('editRankType').value;
             const newRankNumber = parseInt(document.getElementById('editRankNumber').value, 10);
+            const newEmail = document.getElementById('editEmail').value;
 
             const response = await fetch('https://j5z43ef3j0.execute-api.us-east-2.amazonaws.com/items', {
                 method: 'PATCH',
@@ -270,7 +272,8 @@ window.addEventListener('DOMContentLoaded', async () => {
                     last_name: newLastName,
                     member_id: selectedMember['member_id'],
                     first_name: newFirstName,
-                    zekken_text: newZekkenText
+                    zekken_text: newZekkenText,
+                    email: newEmail,
                 })
             });
 
@@ -353,6 +356,7 @@ window.addEventListener('DOMContentLoaded', async () => {
             const newZekkenText = document.getElementById('addZekken').value;
             const newRankType = document.getElementById('addRankType').value;
             const newRankNumber = parseInt(document.getElementById('addRankNumber').value, 10);
+            const newEmail = document.getElementById('addEmail').value;
 
             const response = await fetch('https://usk4xisdph.execute-api.us-east-2.amazonaws.com/members', {
                 method: 'POST',
@@ -366,7 +370,8 @@ window.addEventListener('DOMContentLoaded', async () => {
                     last_name: newLastName,
                     member_id: null, // backend will generate this
                     first_name: newFirstName,
-                    zekken_text: newZekkenText
+                    zekken_text: newZekkenText,
+                    email: newEmail
                 })
             });
 
@@ -407,6 +412,7 @@ window.addEventListener('DOMContentLoaded', async () => {
             let newZekkenText = ''; // idx = 2
             let newRankType = ''; // idx = 3
             let newRankNumber = null; // idx = 4
+            let newEmail = ''; // idx = 5
 
             if (file) {
                 // Example: Read the CSV file as text
@@ -450,6 +456,8 @@ window.addEventListener('DOMContentLoaded', async () => {
                                     alert(`Error: Invalid rank number "${newRankNumber}" in row ${i + 1}`);
                                     throw new Error(`Invalid rank number "${newRankNumber}" in row ${i + 1}`);
                                 }
+                            } else if (idx == 5) {
+                                newEmail = col;
                             }
                         }
 
@@ -465,7 +473,8 @@ window.addEventListener('DOMContentLoaded', async () => {
                                 last_name: newLastName,
                                 member_id: null, // backend will generate this
                                 first_name: newFirstName,
-                                zekken_text: newZekkenText
+                                zekken_text: newZekkenText,
+                                email: newEmail
                             })
                         });
 
