@@ -217,7 +217,7 @@ window.addEventListener('DOMContentLoaded', async () => {
     const signIn = document.getElementById("signIn");
 
     addDropdownButton.style.display = (user && !user.expired) ? "inline" : "none";
-    signOut.style.display = (user && !user.expiredc) ? "inline" : "none";
+    signOut.style.display = (user && !user.expired) ? "inline" : "none";
     signIn.style.display = (user && !user.expired) ? "none" : "inline";
     
     signIn.addEventListener("click", async () => {
@@ -398,7 +398,7 @@ window.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('openAddGroupButton').addEventListener('click', () => {
         document.getElementById('groupCsvInput').click();
     });
-    
+
     document.getElementById('groupCsvInput').addEventListener('change', async (event) => {
         try {
             const user = await userManager.getUser();
