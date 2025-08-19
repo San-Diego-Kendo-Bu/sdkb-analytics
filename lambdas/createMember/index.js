@@ -54,6 +54,7 @@ exports.handler = async (event) => {
         zekken_text: data.zekken_text,
         rank_number: data.rank_number,
         rank_type: data.rank_type,
+        email: data.email,
         dedup_key: dedupKey,
       }
     };
