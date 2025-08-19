@@ -97,8 +97,8 @@ function createEmptySlip() {
 
 async function generateSlip(frontText, backText, memberId) {
 
-    frontText = frontText.replace(/\./g, '·').replace(/ /g, '\u00A0').replace(/一/g, '|');
-    backText = backText.replace(/\./g, '·').replace(/ /g, '\u00A0').replace(/一/g, '|');
+    frontText = frontText.replace(/\./g, '·').replace(/ /g, '\u00A0').replace(/ー/g, '|');
+    backText = backText.replace(/\./g, '·').replace(/ /g, '\u00A0').replace(/ー/g, '|');
     const user = await userManager.getUser();
 
     const nafuda = document.createElement('div');
