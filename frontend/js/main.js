@@ -358,7 +358,7 @@ window.addEventListener('DOMContentLoaded', async () => {
             const newRankNumber = parseInt(document.getElementById('addRankNumber').value, 10);
             const newEmail = document.getElementById('addEmail').value;
 
-            const response = await fetch('https://usk4xisdph.execute-api.us-east-2.amazonaws.com/members', {
+            const response = await fetch('https://j5z43ef3j0.execute-api.us-east-2.amazonaws.com/items', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
