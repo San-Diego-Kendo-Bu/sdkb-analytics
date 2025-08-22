@@ -37,6 +37,7 @@ body {
     width: 70px;
     height: 300px;
     perspective: 1000px;
+    transform: translateZ(0);
 }
 
 .slip {
@@ -44,10 +45,11 @@ body {
     height: 100%;
     position: relative;
     transform-style: preserve-3d;
-    transition: transform 0.6s;
+    transition: transform 0.6s ease-in-out;
     background-color: #c79b63;
     background-image: url("../assets/images/bamboo.png");
     border: 2px solid #555;
+    will-change: transform;
 }
 
 .slip.flipped {
@@ -65,6 +67,7 @@ body {
     backface-visibility: hidden;
     flex-wrap: wrap;
     overflow: hidden;
+    transform: translateZ(0);
 }
 
 .back {
@@ -172,78 +175,6 @@ body {
 }
 
 #addDropdownButton{
-    color:white;
-    background-color: #b8860b;
-    cursor: pointer;
-    border-style: none;
-    font-size: 1.0em;
-    width: 70px;
-    height: 50px;
-    border-radius: 5px;
-    font-family:Verdana, Geneva, Tahoma, sans-serif;
-}
-
-@keyframes on-hover {
-    from { background-color: #b8860b;}
-    to { background-color: #936d0d; }
-}
-@keyframes on-hover-exit {
-    from { background-color: #936d0d; }
-    to { background-color: #b8860b; }
-}
-
-#add-member{
-    display: none;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    background-color: #b8860b;
-    border-radius: 5px;
-    width: 210px;
-    height: 98px;
-}
-
-#add-member button{
-    color:white;
-    background-color: #b8860b;
-    margin: 4px;
-    cursor: pointer;
-    border-style: none;
-    border-radius: 5px;
-    font-size: 1.0em;
-    width: 200px;
-    height: 40px;
-    font-family:Verdana, Geneva, Tahoma, sans-serif;
-}
-
-#add-member :hover{
-    animation: on-hover 0.5s forwards;
-}
-
-.add-form-buttons {
-    display: flex;
-}
-.add-form-buttons *{
-    color:white;
-    background-color: #b8860b;
-    font-size: 1.0em;
-    font-family:Verdana, Geneva, Tahoma, sans-serif;
-    border-style: none;
-    border-radius: 20px;
-    width: 40%;
-    height: 30px;
-    cursor: pointer;
-}
-
-#cancelAddButton{
-    color:#b8860b;
-    border-style: solid;
-    border-color: #b8860b;
-    background-color: white;
-    margin-left: auto;
-}
-
-#addDropdownButton{
     /*display: inline;*/
     color:white;
     /*background-color: #b8860b;*/
@@ -254,22 +185,6 @@ body {
     height: 50px;
     border-radius: 5px;
     font-family:Verdana, Geneva, Tahoma, sans-serif;
-}
-
-/* Mobile override: Add this at the end of your CSS file */
-@media (max-width: 600px) {
-    #shelf {
-        flex-direction: column-reverse;
-        align-items: stretch;
-        padding: 5px;
-        gap: 10px;
-    }
-    .nafuda {
-        width: 90vw;
-        height: 40vw;
-        max-width: 98vw;
-        max-height: 60vh;
-    }
 }
 
 .rank {
@@ -341,5 +256,21 @@ body {
 .slip-row {
     display: flex;
     flex-basis:100%;
+}
+
+/* Mobile override: Add this at the end of your CSS file */
+@media (max-width: 600px) {
+    #shelf {
+        flex-direction: column-reverse;
+        align-items: stretch;
+        padding: 5px;
+        gap: 10px;
+    }
+    .nafuda {
+        width: 90vw;
+        height: 40vw;
+        max-width: 98vw;
+        max-height: 60vh;
+    }
 }
 
