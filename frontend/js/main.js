@@ -3,6 +3,7 @@ import { rankToNum, compareRank, formatName, formatRank, rankToKanji } from "./n
 
 let selectedMember = null;
 let members = null;
+let renderedSlips = [];
 
 async function renderTable() {
     try {
@@ -34,45 +35,8 @@ async function renderTable() {
             slips.push(memberSlip);
         }
 
-        const slipWidth = 70;
-        const shelf = document.getElementById('shelf');
-        const shelfWidth = shelf.clientWidth;
-        const slipsPerRow = Math.max(2,Math.floor(shelfWidth / slipWidth));
-
-        let row = [];
-        const rows = [];
-
-        for (let i = 0; i < slips.length; i++) {
-            const slip  = slips[i];
-            console.log(slip.classList);
-            if(slip.firstChild.classList.contains('rank') && row.length === slipsPerRow - 1) {
-                row.unshift(createEmptySlip());
-                i--;
-            } else {
-                row.unshift(slip);
-            }
-
-            if (row.length === slipsPerRow) {
-                rows.push(row);
-                row = [];
-            }
-        }
-        console.log(rows);
-
-        if (row.length > 0) {
-            while (row.length < slipsPerRow) {
-                row.unshift(createEmptySlip());
-            }
-            rows.push(row);
-        }
-
-        shelf.innerHTML = '';
-        for (const r of rows) {
-            const rowDiv = document.createElement('div');
-            rowDiv.classList.add('slip-row');
-            r.forEach(slip => rowDiv.appendChild(slip));
-            shelf.appendChild(rowDiv);
-        }
+        renderedSlips = slips;
+        layoutShelf();
 
     } catch (error) {
         console.error(error);
@@ -154,6 +118,54 @@ async function generateSlip(frontText, backText, memberId) {
     return nafuda;
 }
 
+function layoutShelf() {
+    try {
+        if (!renderedSlips || renderedSlips.length === 0) return;
+
+        const slipWidth = 70;
+        const shelf = document.getElementById('shelf');
+        if (!shelf) return;
+
+        const shelfWidth = shelf.clientWidth;
+        const slipsPerRow = Math.max(2, Math.floor(shelfWidth / slipWidth));
+
+        let row = [];
+        const rows = [];
+
+        for (let i = 0; i < renderedSlips.length; i++) {
+            const slip = renderedSlips[i];
+            if (slip.firstChild.classList.contains('rank') && row.length === slipsPerRow - 1) {
+                row.unshift(createEmptySlip());
+                i--;
+            } else {
+                row.unshift(slip);
+            }
+
+            if (row.length === slipsPerRow) {
+                rows.push(row);
+                row = [];
+            }
+        }
+
+        if (row.length > 0) {
+            while (row.length < slipsPerRow) {
+                row.unshift(createEmptySlip());
+            }
+            rows.push(row);
+        }
+
+        shelf.innerHTML = '';
+        for (const r of rows) {
+            const rowDiv = document.createElement('div');
+            rowDiv.classList.add('slip-row');
+            r.forEach(slip => rowDiv.appendChild(slip));
+            shelf.appendChild(rowDiv);
+        }
+    } catch (e) {
+        console.error('Failed to layout shelf:', e);
+    }
+}
+
 function openModal(memberId) {
     for (let i = 0; i < members.length; i++) {
         if(members[i]['member_id'] === memberId) {
@@ -210,6 +222,15 @@ window.addEventListener('DOMContentLoaded', async () => {
         console.error("❌ Failed to render table on load:", err);
     }
 
+    // adjust layout on window resize without refetching data
+    let resizeTimeoutId = null;
+    window.addEventListener('resize', () => {
+        if (resizeTimeoutId) clearTimeout(resizeTimeoutId);
+        resizeTimeoutId = setTimeout(() => {
+            layoutShelf();
+        }, 150);
+    });
+
     const user = await userManager.getUser();
     
     const addDropdownButton = document.getElementById('addDropdownButton');
@@ -233,7 +254,6 @@ window.addEventListener('DOMContentLoaded', async () => {
         } else {
             console.warn("No user found in session.");
         }
-        // Force a page refresh to reflect the new state
         window.location.reload();
     });
 
@@ -281,7 +301,6 @@ window.addEventListener('DOMContentLoaded', async () => {
                 throw new Error(`Server returned ${response.status}`);
             }
 
-            // Clear and re-render the shelf
             document.getElementById('shelf').innerHTML = '';
             await renderTable();  // ✅ WAIT for rendering to complete
           
@@ -481,6 +500,7 @@ window.addEventListener('DOMContentLoaded', async () => {
                         if (!response.ok) {
                             throw new Error(`Server returned ${response.status}`);
                         }
+                    
                     }
                     window.location.reload();
                 };
@@ -504,5 +524,19 @@ window.addEventListener('DOMContentLoaded', async () => {
         } else {
             rankNumberInput.disabled = false;
         }
+    });
+    
+    let resizeReflowTimeout = null;
+    window.addEventListener('resize', () => {
+        if (resizeReflowTimeout) clearTimeout(resizeReflowTimeout);
+        resizeReflowTimeout = setTimeout(async () => {
+            try {
+                const shelf = document.getElementById('shelf');
+                if (shelf) shelf.innerHTML = '';
+                await renderTable();
+            } catch (err) {
+                console.error('Failed to re-render on resize', err);
+            }
+        }, 150);
     });
 });
