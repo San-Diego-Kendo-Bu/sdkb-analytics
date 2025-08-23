@@ -27,7 +27,6 @@ export function formatRank(num, type) {
 export function rankToKanji(num, type) {
     if(type === 'shihan') return '師範';
     
-    // testing
     var nums;
     if(type === 'dan') nums = ['無','初','二','三','四','五','六','七','八'];
     else nums = ['無','一','二','三','四','五','六','七','八'];
