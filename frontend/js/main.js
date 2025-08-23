@@ -426,8 +426,8 @@ window.addEventListener('DOMContentLoaded', async () => {
                         const row = rows[i];
                         const cols = row.split(',');
 
-                        if (cols.length < 5) {
-                            alert(`Error: Row ${i + 1} is missing fields. Each row must have 5 columns.`);
+                        if (cols.length < 6) {
+                            alert(`Error: Row ${i + 1} is missing fields. Each row must have 6 columns.`);
                             throw new Error(`CSV row ${i + 1} is missing fields`);
                         }
                         
