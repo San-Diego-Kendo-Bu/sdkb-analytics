@@ -256,6 +256,7 @@ body {
 .slip-row {
     display: flex;
     flex-basis:100%;
+    justify-content: center;
 }
 
 /* Mobile override: Add this at the end of your CSS file */
