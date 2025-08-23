@@ -9,6 +9,11 @@ const {
 const client = new DynamoDBClient({});
 const ddb = DynamoDBDocumentClient.from(client);
 
+const MEMBERS_TABLE = "members";
+const DEDUP_INDEX   = "dedup_key-index";
+
+const lc = v => (v ?? "").toString().trim().toLowerCase();
+
 exports.handler = async (event) => {
   console.log("Lambda invoked");
   try { 
@@ -22,12 +27,19 @@ exports.handler = async (event) => {
       };
     }
 
-    const dedupKey = `${data.first_name.toLowerCase()}#${data.last_name.toLowerCase()}#${data.rank_type.toLowerCase()}#${data.rank_number}#${data.zekken_text}`;
+    const dedupKey = [
+      lc(data.first_name),
+      lc(data.last_name),
+      lc(data.rank_type),
+      (data.rank_number ?? "").toString().trim(),
+      (data.zekken_text ?? "").toString().trim(),
+      lc(data.email)
+    ].join("#");
 
     // check if new update results in a duplicate member
     const query = new QueryCommand({
-      TableName: 'members',
-      IndexName: 'dedup_key-index',
+      TableName: MEMBERS_TABLE,
+      IndexName: DEDUP_INDEX,
       KeyConditionExpression: 'dedup_key = :dedupKey',
       ExpressionAttributeValues: {
         ':dedupKey': dedupKey
@@ -36,7 +48,10 @@ exports.handler = async (event) => {
 
     const query_result = await ddb.send(query);
 
-    if (query_result.Count > 0) {
+    // check for other member_id entries with the same fields
+    const duplicates = (query_result.Items || []).filter(it => it.member_id !== member_id);
+
+    if (duplicates.length > 0) {
       console.warn(`Duplicate member detected: ${dedupKey}. Skipping update.`);
 
       return {
@@ -51,15 +66,20 @@ exports.handler = async (event) => {
     const expressionAttributeValues = {};
 
     for (const [key, value] of Object.entries(data)) {
-      if (key != "member_id") {
+      if (key != "member_id" && key != "dedup_key") {
         updateExpressions.push(`#${key} = :${key}`);
         expressionAttributeNames[`#${key}`] = key;
         expressionAttributeValues[`:${key}`] = value;
       }
     }
 
+    // add derived fields
+    updateExpressions.push("#dedup_key = :dedup_key");
+    expressionAttributeNames["#dedup_key"] = "dedup_key";
+    expressionAttributeValues[":dedup_key"] = dedupKey;
+
     const updateCommand = new UpdateCommand({
-      TableName: "members",
+      TableName: MEMBERS_TABLE,
       Key: {
         member_id,
       },

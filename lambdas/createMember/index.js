@@ -9,6 +9,8 @@ const {
 const client = new DynamoDBClient({});
 const ddb = DynamoDBDocumentClient.from(client);
 
+const lc = v => (v ?? "").toString().trim().toLowerCase();
+
 exports.handler = async (event) => {
   try {
     // Increment the idCounter in the appConfigs table
@@ -23,8 +25,16 @@ exports.handler = async (event) => {
     const updateResult = await ddb.send(new UpdateCommand(updateParams));
     const newMemberId = updateResult.Attributes.idCounter;
     const data = JSON.parse(event.body);
-    const dedupKey = `${data.first_name.toLowerCase()}#${data.last_name.toLowerCase()}#${data.rank_type.toLowerCase()}#${data.rank_number}#${data.zekken_text}`;
-
+    
+    const dedupKey = [
+      lc(data.first_name),
+      lc(data.last_name),
+      lc(data.rank_type),
+      (data.rank_number ?? "").toString().trim(),
+      (data.zekken_text ?? "").toString().trim(),
+      lc(data.email)
+    ].join("#");
+    
     const query = new QueryCommand({
       TableName: 'members',
       IndexName: 'dedup_key-index',
@@ -34,9 +44,12 @@ exports.handler = async (event) => {
       }
     });
 
-    const result = await ddb.send(query);
+    const query_result = await ddb.send(query);
 
-    if (result.Count > 0) {
+    // check for other member_id entries with the same fields
+    const duplicates = (query_result.Items || []).filter(it => it.member_id !== newMemberId);
+
+    if (duplicates.length > 0) {
       console.warn(`Duplicate member detected: ${dedupKey}. Skipping insert.`);
 
       return {
