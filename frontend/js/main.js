@@ -481,9 +481,8 @@ window.addEventListener('DOMContentLoaded', async () => {
                         if (!response.ok) {
                             throw new Error(`Server returned ${response.status}`);
                         }
-                    
-                        window.location.reload();
                     }
+                    window.location.reload();
                 };
                 
                 reader.readAsText(file);
