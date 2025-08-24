@@ -58,7 +58,7 @@ exports.handler = async (event) => {
       };
     }
 
-    const defaultStatus = (data.rank_type == "dan" && data.rank_number >= 4) ? "exempt" : "active";
+    const defaultStatus = (data.is_guest.toLowerCase() == 'yes') ? "guest" : ((data.rank_type == "dan" && data.rank_number >= 4) ? "exempt" : "active");
     const params = {
       TableName: "members",
       Item: {
