@@ -180,6 +180,7 @@ function openModal(memberId) {
     document.getElementById('editRankType').value = selectedMember.rank_type || 'dan';
     document.getElementById('editRankNumber').value = selectedMember.rank_number || 0;
     document.getElementById('editEmail').value = selectedMember.email || '';
+    document.getElementById('editStatus').value = selectedMember.status || '';
     document.getElementById('modalOverlay').style.display = 'flex';
 
     let rankNumberInput = document.getElementById('editRankNumber');
@@ -272,13 +273,14 @@ window.addEventListener('DOMContentLoaded', async () => {
                 alert("You must be signed in to save changes.");
                 return;
             }
-
+            
             const newFirstName = document.getElementById('editFirstName').value;
             const newLastName = document.getElementById('editLastName').value;
             const newZekkenText = document.getElementById('editZekken').value;
             const newRankType = document.getElementById('editRankType').value;
             const newRankNumber = parseInt(document.getElementById('editRankNumber').value, 10);
             const newEmail = document.getElementById('editEmail').value;
+            const newStatus = document.getElementById('editStatus').value;
 
             const response = await fetch('https://j5z43ef3j0.execute-api.us-east-2.amazonaws.com/items', {
                 method: 'PATCH',
@@ -294,6 +296,7 @@ window.addEventListener('DOMContentLoaded', async () => {
                     first_name: newFirstName,
                     zekken_text: newZekkenText,
                     email: newEmail,
+                    status: newStatus
                 })
             });
 
