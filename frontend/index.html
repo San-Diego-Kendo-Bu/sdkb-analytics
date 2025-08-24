@@ -24,6 +24,14 @@
                 <button id="removeButton">Remove</button>
             </header>
             <label>
+                <select id="editStatus" name="editStatus">
+                    <option value="active">Active Member</option>
+                    <option value="exempt">Exempt Member</option>
+                    <option value="inactive">Inactive Member</option>
+                    <option value="guest">Guest</option>
+                </select>
+            </label>
+            <label>
                 First Name:
                 <input type="text" id="editFirstName">
             </label>
@@ -71,8 +79,10 @@
     <form id='addForm' class='formOverlay' action='https://j5z43ef3j0.execute-api.us-east-2.amazonaws.com/items' method='POST'>
         <label for="addFirstName">First Name (Required)</label>
         <input type="text" id="addFirstName" name="first_name" required>
+        
         <label for="addLastName">Last Name (Required)</label>
         <input type="text" id="addLastName" name="last_name" required>
+        
         <label for="addRankNumber">Rank (Required)</label>
         <div style="display: flex;">
             <input type="number" id="addRankNumber" name="rank_number" min="0" max="8" style="width:40%;" required>
@@ -85,9 +95,15 @@
 
         <label for="addZekken">Zekken</label>
         <input type="text" id="addZekken" name="zekken_text">
+        
         <label for="addEmail">Email (Required)</label>
         <input type="text" id="addEmail" name="email" required>
-        
+
+        <div style="display: flex; flex-direction: row; margin-top: 5px; gap: 5%; margin-top: 5%; margin-bottom: 5%;">
+            <input type="checkbox" value="yes" id="isGuest" name="isGuest" style="width: 20px; height: 20px;">
+            <label for="isGuest" style="font-size: 1.0em;">I'm adding a guest</label>
+        </div>
+
         <div class="add-form-buttons">
             <input id="addButton" type="submit" value="Add">
             <button id="cancelAddButton" type="button">Cancel</button>

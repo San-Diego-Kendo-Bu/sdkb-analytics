@@ -180,6 +180,7 @@ function openModal(memberId) {
     document.getElementById('editRankType').value = selectedMember.rank_type || 'dan';
     document.getElementById('editRankNumber').value = selectedMember.rank_number || 0;
     document.getElementById('editEmail').value = selectedMember.email || '';
+    document.getElementById('editStatus').value = selectedMember.status || '';
     document.getElementById('modalOverlay').style.display = 'flex';
 
     let rankNumberInput = document.getElementById('editRankNumber');
@@ -237,7 +238,7 @@ window.addEventListener('DOMContentLoaded', async () => {
     const signOut = document.getElementById('signOut');
     const signIn = document.getElementById("signIn");
 
-    addDropdownButton.style.display = (user && !user.expired) ? "inline" : "none";
+    addDropdownButton.style.display = (user && !user.expired) ? "inline" : "inline";
     signOut.style.display = (user && !user.expired) ? "inline" : "none";
     signIn.style.display = (user && !user.expired) ? "none" : "inline";
     
@@ -272,13 +273,14 @@ window.addEventListener('DOMContentLoaded', async () => {
                 alert("You must be signed in to save changes.");
                 return;
             }
-
+            
             const newFirstName = document.getElementById('editFirstName').value;
             const newLastName = document.getElementById('editLastName').value;
             const newZekkenText = document.getElementById('editZekken').value;
             const newRankType = document.getElementById('editRankType').value;
             const newRankNumber = parseInt(document.getElementById('editRankNumber').value, 10);
             const newEmail = document.getElementById('editEmail').value;
+            const newStatus = document.getElementById('editStatus').value;
 
             const response = await fetch('https://j5z43ef3j0.execute-api.us-east-2.amazonaws.com/items', {
                 method: 'PATCH',
@@ -294,6 +296,7 @@ window.addEventListener('DOMContentLoaded', async () => {
                     first_name: newFirstName,
                     zekken_text: newZekkenText,
                     email: newEmail,
+                    status: newStatus
                 })
             });
 
@@ -376,6 +379,8 @@ window.addEventListener('DOMContentLoaded', async () => {
             const newRankType = document.getElementById('addRankType').value;
             const newRankNumber = parseInt(document.getElementById('addRankNumber').value, 10);
             const newEmail = document.getElementById('addEmail').value;
+            
+            const isGuest = document.getElementById('isGuest').checked ? 'yes':'no';
 
             const response = await fetch('https://j5z43ef3j0.execute-api.us-east-2.amazonaws.com/items', {
                 method: 'POST',
@@ -390,7 +395,8 @@ window.addEventListener('DOMContentLoaded', async () => {
                     member_id: null, // backend will generate this
                     first_name: newFirstName,
                     zekken_text: newZekkenText,
-                    email: newEmail
+                    email: newEmail,
+                    is_guest: isGuest
                 })
             });
 
@@ -426,12 +432,14 @@ window.addEventListener('DOMContentLoaded', async () => {
                 return;
             }
             const file = event.target.files[0];
+            const COLS_NUM = 7;
             let newFirstName = ''; // idx = 0
             let newLastName = ''; // idx = 1
             let newZekkenText = ''; // idx = 2
             let newRankType = ''; // idx = 3
             let newRankNumber = null; // idx = 4
             let newEmail = ''; // idx = 5
+            let isGuest = ''; // idx = 6
 
             if (file) {
                 // Example: Read the CSV file as text
@@ -445,8 +453,8 @@ window.addEventListener('DOMContentLoaded', async () => {
                         const row = rows[i];
                         const cols = row.split(',');
 
-                        if (cols.length < 6) {
-                            alert(`Error: Row ${i + 1} is missing fields. Each row must have 6 columns.`);
+                        if (cols.length < COLS_NUM) {
+                            alert(`Error: Row ${i + 1} is missing fields. Each row must have ${COLS_NUM} columns.`);
                             throw new Error(`CSV row ${i + 1} is missing fields`);
                         }
                         
@@ -455,28 +463,39 @@ window.addEventListener('DOMContentLoaded', async () => {
                             const idx = j;
 
                             console.log(`Row: ${i} | Col ${idx}: ${col}`);
-                            if (idx == 0){
-                                newFirstName = col;
-                            } else if (idx == 1) {
-                                newLastName = col;
-                            } else if (idx == 2) {
-                                newZekkenText = col;
-                            } else if (idx == 3) {
-                                newRankType = col;
-                                if (newRankType !== 'shihan' && newRankType !== 'dan' && newRankType !== 'kyu') {
-                                    alert(`Error: Invalid rank type "${newRankType}" in row ${i + 1}. Must be "shihan", "dan", or "kyu".`);
-                                    throw new Error(`Invalid rank type "${newRankType}" in row ${i + 1}`);
-                                }
-                            } else if (idx == 4) {
-                                newRankNumber = parseInt(col.trim(), 10);
+                            
+                            switch(idx){
+                                case 0:
+                                    newFirstName = col;
+                                    break;
+                                case 1:
+                                    newLastName = col;
+                                    break;
+                                case 2:
+                                    newZekkenText = col;
+                                    break;
+                                case 3:
+                                    newRankType = col;
+                                    if (newRankType !== 'shihan' && newRankType !== 'dan' && newRankType !== 'kyu') {
+                                        alert(`Error: Invalid rank type "${newRankType}" in row ${i + 1}. Must be "shihan", "dan", or "kyu".`);
+                                        throw new Error(`Invalid rank type "${newRankType}" in row ${i + 1}`);
+                                    }
+                                    break;
+                                case 4:
+                                    newRankNumber = parseInt(col.trim(), 10);
 
-                                if (isNaN(newRankNumber) || newRankNumber < 0 || (newRankType === 'dan' && (newRankNumber <= 0 || newRankNumber > 8)) 
-                                    || (newRankType === 'kyu' && (newRankNumber < 0 || newRankNumber > 6))) {
-                                    alert(`Error: Invalid rank number "${newRankNumber}" in row ${i + 1}`);
-                                    throw new Error(`Invalid rank number "${newRankNumber}" in row ${i + 1}`);
-                                }
-                            } else if (idx == 5) {
-                                newEmail = col;
+                                    if (isNaN(newRankNumber) || newRankNumber < 0 || (newRankType === 'dan' && (newRankNumber <= 0 || newRankNumber > 8)) 
+                                        || (newRankType === 'kyu' && (newRankNumber < 0 || newRankNumber > 6))) {
+                                        alert(`Error: Invalid rank number "${newRankNumber}" in row ${i + 1}`);
+                                        throw new Error(`Invalid rank number "${newRankNumber}" in row ${i + 1}`);
+                                    }
+                                    break;
+                                case 5:
+                                    newEmail = col;
+                                    break;
+                                case 6:
+                                    isGuest = col;
+                                    break;
                             }
                         }
 
@@ -493,7 +512,8 @@ window.addEventListener('DOMContentLoaded', async () => {
                                 member_id: null, // backend will generate this
                                 first_name: newFirstName,
                                 zekken_text: newZekkenText,
-                                email: newEmail
+                                email: newEmail,
+                                is_guest: isGuest
                             })
                         });
 
