@@ -118,6 +118,92 @@ async function generateSlip(frontText, backText, memberId) {
     return nafuda;
 }
 
+function displayRemoveResults(matchingMembers) {
+    const resultsDiv = document.getElementById('removeResults');
+    const resultsList = document.getElementById('removeResultsList');
+    
+    resultsList.innerHTML = '';
+    
+    matchingMembers.forEach(member => {
+        const memberDiv = document.createElement('div');
+        memberDiv.style.cssText = `
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        `;
+        
+        const memberInfo = document.createElement('div');
+        memberInfo.innerHTML = `
+            <strong>${member.first_name} ${member.last_name}</strong><br>
+            Rank: ${formatRank(member.rank_number, member.rank_type)}<br>
+            Email: ${member.email || 'N/A'}<br>
+            Zekken: ${member.zekken_text || 'N/A'}
+        `;
+        
+        const removeButton = document.createElement('button');
+        removeButton.textContent = 'Remove This Member';
+        removeButton.style.cssText = `
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 3px;
+            cursor: pointer;
+            margin-top: 5px;
+        `;
+        
+        removeButton.addEventListener('click', async () => {
+            await removeMember(member.member_id);
+        });
+        
+        memberDiv.appendChild(memberInfo);
+        memberDiv.appendChild(removeButton);
+        resultsList.appendChild(memberDiv);
+    });
+    
+    resultsDiv.style.display = 'block';
+}
+
+async function removeMember(memberId) {
+    try {
+        const user = await userManager.getUser();
+        if (!user || user.expired) {
+            alert("You must be signed in to remove a member.");
+            return;
+        }
+
+        const response = await fetch('https://j5z43ef3j0.execute-api.us-east-2.amazonaws.com/items', {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${user.access_token}`
+            },
+            body: JSON.stringify({
+                member_id: memberId
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error(`Server returned ${response.status}`);
+        }
+
+        // Close the form and refresh the table
+        document.getElementById('removeForm').style.display = 'none';
+        document.getElementById('removeResults').style.display = 'none';
+        document.getElementById('removeForm').reset();
+        
+        document.getElementById('shelf').innerHTML = '';
+        await renderTable();
+
+        console.log('Member removed successfully');
+
+    } catch (error) {
+        console.error("❌ Failed to remove member:", error);
+    }
+}
+
 function layoutShelf() {
     try {
         if (!renderedSlips || renderedSlips.length === 0) return;
@@ -127,39 +213,53 @@ function layoutShelf() {
         if (!shelf) return;
 
         const shelfWidth = shelf.clientWidth;
-        const slipsPerRow = Math.max(2, Math.floor(shelfWidth / slipWidth));
-
-        let row = [];
-        const rows = [];
-
-        for (let i = 0; i < renderedSlips.length; i++) {
-            const slip = renderedSlips[i];
-            if (slip.firstChild.classList.contains('rank') && row.length === slipsPerRow - 1) {
-                row.unshift(createEmptySlip());
-                i--;
-            } else {
-                row.unshift(slip);
-            }
-
-            if (row.length === slipsPerRow) {
-                rows.push(row);
-                row = [];
-            }
-        }
-
-        if (row.length > 0) {
-            while (row.length < slipsPerRow) {
-                row.unshift(createEmptySlip());
-            }
-            rows.push(row);
-        }
-
-        shelf.innerHTML = '';
-        for (const r of rows) {
+        
+        // check if mobile
+        const isMobile = shelfWidth <= 600;
+        
+        if (isMobile) {
+            // mobile
+            shelf.innerHTML = '';
             const rowDiv = document.createElement('div');
             rowDiv.classList.add('slip-row');
-            r.forEach(slip => rowDiv.appendChild(slip));
+            renderedSlips.forEach(slip => rowDiv.appendChild(slip));
             shelf.appendChild(rowDiv);
+        } else {
+            // desktop
+            const slipsPerRow = Math.max(2, Math.floor(shelfWidth / slipWidth));
+
+            let row = [];
+            const rows = [];
+
+            for (let i = 0; i < renderedSlips.length; i++) {
+                const slip = renderedSlips[i];
+                if (slip.firstChild.classList.contains('rank') && row.length === slipsPerRow - 1) {
+                    row.unshift(createEmptySlip());
+                    i--;
+                } else {
+                    row.unshift(slip);
+                }
+
+                if (row.length === slipsPerRow) {
+                    rows.push(row);
+                    row = [];
+                }
+            }
+
+            if (row.length > 0) {
+                while (row.length < slipsPerRow) {
+                    row.unshift(createEmptySlip());
+                }
+                rows.push(row);
+            }
+
+            shelf.innerHTML = '';
+            for (const r of rows) {
+                const rowDiv = document.createElement('div');
+                rowDiv.classList.add('slip-row');
+                r.forEach(slip => rowDiv.appendChild(slip));
+                shelf.appendChild(rowDiv);
+            }
         }
     } catch (e) {
         console.error('Failed to layout shelf:', e);
@@ -212,6 +312,53 @@ document.addEventListener('click', function(event){
     ){
         if(addMember.style.display == 'flex') addMember.style.display = 'none';
     }
+
+    /**
+     * Check if user has clicked away from the add form. If they did, then close it if it's open.
+     * Do not close when clicking the ADD MEMBER button or within the add-member container.
+     */
+    const addForm = document.getElementById('addForm');
+    const openAddButton = document.getElementById('openAddButton');
+    const addMemberContainer = document.getElementById('add-member');
+    if(
+        event.target !== addForm && !addForm.contains(event.target) &&
+        event.target !== openAddButton && !addMemberContainer.contains(event.target)
+    ){
+        if(addForm.style.display == 'flex') {
+            addForm.style.display = 'none';
+            addForm.reset();
+        }
+    }
+    
+    /**
+     * Check if user has clicked away from the remove member dropdown. If they did, then close it if it's open.
+     */
+    const removeDropdownButton = document.getElementById('removeDropdownButton');
+    const removeMember = document.getElementById('remove-member');
+    if(
+        event.target !== removeMember && !removeMember.contains(event.target) &&
+        event.target !== removeDropdownButton && !removeDropdownButton.contains(event.target)
+    ){
+        if(removeMember.style.display == 'flex') removeMember.style.display = 'none';
+    }
+    
+    /**
+     * Check if user has clicked away from the remove form. If they did, then close it if it's open.
+     * Do not close when clicking the REMOVE MEMBER button or within the remove-member container.
+     */
+    const removeForm = document.getElementById('removeForm');
+    const openRemoveButton = document.getElementById('openRemoveButton');
+    const removeMemberContainer = document.getElementById('remove-member');
+    if(
+        event.target !== removeForm && !removeForm.contains(event.target) &&
+        event.target !== openRemoveButton && !removeMemberContainer.contains(event.target)
+    ){
+        if(removeForm.style.display == 'flex') {
+            removeForm.style.display = 'none';
+            document.getElementById('removeResults').style.display = 'none';
+            removeForm.reset();
+        }
+    }
 });
 
 window.addEventListener('DOMContentLoaded', async () => {
@@ -234,10 +381,12 @@ window.addEventListener('DOMContentLoaded', async () => {
     const user = await userManager.getUser();
     
     const addDropdownButton = document.getElementById('addDropdownButton');
+    const removeDropdownButton = document.getElementById('removeDropdownButton');
     const signOut = document.getElementById('signOut');
     const signIn = document.getElementById("signIn");
 
     addDropdownButton.style.display = (user && !user.expired) ? "inline" : "none";
+    removeDropdownButton.style.display = (user && !user.expired) ? "inline" : "none";
     signOut.style.display = (user && !user.expired) ? "inline" : "none";
     signIn.style.display = (user && !user.expired) ? "none" : "inline";
     
@@ -351,12 +500,59 @@ window.addEventListener('DOMContentLoaded', async () => {
         addMember.style.display = (addMember.style.display == 'flex') ? 'none' : 'flex';
     });
     
+    document.getElementById('removeDropdownButton').addEventListener('click', ()=>{
+        let removeMember = document.getElementById('remove-member');
+        removeMember.style.display = (removeMember.style.display == 'flex') ? 'none' : 'flex';
+    });
+    
     document.getElementById('openAddButton').addEventListener('click', ()=> {
         document.getElementById('addForm').style.display = 'flex';
+        const addMemberPanel = document.getElementById('add-member');
+        if (addMemberPanel && addMemberPanel.style.display === 'flex') addMemberPanel.style.display = 'none';
+        const removeMemberPanel = document.getElementById('remove-member');
+        if (removeMemberPanel && removeMemberPanel.style.display === 'flex') removeMemberPanel.style.display = 'none';
+    });
+
+    document.getElementById('openRemoveButton').addEventListener('click', ()=> {
+        document.getElementById('removeForm').style.display = 'flex';
+        const removeMemberPanel = document.getElementById('remove-member');
+        if (removeMemberPanel && removeMemberPanel.style.display === 'flex') removeMemberPanel.style.display = 'none';
+        const addMemberPanel = document.getElementById('add-member');
+        if (addMemberPanel && addMemberPanel.style.display === 'flex') addMemberPanel.style.display = 'none';
     });
 
     document.getElementById('cancelAddButton').addEventListener('click', ()=> {
         document.getElementById('addForm').style.display = 'none';
+    });
+
+    document.getElementById('cancelRemoveButton').addEventListener('click', ()=> {
+        document.getElementById('removeForm').style.display = 'none';
+        document.getElementById('removeResults').style.display = 'none';
+        document.getElementById('removeForm').reset();
+    });
+
+    document.getElementById('searchRemoveButton').addEventListener('click', async ()=> {
+        const firstName = document.getElementById('removeFirstName').value.trim();
+        const lastName = document.getElementById('removeLastName').value.trim();
+        
+        if (!firstName || !lastName) {
+            alert("Please enter both first name and last name.");
+            return;
+        }
+        
+        // Search for matching members
+        const matchingMembers = members.filter(member => 
+            member.first_name.toLowerCase().includes(firstName.toLowerCase()) && 
+            member.last_name.toLowerCase().includes(lastName.toLowerCase())
+        );
+        
+        if (matchingMembers.length === 0) {
+            alert(`No members found matching "${firstName} ${lastName}".`);
+            return;
+        }
+        
+        // Display results
+        displayRemoveResults(matchingMembers);
     });
 
     document.getElementById('addForm').addEventListener('submit', async function(event) {
