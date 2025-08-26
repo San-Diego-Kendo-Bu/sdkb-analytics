@@ -130,6 +130,7 @@ body {
     justify-content: center;
     background-color: #b8860b;
     border-radius: 5px;
+    margin: 5px;
     width: 210px;
     height: 98px;
 }
@@ -174,6 +175,14 @@ body {
     margin-left: auto;
 }
 
+/* Container for the dropdown buttons to keep them together */
+.dropdown-buttons-container {
+    display: flex;
+    gap: 10px;
+    margin: 5px;
+    justify-content: left;
+}
+
 #addDropdownButton{
     /*display: inline;*/
     color:white;
@@ -185,6 +194,54 @@ body {
     height: 50px;
     border-radius: 5px;
     font-family:Verdana, Geneva, Tahoma, sans-serif;
+}
+
+#removeDropdownButton{
+    color:white;
+    cursor: pointer;
+    border-style: none;
+    font-size: 1.0em;
+    width: 70px;
+    height: 50px;
+    border-radius: 5px;
+    font-family:Verdana, Geneva, Tahoma, sans-serif;
+}
+
+#remove-member{
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background-color: #b8860b;
+    border-radius: 5px;
+    margin: 5px;
+    width: 210px;
+    height: 50px;
+}
+
+#remove-member button{
+    color:white;
+    background-color: #b8860b;
+    margin: 4px;
+    cursor: pointer;
+    border-style: none;
+    border-radius: 5px;
+    font-size: 1.0em;
+    width: 200px;
+    height: 40px;
+    font-family:Verdana, Geneva, Tahoma, sans-serif;
+}
+
+#remove-member :hover{
+    animation: on-hover 0.5s forwards;
+}
+
+#cancelRemoveButton{
+    color:#b8860b;
+    border-style: solid;
+    border-color: #b8860b;
+    background-color: white;
+    margin-left: auto;
 }
 
 .rank {
@@ -247,6 +304,7 @@ body {
     flex-direction: column;
     gap: 10px;
     max-width: 300px;
+    margin: 5px;
 }
 .formOverlay label{
     display: flex;
@@ -262,16 +320,32 @@ body {
 /* Mobile override: Add this at the end of your CSS file */
 @media (max-width: 600px) {
     #shelf {
-        flex-direction: column-reverse;
-        align-items: stretch;
+        flex-direction: column;
+        align-items: center;
         padding: 5px;
         gap: 10px;
+        flex-wrap: nowrap;
     }
+    
     .nafuda {
-        width: 90vw;
-        height: 40vw;
-        max-width: 98vw;
-        max-height: 60vh;
+        width: 300px;
+        height: 70px;
+        max-width: 90vw;
+        max-height: 90vw;
+    }
+    
+    /* Fix text direction on mobile - make it horizontal instead of vertical */
+    .front, .back {
+        flex-direction: row;
+        flex-wrap: nowrap;
+        overflow: hidden;
+    }
+    
+    /* Stack all slats in a single vertical column */
+    .slip-row {
+        flex-direction: column;
+        align-items: center;
+        width: 100%;
     }
 }
 

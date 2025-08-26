@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 
@@ -66,9 +65,19 @@
         </div>
     </div>
     
-    <button id="addDropdownButton" style="background-color: #b8860b; display: none;">
-        <img src="./assets/icons/add_person_white.png" width="50px">
-    </button>
+    <div class="dropdown-buttons-container">
+        <button id="addDropdownButton" style="background-color: #b8860b; display: none;">
+            <img src="./assets/icons/add_person_white.png" width="50px">
+        </button>
+        
+        <button id="removeDropdownButton" style="background-color: #b8860b; display: none;">
+            <img src="./assets/icons/remove_person_white.png" width="50px">
+        </button>
+    </div>
+    
+    <div id="remove-member" style="display: none;">
+        <button id="openRemoveButton">REMOVE MEMBER</button>
+    </div>
     
     <div id="add-member">
         <button id="openAddButton">ADD MEMBER</button>
@@ -79,10 +88,8 @@
     <form id='addForm' class='formOverlay' action='https://j5z43ef3j0.execute-api.us-east-2.amazonaws.com/items' method='POST'>
         <label for="addFirstName">First Name (Required)</label>
         <input type="text" id="addFirstName" name="first_name" required>
-        
         <label for="addLastName">Last Name (Required)</label>
         <input type="text" id="addLastName" name="last_name" required>
-        
         <label for="addRankNumber">Rank (Required)</label>
         <div style="display: flex;">
             <input type="number" id="addRankNumber" name="rank_number" min="0" max="8" style="width:40%;" required>
@@ -95,7 +102,6 @@
 
         <label for="addZekken">Zekken</label>
         <input type="text" id="addZekken" name="zekken_text">
-        
         <label for="addEmail">Email (Required)</label>
         <input type="text" id="addEmail" name="email" required>
 
@@ -107,6 +113,23 @@
         <div class="add-form-buttons">
             <input id="addButton" type="submit" value="Add">
             <button id="cancelAddButton" type="button">Cancel</button>
+        </div>
+    </form>
+    
+    <form id='removeForm' class='formOverlay' style="display: none;">
+        <label for="removeFirstName">First Name (Required)</label>
+        <input type="text" id="removeFirstName" name="first_name" required>
+        <label for="removeLastName">Last Name (Required)</label>
+        <input type="text" id="removeLastName" name="last_name" required>
+        
+        <div class="add-form-buttons">
+            <button id="searchRemoveButton" type="button">Search</button>
+            <button id="cancelRemoveButton" type="button">Cancel</button>
+        </div>
+        
+        <div id="removeResults" style="display: none; margin-top: 20px;">
+            <h3>Matching Members:</h3>
+            <div id="removeResultsList"></div>
         </div>
     </form>
 </body>
