@@ -392,7 +392,11 @@ window.addEventListener('DOMContentLoaded', async () => {
     signIn.style.display = (user && !user.expired) ? "none" : "inline";
     
     signIn.addEventListener("click", async () => {
-        await userManager.signinRedirect();
+        await userManager.signinRedirect({
+            extraQueryParams: {
+                identity_provider: "Google"
+            }
+        });
     });
 
     signOut.addEventListener("click", async () => {

@@ -1,22 +1,35 @@
 <!DOCTYPE html>
 <html>
-
 <head>
-    <title>Callback</title>
+  <meta charset="utf-8" />
+  <title>Callback</title>
 </head>
-
 <body>
-    <p>Processing login...</p>
+  <p>Processing login...</p>
 
-    <script type="module">
-        import { userManager } from "../js/cognitoManager.js";
+  <script type="module">
+    // If callback.html lives at /components/callback.html, make sure this path is correct:
+    // Using an absolute path avoids ../ mistakes:
+    import { userManager } from "/js/cognitoManager.js";
 
-        userManager.signinCallback().then(() => {
-            window.location.href = "../index.html";
-        }).catch(err => {
-            console.error("Signin callback error", err);
-        });
-    </script>
+    (async () => {
+      try {
+
+        const user = await userManager.signinRedirectCallback();
+
+        // send them to your app home
+        window.location.replace("/index.html");
+      } catch (err) {
+        console.error("Signin redirect callback error:", err);
+
+        // Surface OIDC errors from the URL (helps when Cognito sends error params)
+        const p = new URLSearchParams(location.search);
+        if (p.get("error")) {
+          console.error("OIDC error:", p.get("error"), p.get("error_description"));
+        }
+        document.body.textContent = "Login failed. Check console for details.";
+      }
+    })();
+  </script>
 </body>
-
 </html>
