@@ -395,6 +395,7 @@ window.addEventListener('DOMContentLoaded', async () => {
         await userManager.signinRedirect({
             extraQueryParams: {
                 identity_provider: "Google",
+                prompt: "select_account" // always show account picker
             }
         });
     });
