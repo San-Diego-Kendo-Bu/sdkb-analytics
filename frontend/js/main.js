@@ -178,7 +178,7 @@ async function removeMember(memberId) {
             method: 'DELETE',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${user.access_token}`
+                'Authorization': `Bearer ${user.id_token}`
             },
             body: JSON.stringify({
                 member_id: memberId
@@ -394,7 +394,8 @@ window.addEventListener('DOMContentLoaded', async () => {
     signIn.addEventListener("click", async () => {
         await userManager.signinRedirect({
             extraQueryParams: {
-                identity_provider: "Google"
+                identity_provider: "Google",
+                prompt: "select_account" // always show account picker
             }
         });
     });
@@ -439,7 +440,7 @@ window.addEventListener('DOMContentLoaded', async () => {
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${user.access_token}`
+                    'Authorization': `Bearer ${user.id_token}`
                 },
                 body: JSON.stringify({
                     rank_number: newRankNumber,
@@ -481,7 +482,7 @@ window.addEventListener('DOMContentLoaded', async () => {
                 method: 'DELETE',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${user.access_token}`
+                    'Authorization': `Bearer ${user.id_token}`
                 },
                 body: JSON.stringify({
                     member_id: selectedMember['member_id']
@@ -586,7 +587,7 @@ window.addEventListener('DOMContentLoaded', async () => {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${user.access_token}`
+                    'Authorization': `Bearer ${user.id_token}`
                 },
                 body: JSON.stringify({
                     rank_number: newRankNumber,
@@ -703,7 +704,7 @@ window.addEventListener('DOMContentLoaded', async () => {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',
-                                'Authorization': `Bearer ${user.access_token}`
+                                'Authorization': `Bearer ${user.id_token}`
                             },
                             body: JSON.stringify({
                                 rank_number: newRankNumber,
