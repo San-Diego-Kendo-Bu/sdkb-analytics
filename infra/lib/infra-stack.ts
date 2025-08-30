@@ -113,6 +113,13 @@ export class InfraStack extends Stack {
       code: lambda.Code.fromAsset(path.join(__dirname, '../../lambdas/getMembers')),
     });
 
+    const getAdminLambda = new lambda.Function(this, 'GetAdminLambda', {
+      functionName: 'getAdminCDK',
+      runtime: lambda.Runtime.NODEJS_18_X,
+      handler: 'index.handler',
+      code: lambda.Code.fromAsset(path.join(__dirname, '../../lambdas/getAdmin')),
+    });
+
     const removeMemberLambda = new lambda.Function(this, 'RemoveMemberLambda', {
       functionName: 'removeMemberCDK',
       runtime: lambda.Runtime.NODEJS_18_X,
@@ -156,6 +163,12 @@ export class InfraStack extends Stack {
       actions: ['dynamodb:Scan'],
       resources: ['arn:aws:dynamodb:us-east-2:222575804757:table/members'],
     }));
+
+    getAdminLambda.addToRolePolicy(new iam.PolicyStatement({
+      effect: iam.Effect.ALLOW,
+      actions: ['dynamodb:GetItem'],
+      resources: ['arn:aws:dynamodb:us-east-2:222575804757:table/admins'],
+    }))
 
     createMemberLambda.addToRolePolicy(new iam.PolicyStatement({
       effect: iam.Effect.ALLOW,
@@ -230,6 +243,12 @@ export class InfraStack extends Stack {
       path: '/items',
       methods: [apigwv2.HttpMethod.GET],
       integration: new integrations.HttpLambdaIntegration('GetIntegration', getMembersLambda),
+    });
+
+    httpApi.addRoutes({
+      path: '/admins',
+      methods: [apigwv2.HttpMethod.GET],
+      integration: new integrations.HttpLambdaIntegration('GetIntegration', getAdminLambda),
     });
 
     httpApi.addRoutes({

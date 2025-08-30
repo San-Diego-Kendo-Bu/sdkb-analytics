@@ -299,6 +299,43 @@ function closeModal() {
     selectedMember = null;
 }
 
+async function setButtonsDisplay() {
+    const user = await userManager.getUser();
+    
+    const signOut = document.getElementById("signOut");
+    const signIn = document.getElementById("signIn");
+
+    signOut.style.display = (user && !user.expired) ? "inline" : "none";
+    signIn.style.display = (user && !user.expired) ? "none" : "inline";
+    
+    if(!user || user.expired) return;
+
+    try {
+        const response = await fetch('https://j5z43ef3j0.execute-api.us-east-2.amazonaws.com/admins',{
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${user.id_token}`
+            }
+        });
+        if (!response.ok) throw new Error(`HTTP error ${response.status}`);
+
+        const data = await response.json();
+        //console.log(data);
+        
+        if(!data.isAdmin) return;
+        
+        const addDropdownButton = document.getElementById('addDropdownButton');
+        const removeDropdownButton = document.getElementById('removeDropdownButton');
+
+        addDropdownButton.style.display = "inline";
+        removeDropdownButton.style.display = "inline";
+        
+    } catch (error) {
+        console.error(error);
+    }
+}
+
 document.addEventListener('click', function(event){
     /**
      * Check if user has clicked away from the add member dropdown. If they did, then close it if it's open.
@@ -365,6 +402,7 @@ document.addEventListener('click', function(event){
 window.addEventListener('DOMContentLoaded', async () => {
     try {
         await renderTable();  // ✅ Properly waits for table to render
+        
         console.log("✅ Table rendered successfully on load.");
     } catch (err) {
         console.error("❌ Failed to render table on load:", err);
@@ -379,19 +417,9 @@ window.addEventListener('DOMContentLoaded', async () => {
         }, 150);
     });
 
-    const user = await userManager.getUser();
+    await setButtonsDisplay();
     
-    const addDropdownButton = document.getElementById('addDropdownButton');
-    const removeDropdownButton = document.getElementById('removeDropdownButton');
-    const signOut = document.getElementById('signOut');
-    const signIn = document.getElementById("signIn");
-
-    addDropdownButton.style.display = (user && !user.expired) ? "inline" : "none";
-    removeDropdownButton.style.display = (user && !user.expired) ? "inline" : "none";
-    signOut.style.display = (user && !user.expired) ? "inline" : "none";
-    signIn.style.display = (user && !user.expired) ? "none" : "inline";
-    
-    signIn.addEventListener("click", async () => {
+    document.getElementById("signIn").addEventListener("click", async () => {
         await userManager.signinRedirect({
             extraQueryParams: {
                 identity_provider: "Google",
@@ -400,7 +428,7 @@ window.addEventListener('DOMContentLoaded', async () => {
         });
     });
 
-    signOut.addEventListener("click", async () => {
+    document.getElementById("signOut").addEventListener("click", async () => {
         const user = await userManager.getUser();
         if (user) {
             console.log("Logging out user:", user);
