@@ -60,10 +60,10 @@ function createEmptySlip() {
 }
 
 async function generateSlip(frontText, backText, memberId) {
+    const user = await userManager.getUser();
 
     frontText = frontText.replace(/\./g, '·').replace(/ /g, '\u00A0').replace(/ー/g, '|');
     backText = backText.replace(/\./g, '·').replace(/ /g, '\u00A0').replace(/ー/g, '|');
-    const user = await userManager.getUser();
 
     const nafuda = document.createElement('div');
     nafuda.className = 'nafuda';
@@ -108,7 +108,28 @@ async function generateSlip(frontText, backText, memberId) {
     nafuda.addEventListener('mouseleave', () => {
         setTimeout(() => slip.classList.remove('flipped'), 150);
     });
-    if(memberId >= 0 && user != null) {
+    
+    let isAdmin;
+    if(user){
+        try {
+            const response = await fetch('https://j5z43ef3j0.execute-api.us-east-2.amazonaws.com/admins',{
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${user.id_token}`
+                }
+            });
+            if (!response.ok) throw new Error(`HTTP error ${response.status}`);
+
+            const data = await response.json();
+            isAdmin = data.isAdmin;
+            
+        } catch (error) {
+            console.error(error);
+        }
+    }
+
+    if(memberId >= 0 && isAdmin) {
         nafuda.addEventListener('click', () => {
             openModal(memberId);
         });
