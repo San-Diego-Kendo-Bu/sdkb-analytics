@@ -164,12 +164,6 @@ export class InfraStack extends Stack {
       resources: ['arn:aws:dynamodb:us-east-2:222575804757:table/members'],
     }));
 
-    getAdminLambda.addToRolePolicy(new iam.PolicyStatement({
-      effect: iam.Effect.ALLOW,
-      actions: ['dynamodb:GetItem'],
-      resources: ['arn:aws:dynamodb:us-east-2:222575804757:table/admins'],
-    }))
-
     createMemberLambda.addToRolePolicy(new iam.PolicyStatement({
       effect: iam.Effect.ALLOW,
       actions: ['dynamodb:PutItem'],
