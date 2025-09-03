@@ -37,7 +37,7 @@ body {
     width: 70px;
     height: 300px;
     perspective: 1000px;
-    transform: translateZ(0);
+    -webkit-perspective: 1000px;
 }
 
 .slip {
@@ -45,15 +45,16 @@ body {
     height: 100%;
     position: relative;
     transform-style: preserve-3d;
+    -webkit-transform-style: preserve-3d;
     transition: transform 0.6s ease-in-out;
     background-color: #c79b63;
     background-image: url("../assets/images/bamboo.png");
     border: 2px solid #555;
-    will-change: transform;
 }
 
 .slip.flipped {
     transform: rotateY(180deg);
+    -webkit-transform: rotateY(180deg);
 }
 
 .front, .back {
@@ -64,14 +65,18 @@ body {
     flex-direction: column;
     justify-content: center;
     align-items: center;
+
     backface-visibility: hidden;
-    flex-wrap: wrap;
-    overflow: hidden;
-    transform: translateZ(0);
+    -webkit-backface-visibility: hidden;
+
+    transform: translateZ(0.001px);
+    -webkit-transform: translateZ(0.001px);
+
 }
 
 .back {
     transform: rotateY(180deg);
+    -webkit-transform: rotateY(180deg) translateZ(0.001px);
 }
 
 .kanjiLarge {
