@@ -2,39 +2,50 @@ const { DynamoDBClient} = require("@aws-sdk/client-dynamodb");
 const {
   DynamoDBDocumentClient,
   QueryCommand,
-  GetCommand,
   PutCommand,
   UpdateCommand
 } = require("@aws-sdk/lib-dynamodb");
 
 const client = new DynamoDBClient({});
 const ddb = DynamoDBDocumentClient.from(client);
-const ADMIN_TABLE = "admins";
 
 const lc = v => (v ?? "").toString().trim().toLowerCase();
 
-const deny = (msg="Forbidden") => ({
-  statusCode: 403,
-  headers: {
-    "Content-Type": "text/plain",
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Headers": "Authorization,Content-Type",
-  },
-  body: msg
-});
+function normalizeGroups(raw) {
+  if (Array.isArray(raw)) {
+    return raw.flatMap(item => normalizeGroups(item)); // handle nested / mixed shapes
+  }
+  const s = String(raw || '').trim();
+
+  // If the value is like "[a, b, c]" (stringified array), strip brackets first
+  const withoutBrackets = (s.startsWith('[') && s.endsWith(']')) ? s.slice(1, -1) : s;
+
+  // Split by comma, trim entries, drop empties
+  return withoutBrackets
+    .split(',')
+    .map(x => x.trim())
+    .filter(Boolean);
+}
 
 exports.handler = async (event) => {
   // Prefer claims from API Gateway authorizer (ID token path)
-  const auth = event.requestContext?.authorizer || {};
-  const claims = auth.claims || (auth.jwt && auth.jwt.claims) || {};
-  const emailFromClaims = lc(claims.email);
+  const claims =
+    event.requestContext?.authorizer?.jwt?.claims ??
+    event.requestContext?.authorizer?.claims ??
+    {};
 
-  let email = emailFromClaims;
+  const groups = normalizeGroups(claims['cognito:groups']);
+  const isAdmin = groups.some(g => g === 'admins' || g.endsWith(' admins'));
 
-  if (!email) return deny("No email claim. Ensure you sent the ID token and requested 'email' scope.");
+  console.log('Auth debug', {
+    email: claims.email,
+    groups,
+    token_use: claims.token_use,
+  });
 
-  const { Item } = await ddb.send(new GetCommand({ TableName: ADMIN_TABLE, Key: { email } }));
-  if (!Item) return deny("Admin only");
+  if (!isAdmin) {
+    return { statusCode: 403, body: 'Forbidden' };
+  }
 
   try {
     // Increment the idCounter in the appConfigs table

@@ -164,22 +164,10 @@ export class InfraStack extends Stack {
       resources: ['arn:aws:dynamodb:us-east-2:222575804757:table/members'],
     }));
 
-    getAdminLambda.addToRolePolicy(new iam.PolicyStatement({
-      effect: iam.Effect.ALLOW,
-      actions: ['dynamodb:GetItem'],
-      resources: ['arn:aws:dynamodb:us-east-2:222575804757:table/admins'],
-    }))
-
     createMemberLambda.addToRolePolicy(new iam.PolicyStatement({
       effect: iam.Effect.ALLOW,
       actions: ['dynamodb:PutItem'],
       resources: ['arn:aws:dynamodb:us-east-2:222575804757:table/members'],
-    }));
-
-    createMemberLambda.addToRolePolicy(new iam.PolicyStatement({
-      effect: iam.Effect.ALLOW,
-      actions: ['dynamodb:GetItem'],
-      resources: ['arn:aws:dynamodb:us-east-2:222575804757:table/admins'],
     }));
 
     createMemberLambda.addToRolePolicy(new iam.PolicyStatement({
@@ -203,12 +191,6 @@ export class InfraStack extends Stack {
       resources: ['arn:aws:dynamodb:us-east-2:222575804757:table/members'],
     }));
 
-    removeMemberLambda.addToRolePolicy(new iam.PolicyStatement({
-      effect: iam.Effect.ALLOW,
-      actions: ['dynamodb:GetItem'],
-      resources: ['arn:aws:dynamodb:us-east-2:222575804757:table/admins'],
-    }));
-
     modifyMemberLambda.addToRolePolicy(new iam.PolicyStatement({
       effect: iam.Effect.ALLOW,
       actions: ['dynamodb:UpdateItem'],
@@ -222,12 +204,6 @@ export class InfraStack extends Stack {
         'arn:aws:dynamodb:us-east-2:222575804757:table/members',
         'arn:aws:dynamodb:us-east-2:222575804757:table/members/index/dedup_key-index'
       ],
-    }));
-
-    modifyMemberLambda.addToRolePolicy(new iam.PolicyStatement({
-      effect: iam.Effect.ALLOW,
-      actions: ['dynamodb:GetItem'],
-      resources: ['arn:aws:dynamodb:us-east-2:222575804757:table/admins'],
     }));
 
     lookupByEmailLambda.addToRolePolicy(new iam.PolicyStatement({
