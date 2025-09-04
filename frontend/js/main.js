@@ -1,4 +1,5 @@
-import { userManager} from "./cognitoManager.js";
+import { userManager } from "./cognitoManager.js";
+import { signInLogic } from "./buttonLogic.js";
 import { rankToNum, compareRank, formatName, formatRank, rankToKanji } from "./nafudaTools.js";
 
 let selectedMember = null;
@@ -514,14 +515,7 @@ window.addEventListener('DOMContentLoaded', async () => {
 
     await setButtonsDisplay();
     
-    document.getElementById("signIn").addEventListener("click", async () => {
-        await userManager.signinRedirect({
-            extraQueryParams: {
-                identity_provider: "Google",
-                prompt: "select_account" // always show account picker
-            }
-        });
-    });
+    document.getElementById("signIn").addEventListener("click", signInLogic);
 
     document.getElementById("signOut").addEventListener("click", async () => {
         const user = await userManager.getUser();
