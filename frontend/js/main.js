@@ -1,5 +1,5 @@
 import { userManager } from "./cognitoManager.js";
-import { signInLogic } from "./buttonLogic.js";
+import { signInLogic, signOutLogic } from "./buttonLogic.js";
 import { rankToNum, compareRank, formatName, formatRank, rankToKanji } from "./nafudaTools.js";
 
 let selectedMember = null;
@@ -517,17 +517,7 @@ window.addEventListener('DOMContentLoaded', async () => {
     
     document.getElementById("signIn").addEventListener("click", signInLogic);
 
-    document.getElementById("signOut").addEventListener("click", async () => {
-        const user = await userManager.getUser();
-        if (user) {
-            console.log("Logging out user:", user);
-            sessionStorage.removeItem("access-token-stored");
-            await userManager.removeUser(); // remove from storage
-        } else {
-            console.warn("No user found in session.");
-        }
-        window.location.reload();
-    });
+    document.getElementById("signOut").addEventListener("click", signOutLogic);
 
     document.getElementById('cancelButton').addEventListener('click', () => {
         closeModal();
