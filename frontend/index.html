@@ -73,10 +73,18 @@
         <button id="removeDropdownButton" style="background-color: #b8860b; display: none;">
             <img src="./assets/icons/remove_person_white.png" width="50px">
         </button>
+        
+        <button id="searchDropdownButton" style="background-color: #b8860b; display: none;">
+            <img src="./assets/icons/search.png" width="30px">
+        </button>
     </div>
     
     <div id="remove-member" style="display: none;">
         <button id="openRemoveButton">REMOVE MEMBER</button>
+    </div>
+    
+    <div id="search-member" style="display: none;">
+        <button id="openSearchButton">SEARCH MEMBER</button>
     </div>
     
     <div id="add-member">
@@ -130,6 +138,23 @@
         <div id="removeResults" style="display: none; margin-top: 20px;">
             <h3>Matching Members:</h3>
             <div id="removeResultsList"></div>
+        </div>
+    </form>
+    
+    <form id='searchForm' class='formOverlay' style="display: none;">
+        <label for="searchFirstName">First Name (Required)</label>
+        <input type="text" id="searchFirstName" name="first_name" required>
+        <label for="searchLastName">Last Name (Required)</label>
+        <input type="text" id="searchLastName" name="last_name" required>
+        
+        <div class="add-form-buttons">
+            <button id="searchMemberButton" type="button">Search</button>
+            <button id="cancelSearchButton" type="button">Cancel</button>
+        </div>
+        
+        <div id="searchResults" style="display: none; margin-top: 20px;">
+            <h3>Matching Members:</h3>
+            <div id="searchResultsList"></div>
         </div>
     </form>
 </body>
