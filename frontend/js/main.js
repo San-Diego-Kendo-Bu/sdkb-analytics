@@ -187,6 +187,48 @@ function displayRemoveResults(matchingMembers) {
     resultsDiv.style.display = 'block';
 }
 
+function displaySearchResults(matchingMembers) {
+    const resultsDiv = document.getElementById('searchResults');
+    const resultsList = document.getElementById('searchResultsList');
+    
+    resultsList.innerHTML = '';
+    
+    matchingMembers.forEach(member => {
+        const memberDiv = document.createElement('div');
+        memberDiv.style.cssText = `
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+            cursor: pointer;
+        `;
+        
+        const memberInfo = document.createElement('div');
+        memberInfo.innerHTML = `
+            <strong>${member.first_name} ${member.last_name}</strong><br>
+            Rank: ${formatRank(member.rank_number, member.rank_type)}<br>
+            Email: ${member.email || 'N/A'}<br>
+            Zekken: ${member.zekken_text || 'N/A'}
+        `;
+        
+        memberDiv.appendChild(memberInfo);
+        
+        // Add click handler to open edit form
+        memberDiv.addEventListener('click', () => {
+            openModal(member.member_id);
+            // Close the search form
+            document.getElementById('searchForm').style.display = 'none';
+            document.getElementById('searchResults').style.display = 'none';
+            document.getElementById('searchForm').reset();
+        });
+        
+        resultsList.appendChild(memberDiv);
+    });
+    
+    resultsDiv.style.display = 'block';
+}
+
 async function removeMember(memberId) {
     try {
         const user = await userManager.getUser();
@@ -348,9 +390,11 @@ async function setButtonsDisplay() {
         
         const addDropdownButton = document.getElementById('addDropdownButton');
         const removeDropdownButton = document.getElementById('removeDropdownButton');
+        const searchDropdownButton = document.getElementById('searchDropdownButton');
 
         addDropdownButton.style.display = "inline";
         removeDropdownButton.style.display = "inline";
+        searchDropdownButton.style.display = "inline";
         
     } catch (error) {
         console.error(error);
@@ -402,6 +446,18 @@ document.addEventListener('click', function(event){
     }
     
     /**
+     * Check if user has clicked away from the search member dropdown. If they did, then close it if it's open.
+     */
+    const searchDropdownButton = document.getElementById('searchDropdownButton');
+    const searchMember = document.getElementById('search-member');
+    if(
+        event.target !== searchMember && !searchMember.contains(event.target) &&
+        event.target !== searchDropdownButton && !searchDropdownButton.contains(event.target)
+    ){
+        if(searchMember.style.display == 'flex') searchMember.style.display = 'none';
+    }
+    
+    /**
      * Check if user has clicked away from the remove form. If they did, then close it if it's open.
      * Do not close when clicking the REMOVE MEMBER button or within the remove-member container.
      */
@@ -416,6 +472,24 @@ document.addEventListener('click', function(event){
             removeForm.style.display = 'none';
             document.getElementById('removeResults').style.display = 'none';
             removeForm.reset();
+        }
+    }
+    
+    /**
+     * Check if user has clicked away from the search form. If they did, then close it if it's open.
+     * Do not close when clicking the SEARCH MEMBER button or within the search-member container.
+     */
+    const searchForm = document.getElementById('searchForm');
+    const openSearchButton = document.getElementById('openSearchButton');
+    const searchMemberContainer = document.getElementById('search-member');
+    if(
+        event.target !== searchForm && !searchForm.contains(event.target) &&
+        event.target !== openSearchButton && !searchMemberContainer.contains(event.target)
+    ){
+        if(searchForm.style.display == 'flex') {
+            searchForm.style.display = 'none';
+            document.getElementById('searchResults').style.display = 'none';
+            searchForm.reset();
         }
     }
 });
@@ -562,12 +636,19 @@ window.addEventListener('DOMContentLoaded', async () => {
         removeMember.style.display = (removeMember.style.display == 'flex') ? 'none' : 'flex';
     });
     
+    document.getElementById('searchDropdownButton').addEventListener('click', ()=>{
+        let searchMember = document.getElementById('search-member');
+        searchMember.style.display = (searchMember.style.display == 'flex') ? 'none' : 'flex';
+    });
+    
     document.getElementById('openAddButton').addEventListener('click', ()=> {
         document.getElementById('addForm').style.display = 'flex';
         const addMemberPanel = document.getElementById('add-member');
         if (addMemberPanel && addMemberPanel.style.display === 'flex') addMemberPanel.style.display = 'none';
         const removeMemberPanel = document.getElementById('remove-member');
         if (removeMemberPanel && removeMemberPanel.style.display === 'flex') removeMemberPanel.style.display = 'none';
+        const searchMemberPanel = document.getElementById('search-member');
+        if (searchMemberPanel && searchMemberPanel.style.display === 'flex') searchMemberPanel.style.display = 'none';
     });
 
     document.getElementById('openRemoveButton').addEventListener('click', ()=> {
@@ -576,6 +657,18 @@ window.addEventListener('DOMContentLoaded', async () => {
         if (removeMemberPanel && removeMemberPanel.style.display === 'flex') removeMemberPanel.style.display = 'none';
         const addMemberPanel = document.getElementById('add-member');
         if (addMemberPanel && addMemberPanel.style.display === 'flex') addMemberPanel.style.display = 'none';
+        const searchMemberPanel = document.getElementById('search-member');
+        if (searchMemberPanel && searchMemberPanel.style.display === 'flex') searchMemberPanel.style.display = 'none';
+    });
+    
+    document.getElementById('openSearchButton').addEventListener('click', ()=> {
+        document.getElementById('searchForm').style.display = 'flex';
+        const searchMemberPanel = document.getElementById('search-member');
+        if (searchMemberPanel && searchMemberPanel.style.display === 'flex') searchMemberPanel.style.display = 'none';
+        const addMemberPanel = document.getElementById('add-member');
+        if (addMemberPanel && addMemberPanel.style.display === 'flex') addMemberPanel.style.display = 'none';
+        const removeMemberPanel = document.getElementById('remove-member');
+        if (removeMemberPanel && removeMemberPanel.style.display === 'flex') removeMemberPanel.style.display = 'none';
     });
 
     document.getElementById('cancelAddButton').addEventListener('click', ()=> {
@@ -586,6 +679,12 @@ window.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('removeForm').style.display = 'none';
         document.getElementById('removeResults').style.display = 'none';
         document.getElementById('removeForm').reset();
+    });
+    
+    document.getElementById('cancelSearchButton').addEventListener('click', ()=> {
+        document.getElementById('searchForm').style.display = 'none';
+        document.getElementById('searchResults').style.display = 'none';
+        document.getElementById('searchForm').reset();
     });
 
     document.getElementById('searchRemoveButton').addEventListener('click', async ()=> {
@@ -610,6 +709,30 @@ window.addEventListener('DOMContentLoaded', async () => {
         
         // Display results
         displayRemoveResults(matchingMembers);
+    });
+    
+    document.getElementById('searchMemberButton').addEventListener('click', async ()=> {
+        const firstName = document.getElementById('searchFirstName').value.trim();
+        const lastName = document.getElementById('searchLastName').value.trim();
+        
+        if (!firstName || !lastName) {
+            alert("Please enter both first name and last name.");
+            return;
+        }
+        
+        // Search for matching members
+        const matchingMembers = members.filter(member => 
+            member.first_name.toLowerCase().includes(firstName.toLowerCase()) && 
+            member.last_name.toLowerCase().includes(lastName.toLowerCase())
+        );
+        
+        if (matchingMembers.length === 0) {
+            alert(`No members found matching "${firstName} ${lastName}".`);
+            return;
+        }
+        
+        // Display results
+        displaySearchResults(matchingMembers);
     });
 
     document.getElementById('addForm').addEventListener('submit', async function(event) {
