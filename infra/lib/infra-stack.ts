@@ -163,6 +163,15 @@ export class InfraStack extends Stack {
       actions: ['dynamodb:Scan'],
       resources: ['arn:aws:dynamodb:us-east-2:222575804757:table/members'],
     }));
+    
+    getMembersLambda.addToRolePolicy(new iam.PolicyStatement({
+      effect: iam.Effect.ALLOW,
+      actions: ['dynamodb:Query'],
+      resources: [
+        'arn:aws:dynamodb:us-east-2:222575804757:table/members',
+        'arn:aws:dynamodb:us-east-2:222575804757:table/members/index/email-index',
+      ],
+    }));
 
     createMemberLambda.addToRolePolicy(new iam.PolicyStatement({
       effect: iam.Effect.ALLOW,
