@@ -212,6 +212,17 @@ body {
     font-family:Verdana, Geneva, Tahoma, sans-serif;
 }
 
+#searchDropdownButton{
+    color:white;
+    cursor: pointer;
+    border-style: none;
+    font-size: 1.0em;
+    width: 70px;
+    height: 50px;
+    border-radius: 5px;
+    font-family:Verdana, Geneva, Tahoma, sans-serif;
+}
+
 #remove-member{
     display: none;
     flex-direction: column;
@@ -241,7 +252,44 @@ body {
     animation: on-hover 0.5s forwards;
 }
 
+#search-member{
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background-color: #b8860b;
+    border-radius: 5px;
+    margin: 5px;
+    width: 210px;
+    height: 50px;
+}
+
+#search-member button{
+    color:white;
+    background-color: #b8860b;
+    margin: 4px;
+    cursor: pointer;
+    border-style: none;
+    border-radius: 5px;
+    font-size: 1.0em;
+    width: 200px;
+    height: 40px;
+    font-family:Verdana, Geneva, Tahoma, sans-serif;
+}
+
+#search-member :hover{
+    animation: on-hover 0.5s forwards;
+}
+
 #cancelRemoveButton{
+    color:#b8860b;
+    border-style: solid;
+    border-color: #b8860b;
+    background-color: white;
+    margin-left: auto;
+}
+
+#cancelSearchButton{
     color:#b8860b;
     border-style: solid;
     border-color: #b8860b;
