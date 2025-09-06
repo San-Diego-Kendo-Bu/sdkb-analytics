@@ -1,5 +1,5 @@
 import { userManager } from "./cognitoManager.js";
-import { setButtonsDisplay, signInLogic, signOutLogic } from "./buttonLogic.js";
+import { cancelEditLogic, saveButtonLogic, setButtonsDisplay, signInLogic, signOutLogic } from "./buttonLogic.js";
 import { rankToNum, compareRank, formatName, formatRank, rankToKanji } from "./nafudaTools.js";
 
 let selectedMember = null;
@@ -492,48 +492,8 @@ window.addEventListener('DOMContentLoaded', async () => {
      **/
     document.getElementById('saveButton').addEventListener('click', async () => {
         try {
-            const user = await userManager.getUser();
-            if (!user || user.expired) {
-                alert("You must be signed in to save changes.");
-                return;
-            }
-            
-            const newFirstName = document.getElementById('editFirstName').value;
-            const newLastName = document.getElementById('editLastName').value;
-            const newZekkenText = document.getElementById('editZekken').value;
-            const newRankType = document.getElementById('editRankType').value;
-            const newRankNumber = parseInt(document.getElementById('editRankNumber').value, 10);
-            const newEmail = document.getElementById('editEmail').value;
-            const newStatus = document.getElementById('editStatus').value;
-
-            const response = await fetch('https://j5z43ef3j0.execute-api.us-east-2.amazonaws.com/items', {
-                method: 'PATCH',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${user.id_token}`
-                },
-                body: JSON.stringify({
-                    rank_number: newRankNumber,
-                    rank_type: newRankType,
-                    last_name: newLastName,
-                    member_id: selectedMember['member_id'],
-                    first_name: newFirstName,
-                    zekken_text: newZekkenText,
-                    email: newEmail,
-                    status: newStatus
-                })
-            });
-
-            if (!response.ok) {
-                throw new Error(`Server returned ${response.status}`);
-            }
-
-            document.getElementById('shelf').innerHTML = '';
+            await saveButtonLogic(selectedMember);
             await renderTable();  // ✅ WAIT for rendering to complete
-          
-            const data = await response.json();
-            console.log("✅ Member added:", data);
-
         } catch (error) {
             console.error("❌ Failed to save or render table:", error);
             alert("Something went wrong. Please try again.");
