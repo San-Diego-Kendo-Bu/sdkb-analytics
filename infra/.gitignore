@@ -7,3 +7,6 @@ node_modules
 .cdk.staging
 cdk.out
 aws/dist/
+
+# CDK CLI context file
+cdk.context.json
