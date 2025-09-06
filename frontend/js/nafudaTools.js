@@ -21,6 +21,7 @@ export function formatName(first, last) {
 
 export function formatRank(num, type) {
     if(type === 'shihan') return 'DOJO SHIHAN';
+    if(num === 0 && type === 'kyu') return 'UNRANKED';
     return `${num} ${type.toUpperCase()}`;
 }
 
