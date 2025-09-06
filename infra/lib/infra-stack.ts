@@ -134,13 +134,6 @@ export class InfraStack extends Stack {
       code: lambda.Code.fromAsset(path.join(__dirname, '../../lambdas/modifyMember')),
     });
 
-    const lookupByEmailLambda = new lambda.Function(this, 'LookupByEmailLambda', {
-      functionName: 'lookupByEmailCDK',
-      runtime: lambda.Runtime.NODEJS_18_X,
-      handler: 'index.handler',
-      code: lambda.Code.fromAsset(path.join(__dirname, '../../lambdas/lookupByEmail')),
-    });
-
     // HTTP API Gateway (v2)
     const httpApi = new apigwv2.HttpApi(this, 'MyHttpApi', {
       apiName: 'membersAPI_CDK',
@@ -162,6 +155,15 @@ export class InfraStack extends Stack {
       effect: iam.Effect.ALLOW,
       actions: ['dynamodb:Scan'],
       resources: ['arn:aws:dynamodb:us-east-2:222575804757:table/members'],
+    }));
+    
+    getMembersLambda.addToRolePolicy(new iam.PolicyStatement({
+      effect: iam.Effect.ALLOW,
+      actions: ['dynamodb:Query'],
+      resources: [
+        'arn:aws:dynamodb:us-east-2:222575804757:table/members',
+        'arn:aws:dynamodb:us-east-2:222575804757:table/members/index/email-index',
+      ],
     }));
 
     createMemberLambda.addToRolePolicy(new iam.PolicyStatement({
@@ -206,14 +208,6 @@ export class InfraStack extends Stack {
       ],
     }));
 
-    lookupByEmailLambda.addToRolePolicy(new iam.PolicyStatement({
-      effect: iam.Effect.ALLOW,
-      actions: ['dynamodb:Query'],
-      resources: [
-        'arn:aws:dynamodb:us-east-2:222575804757:table/members/index/email-index',
-      ],
-    }));
-
     // Add routes
     httpApi.addRoutes({
       path: '/items',
@@ -246,14 +240,6 @@ export class InfraStack extends Stack {
       methods: [apigwv2.HttpMethod.DELETE],
       integration: new integrations.HttpLambdaIntegration('DeleteIntegration', removeMemberLambda),
       authorizer: authorizer,
-    });
-
-    // Add GET route (protect with Cognito if you want)
-    httpApi.addRoutes({
-      path: '/lookup/by-email',
-      methods: [apigwv2.HttpMethod.GET],
-      integration: new integrations.HttpLambdaIntegration('LookupByEmailIntegration', lookupByEmailLambda),
-      // TODO: add authorization later
     });
 
     // Output the HTTP API URL
