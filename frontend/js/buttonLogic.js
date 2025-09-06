@@ -106,10 +106,97 @@ export async function saveButtonLogic(selectedMember){
         document.getElementById('shelf').innerHTML = '';        
         const data = await response.json();
         console.log("✅ Member updated:", data);
-        return true;
     } catch (error) {
         console.error("❌ Failed to save:", error);
         alert("Something went wrong. Please try again.");
-        return false;
+    }
+}
+
+export async function removeButtonLogic(selectedMember){
+    try {
+        const user = await userManager.getUser();
+        if (!user || user.expired) {
+            alert("You must be signed in to remove a member.");
+            return;
+        }
+
+        const response = await fetch('https://j5z43ef3j0.execute-api.us-east-2.amazonaws.com/items', {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${user.id_token}`
+            },
+            body: JSON.stringify({
+                member_id: selectedMember['member_id']
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error(`Server returned ${response.status}`);
+        }
+
+        document.getElementById('shelf').innerHTML = '';
+
+    } catch (error) {
+        console.error("❌ Failed to delete member:", error);
+        alert("Failed to delete member. Please try again.");
+    }
+}
+
+export async function addFormSubmitLogic(event){
+    console.log("From buttonLogic");
+
+    event.preventDefault();
+    const addForm = event.target;
+
+    try {
+        const user = await userManager.getUser();
+        if (!user || user.expired) {
+            alert("You must be signed in to add a member.");
+            return;
+        }
+
+        const newFirstName = document.getElementById('addFirstName').value;
+        const newLastName = document.getElementById('addLastName').value;
+        const newZekkenText = document.getElementById('addZekken').value;
+        const newRankType = document.getElementById('addRankType').value;
+        const newRankNumber = parseInt(document.getElementById('addRankNumber').value, 10);
+        const newEmail = document.getElementById('addEmail').value;
+        
+        const isGuest = document.getElementById('isGuest').checked ? 'yes':'no';
+
+        const response = await fetch('https://j5z43ef3j0.execute-api.us-east-2.amazonaws.com/items', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${user.id_token}`
+            },
+            body: JSON.stringify({
+                rank_number: newRankNumber,
+                rank_type: newRankType,
+                last_name: newLastName,
+                member_id: null, // backend will generate this
+                first_name: newFirstName,
+                zekken_text: newZekkenText,
+                email: newEmail,
+                is_guest: isGuest
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error(`Server returned ${response.status}`);
+        }
+
+        const data = await response.json();
+        console.log("✅ Member added:", data);
+
+        document.getElementById('shelf').innerHTML = '';
+
+        addForm.style.display = 'none';
+        addForm.reset();
+
+    } catch (err) {
+        console.error("❌ Error adding member:", JSON.stringify(err, Object.getOwnPropertyNames(err), 2));
+        alert("Failed to add member. Please check the form and try again.");
     }
 }

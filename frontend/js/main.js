@@ -1,5 +1,6 @@
 import { userManager } from "./cognitoManager.js";
-import { cancelEditLogic, saveButtonLogic, setButtonsDisplay, signInLogic, signOutLogic } from "./buttonLogic.js";
+import { addFormSubmitLogic, cancelEditLogic, removeButtonLogic, 
+        saveButtonLogic, setButtonsDisplay, signInLogic, signOutLogic } from "./buttonLogic.js";
 import { rankToNum, compareRank, formatName, formatRank, rankToKanji } from "./nafudaTools.js";
 
 let selectedMember = null;
@@ -486,10 +487,6 @@ window.addEventListener('DOMContentLoaded', async () => {
         closeModal();
     });
 
-    /**
-     * Save button fetches the values from the form and makes a PATCH request to the database with the updated
-     * values. Then, after getting a response, it calls renderTable()
-     **/
     document.getElementById('saveButton').addEventListener('click', async () => {
         try {
             await saveButtonLogic(selectedMember);
@@ -500,33 +497,21 @@ window.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
+    document.getElementById('addForm').addEventListener('submit', async function(event) {
+        try {
+            await addFormSubmitLogic(event);
+            await renderTable(); // ✅ Wait for table refresh
+        } catch (err) {
+            console.error("❌ Error adding member:", JSON.stringify(err, Object.getOwnPropertyNames(err), 2));
+            alert("Failed to add member. Please check the form and try again.");
+        }
+    });
+
     document.getElementById('removeButton').addEventListener('click', async () => {
         try {
-            const user = await userManager.getUser();
-            if (!user || user.expired) {
-                alert("You must be signed in to remove a member.");
-                return;
-            }
-
-            const response = await fetch('https://j5z43ef3j0.execute-api.us-east-2.amazonaws.com/items', {
-                method: 'DELETE',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${user.id_token}`
-                },
-                body: JSON.stringify({
-                    member_id: selectedMember['member_id']
-                })
-            });
-
-            if (!response.ok) {
-                throw new Error(`Server returned ${response.status}`);
-            }
-
-            document.getElementById('shelf').innerHTML = '';
+            await removeButtonLogic(selectedMember);
             await renderTable();  // ✅ Wait for re-render
             closeModal();         // ✅ Only close after table updated
-
         } catch (error) {
             console.error("❌ Failed to delete member:", error);
             alert("Failed to delete member. Please try again.");
@@ -640,64 +625,6 @@ window.addEventListener('DOMContentLoaded', async () => {
         
         // Display results
         displaySearchResults(matchingMembers);
-    });
-
-    document.getElementById('addForm').addEventListener('submit', async function(event) {
-        event.preventDefault();
-        const addForm = event.target;
-
-        try {
-            const user = await userManager.getUser();
-            if (!user || user.expired) {
-                alert("You must be signed in to add a member.");
-                return;
-            }
-
-            const newFirstName = document.getElementById('addFirstName').value;
-            const newLastName = document.getElementById('addLastName').value;
-            const newZekkenText = document.getElementById('addZekken').value;
-            const newRankType = document.getElementById('addRankType').value;
-            const newRankNumber = parseInt(document.getElementById('addRankNumber').value, 10);
-            const newEmail = document.getElementById('addEmail').value;
-            
-            const isGuest = document.getElementById('isGuest').checked ? 'yes':'no';
-
-            const response = await fetch('https://j5z43ef3j0.execute-api.us-east-2.amazonaws.com/items', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${user.id_token}`
-                },
-                body: JSON.stringify({
-                    rank_number: newRankNumber,
-                    rank_type: newRankType,
-                    last_name: newLastName,
-                    member_id: null, // backend will generate this
-                    first_name: newFirstName,
-                    zekken_text: newZekkenText,
-                    email: newEmail,
-                    is_guest: isGuest
-                })
-            });
-
-            if (!response.ok) {
-                throw new Error(`Server returned ${response.status}`);
-            }
-
-            const data = await response.json();
-            console.log("✅ Member added:", data);
-
-            document.getElementById('shelf').innerHTML = '';
-            await renderTable(); // ✅ Wait for table refresh
-
-
-            addForm.style.display = 'none';
-            addForm.reset();
-
-        } catch (err) {
-            console.error("❌ Error adding member:", JSON.stringify(err, Object.getOwnPropertyNames(err), 2));
-            alert("Failed to add member. Please check the form and try again.");
-        }
     });
 
     document.getElementById('openAddGroupButton').addEventListener('click', () => {
