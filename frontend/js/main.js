@@ -343,6 +343,7 @@ function openModal(memberId) {
     document.getElementById('editRankType').value = selectedMember.rank_type || 'dan';
     document.getElementById('editRankNumber').value = selectedMember.rank_number || 0;
     document.getElementById('editEmail').value = selectedMember.email || '';
+    document.getElementById('editBirthday').value = selectedMember.birthday || '';
     document.getElementById('editStatus').value = selectedMember.status || '';
     document.getElementById('modalOverlay').style.display = 'flex';
 
@@ -557,6 +558,7 @@ window.addEventListener('DOMContentLoaded', async () => {
             const newRankType = document.getElementById('editRankType').value;
             const newRankNumber = parseInt(document.getElementById('editRankNumber').value, 10);
             const newEmail = document.getElementById('editEmail').value;
+            const newBirthday = document.getElementById('editBirthday').value;
             const newStatus = document.getElementById('editStatus').value;
 
             const response = await fetch('https://j5z43ef3j0.execute-api.us-east-2.amazonaws.com/items', {
@@ -573,6 +575,7 @@ window.addEventListener('DOMContentLoaded', async () => {
                     first_name: newFirstName,
                     zekken_text: newZekkenText,
                     email: newEmail,
+                    birthday: newBirthday || null,
                     status: newStatus
                 })
             });
@@ -752,6 +755,7 @@ window.addEventListener('DOMContentLoaded', async () => {
             const newRankType = document.getElementById('addRankType').value;
             const newRankNumber = parseInt(document.getElementById('addRankNumber').value, 10);
             const newEmail = document.getElementById('addEmail').value;
+            const newBirthday = document.getElementById('addBirthday').value;
             
             const isGuest = document.getElementById('isGuest').checked ? 'yes':'no';
 
@@ -769,6 +773,7 @@ window.addEventListener('DOMContentLoaded', async () => {
                     first_name: newFirstName,
                     zekken_text: newZekkenText,
                     email: newEmail,
+                    birthday: newBirthday || null,
                     is_guest: isGuest
                 })
             });
