@@ -536,7 +536,7 @@ window.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('openRemoveButton').addEventListener('click', ()=> { openFormLogic('removeForm'); });
     
     document.getElementById('openSearchButton').addEventListener('click', ()=> { openFormLogic('searchForm'); });
-
+    
 
     document.getElementById('cancelAddButton').addEventListener('click', ()=> {
         document.getElementById('addForm').style.display = 'none';

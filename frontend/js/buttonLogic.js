@@ -208,6 +208,8 @@ export function dropdownButtonLogic(dropdownElementId){
 
 export function openFormLogic(formId){
 
+    console.log("From buttonLogic");
+
     document.getElementById(formId).style.display = 'flex';
 
     const removeMemberPanel = document.getElementById('remove-member'); // target
@@ -218,5 +220,5 @@ export function openFormLogic(formId){
     
     const searchMemberPanel = document.getElementById('search-member');
     if (searchMemberPanel && searchMemberPanel.style.display === 'flex') searchMemberPanel.style.display = 'none';
-    
+
 }
