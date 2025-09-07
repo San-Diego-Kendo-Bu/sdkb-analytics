@@ -144,7 +144,6 @@ export async function removeButtonLogic(selectedMember){
 }
 
 export async function addFormSubmitLogic(event){
-    console.log("From buttonLogic");
 
     event.preventDefault();
     const addForm = event.target;
@@ -199,4 +198,10 @@ export async function addFormSubmitLogic(event){
         console.error("❌ Error adding member:", JSON.stringify(err, Object.getOwnPropertyNames(err), 2));
         alert("Failed to add member. Please check the form and try again.");
     }
+}
+
+export function dropdownButtonLogic(dropdownElementId){
+    console.log("From buttonLogic");
+    const dropdownElement = document.getElementById(dropdownElementId);
+    dropdownElement.style.display = (dropdownElement.style.display == 'flex') ? 'none' : 'flex';
 }

@@ -1,5 +1,5 @@
 import { userManager } from "./cognitoManager.js";
-import { addFormSubmitLogic, cancelEditLogic, removeButtonLogic, 
+import { addFormSubmitLogic, cancelEditLogic, dropdownButtonLogic, removeButtonLogic, 
         saveButtonLogic, setButtonsDisplay, signInLogic, signOutLogic } from "./buttonLogic.js";
 import { rankToNum, compareRank, formatName, formatRank, rankToKanji } from "./nafudaTools.js";
 
@@ -518,20 +518,11 @@ window.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
-    document.getElementById('addDropdownButton').addEventListener('click', ()=>{
-        let addMember = document.getElementById('add-member');
-        addMember.style.display = (addMember.style.display == 'flex') ? 'none' : 'flex';
-    });
+    document.getElementById('addDropdownButton').addEventListener('click', ()=>{ dropdownButtonLogic('add-member'); });
     
-    document.getElementById('removeDropdownButton').addEventListener('click', ()=>{
-        let removeMember = document.getElementById('remove-member');
-        removeMember.style.display = (removeMember.style.display == 'flex') ? 'none' : 'flex';
-    });
+    document.getElementById('removeDropdownButton').addEventListener('click', ()=>{ dropdownButtonLogic('remove-member'); });
     
-    document.getElementById('searchDropdownButton').addEventListener('click', ()=>{
-        let searchMember = document.getElementById('search-member');
-        searchMember.style.display = (searchMember.style.display == 'flex') ? 'none' : 'flex';
-    });
+    document.getElementById('searchDropdownButton').addEventListener('click', ()=>{ dropdownButtonLogic('search-member'); });
     
     document.getElementById('openAddButton').addEventListener('click', ()=> {
         document.getElementById('addForm').style.display = 'flex';
