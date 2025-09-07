@@ -1,6 +1,7 @@
 import { userManager } from "./cognitoManager.js";
-import { addFormSubmitLogic, cancelEditLogic, dropdownButtonLogic, removeButtonLogic, 
-        saveButtonLogic, setButtonsDisplay, signInLogic, signOutLogic } from "./buttonLogic.js";
+import { addFormSubmitLogic, cancelEditLogic, dropdownButtonLogic, 
+        openFormLogic, removeButtonLogic, saveButtonLogic, setButtonsDisplay, signInLogic, 
+        signOutLogic } from "./buttonLogic.js";
 import { rankToNum, compareRank, formatName, formatRank, rankToKanji } from "./nafudaTools.js";
 
 let selectedMember = null;
@@ -518,41 +519,24 @@ window.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
+    /**
+     * Dropdown buttons
+     */
     document.getElementById('addDropdownButton').addEventListener('click', ()=>{ dropdownButtonLogic('add-member'); });
     
     document.getElementById('removeDropdownButton').addEventListener('click', ()=>{ dropdownButtonLogic('remove-member'); });
     
     document.getElementById('searchDropdownButton').addEventListener('click', ()=>{ dropdownButtonLogic('search-member'); });
     
-    document.getElementById('openAddButton').addEventListener('click', ()=> {
-        document.getElementById('addForm').style.display = 'flex';
-        const addMemberPanel = document.getElementById('add-member');
-        if (addMemberPanel && addMemberPanel.style.display === 'flex') addMemberPanel.style.display = 'none';
-        const removeMemberPanel = document.getElementById('remove-member');
-        if (removeMemberPanel && removeMemberPanel.style.display === 'flex') removeMemberPanel.style.display = 'none';
-        const searchMemberPanel = document.getElementById('search-member');
-        if (searchMemberPanel && searchMemberPanel.style.display === 'flex') searchMemberPanel.style.display = 'none';
-    });
+    /**
+     * Open form buttons
+     */
+    document.getElementById('openAddButton').addEventListener('click', ()=> { openFormLogic('addForm'); });
 
-    document.getElementById('openRemoveButton').addEventListener('click', ()=> {
-        document.getElementById('removeForm').style.display = 'flex';
-        const removeMemberPanel = document.getElementById('remove-member');
-        if (removeMemberPanel && removeMemberPanel.style.display === 'flex') removeMemberPanel.style.display = 'none';
-        const addMemberPanel = document.getElementById('add-member');
-        if (addMemberPanel && addMemberPanel.style.display === 'flex') addMemberPanel.style.display = 'none';
-        const searchMemberPanel = document.getElementById('search-member');
-        if (searchMemberPanel && searchMemberPanel.style.display === 'flex') searchMemberPanel.style.display = 'none';
-    });
+    document.getElementById('openRemoveButton').addEventListener('click', ()=> { openFormLogic('removeForm'); });
     
-    document.getElementById('openSearchButton').addEventListener('click', ()=> {
-        document.getElementById('searchForm').style.display = 'flex';
-        const searchMemberPanel = document.getElementById('search-member');
-        if (searchMemberPanel && searchMemberPanel.style.display === 'flex') searchMemberPanel.style.display = 'none';
-        const addMemberPanel = document.getElementById('add-member');
-        if (addMemberPanel && addMemberPanel.style.display === 'flex') addMemberPanel.style.display = 'none';
-        const removeMemberPanel = document.getElementById('remove-member');
-        if (removeMemberPanel && removeMemberPanel.style.display === 'flex') removeMemberPanel.style.display = 'none';
-    });
+    document.getElementById('openSearchButton').addEventListener('click', ()=> { openFormLogic('searchForm'); });
+
 
     document.getElementById('cancelAddButton').addEventListener('click', ()=> {
         document.getElementById('addForm').style.display = 'none';

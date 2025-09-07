@@ -205,3 +205,18 @@ export function dropdownButtonLogic(dropdownElementId){
     const dropdownElement = document.getElementById(dropdownElementId);
     dropdownElement.style.display = (dropdownElement.style.display == 'flex') ? 'none' : 'flex';
 }
+
+export function openFormLogic(formId){
+
+    document.getElementById(formId).style.display = 'flex';
+
+    const removeMemberPanel = document.getElementById('remove-member'); // target
+    if (removeMemberPanel && removeMemberPanel.style.display === 'flex') removeMemberPanel.style.display = 'none';
+    
+    const addMemberPanel = document.getElementById('add-member');
+    if (addMemberPanel && addMemberPanel.style.display === 'flex') addMemberPanel.style.display = 'none';
+    
+    const searchMemberPanel = document.getElementById('search-member');
+    if (searchMemberPanel && searchMemberPanel.style.display === 'flex') searchMemberPanel.style.display = 'none';
+    
+}
