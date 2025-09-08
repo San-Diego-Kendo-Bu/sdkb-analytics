@@ -1,5 +1,6 @@
-import { userManager} from "./cognitoManager.js";
+import { userManager } from "./cognitoManager.js";
 import { rankToNum, compareRank, formatName, formatRank, rankToKanji } from "./nafudaTools.js";
+import * as buttonLogic from "./buttonLogic.js";
 
 let selectedMember = null;
 let members = null;
@@ -131,6 +132,7 @@ async function generateSlip(frontText, backText, memberId) {
 
     if(memberId >= 0 && isAdmin) {
         nafuda.addEventListener('click', () => {
+
             openModal(memberId);
         });
         nafuda.style.cursor = 'pointer';
@@ -363,45 +365,6 @@ function closeModal() {
     selectedMember = null;
 }
 
-async function setButtonsDisplay() {
-    const user = await userManager.getUser();
-    
-    const signOut = document.getElementById("signOut");
-    const signIn = document.getElementById("signIn");
-
-    signOut.style.display = (user && !user.expired) ? "inline" : "none";
-    signIn.style.display = (user && !user.expired) ? "none" : "inline";
-    
-    if(!user || user.expired) return;
-
-    try {
-        const response = await fetch('https://j5z43ef3j0.execute-api.us-east-2.amazonaws.com/admins',{
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${user.id_token}`
-            }
-        });
-        if (!response.ok) throw new Error(`HTTP error ${response.status}`);
-
-        const data = await response.json();
-        //console.log(data);
-        
-        if(!data.isAdmin) return;
-        
-        const addDropdownButton = document.getElementById('addDropdownButton');
-        const removeDropdownButton = document.getElementById('removeDropdownButton');
-        const searchDropdownButton = document.getElementById('searchDropdownButton');
-
-        addDropdownButton.style.display = "inline";
-        removeDropdownButton.style.display = "inline";
-        searchDropdownButton.style.display = "inline";
-        
-    } catch (error) {
-        console.error(error);
-    }
-}
-
 document.addEventListener('click', function(event){
     /**
      * Check if user has clicked away from the add member dropdown. If they did, then close it if it's open.
@@ -513,402 +476,102 @@ window.addEventListener('DOMContentLoaded', async () => {
         }, 150);
     });
 
-    await setButtonsDisplay();
+    await buttonLogic.setButtonsDisplay();
     
-    document.getElementById("signIn").addEventListener("click", async () => {
-        await userManager.signinRedirect({
-            extraQueryParams: {
-                identity_provider: "Google",
-                prompt: "select_account" // always show account picker
-            }
-        });
-    });
+    document.getElementById("signIn").addEventListener("click", buttonLogic.signInLogic);
 
-    document.getElementById("signOut").addEventListener("click", async () => {
-        const user = await userManager.getUser();
-        if (user) {
-            console.log("Logging out user:", user);
-            sessionStorage.removeItem("access-token-stored");
-            await userManager.removeUser(); // remove from storage
-        } else {
-            console.warn("No user found in session.");
-        }
-        window.location.reload();
-    });
+    document.getElementById("signOut").addEventListener("click", buttonLogic.signOutLogic);
 
     document.getElementById('cancelButton').addEventListener('click', () => {
         closeModal();
     });
 
-    /**
-     * Save button fetches the values from the form and makes a PATCH request to the database with the updated
-     * values. Then, after getting a response, it calls renderTable()
-     **/
     document.getElementById('saveButton').addEventListener('click', async () => {
         try {
-            const user = await userManager.getUser();
-            if (!user || user.expired) {
-                alert("You must be signed in to save changes.");
-                return;
-            }
-            
-            const newFirstName = document.getElementById('editFirstName').value;
-            const newLastName = document.getElementById('editLastName').value;
-            const newZekkenText = document.getElementById('editZekken').value;
-            const newRankType = document.getElementById('editRankType').value;
-            const newRankNumber = parseInt(document.getElementById('editRankNumber').value, 10);
-            const newEmail = document.getElementById('editEmail').value;
-            const newBirthday = document.getElementById('editBirthday').value;
-            const newStatus = document.getElementById('editStatus').value;
-
-            const response = await fetch('https://j5z43ef3j0.execute-api.us-east-2.amazonaws.com/items', {
-                method: 'PATCH',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${user.id_token}`
-                },
-                body: JSON.stringify({
-                    rank_number: newRankNumber,
-                    rank_type: newRankType,
-                    last_name: newLastName,
-                    member_id: selectedMember['member_id'],
-                    first_name: newFirstName,
-                    zekken_text: newZekkenText,
-                    email: newEmail,
-                    birthday: newBirthday || null,
-                    status: newStatus
-                })
-            });
-
-            if (!response.ok) {
-                throw new Error(`Server returned ${response.status}`);
-            }
-
-            document.getElementById('shelf').innerHTML = '';
+            await buttonLogic.saveButtonLogic(selectedMember);
             await renderTable();  // ✅ WAIT for rendering to complete
-          
-            const data = await response.json();
-            console.log("✅ Member added:", data);
-
         } catch (error) {
             console.error("❌ Failed to save or render table:", error);
             alert("Something went wrong. Please try again.");
         }
     });
 
-    document.getElementById('removeButton').addEventListener('click', async () => {
-        try {
-            const user = await userManager.getUser();
-            if (!user || user.expired) {
-                alert("You must be signed in to remove a member.");
-                return;
-            }
-
-            const response = await fetch('https://j5z43ef3j0.execute-api.us-east-2.amazonaws.com/items', {
-                method: 'DELETE',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${user.id_token}`
-                },
-                body: JSON.stringify({
-                    member_id: selectedMember['member_id']
-                })
-            });
-
-            if (!response.ok) {
-                throw new Error(`Server returned ${response.status}`);
-            }
-
-            document.getElementById('shelf').innerHTML = '';
-            await renderTable();  // ✅ Wait for re-render
-            closeModal();         // ✅ Only close after table updated
-
-        } catch (error) {
-            console.error("❌ Failed to delete member:", error);
-            alert("Failed to delete member. Please try again.");
-        }
-    });
-
-    document.getElementById('addDropdownButton').addEventListener('click', ()=>{
-        let addMember = document.getElementById('add-member');
-        addMember.style.display = (addMember.style.display == 'flex') ? 'none' : 'flex';
-    });
-    
-    document.getElementById('removeDropdownButton').addEventListener('click', ()=>{
-        let removeMember = document.getElementById('remove-member');
-        removeMember.style.display = (removeMember.style.display == 'flex') ? 'none' : 'flex';
-    });
-    
-    document.getElementById('searchDropdownButton').addEventListener('click', ()=>{
-        let searchMember = document.getElementById('search-member');
-        searchMember.style.display = (searchMember.style.display == 'flex') ? 'none' : 'flex';
-    });
-    
-    document.getElementById('openAddButton').addEventListener('click', ()=> {
-        document.getElementById('addForm').style.display = 'flex';
-        const addMemberPanel = document.getElementById('add-member');
-        if (addMemberPanel && addMemberPanel.style.display === 'flex') addMemberPanel.style.display = 'none';
-        const removeMemberPanel = document.getElementById('remove-member');
-        if (removeMemberPanel && removeMemberPanel.style.display === 'flex') removeMemberPanel.style.display = 'none';
-        const searchMemberPanel = document.getElementById('search-member');
-        if (searchMemberPanel && searchMemberPanel.style.display === 'flex') searchMemberPanel.style.display = 'none';
-    });
-
-    document.getElementById('openRemoveButton').addEventListener('click', ()=> {
-        document.getElementById('removeForm').style.display = 'flex';
-        const removeMemberPanel = document.getElementById('remove-member');
-        if (removeMemberPanel && removeMemberPanel.style.display === 'flex') removeMemberPanel.style.display = 'none';
-        const addMemberPanel = document.getElementById('add-member');
-        if (addMemberPanel && addMemberPanel.style.display === 'flex') addMemberPanel.style.display = 'none';
-        const searchMemberPanel = document.getElementById('search-member');
-        if (searchMemberPanel && searchMemberPanel.style.display === 'flex') searchMemberPanel.style.display = 'none';
-    });
-    
-    document.getElementById('openSearchButton').addEventListener('click', ()=> {
-        document.getElementById('searchForm').style.display = 'flex';
-        const searchMemberPanel = document.getElementById('search-member');
-        if (searchMemberPanel && searchMemberPanel.style.display === 'flex') searchMemberPanel.style.display = 'none';
-        const addMemberPanel = document.getElementById('add-member');
-        if (addMemberPanel && addMemberPanel.style.display === 'flex') addMemberPanel.style.display = 'none';
-        const removeMemberPanel = document.getElementById('remove-member');
-        if (removeMemberPanel && removeMemberPanel.style.display === 'flex') removeMemberPanel.style.display = 'none';
-    });
-
-    document.getElementById('cancelAddButton').addEventListener('click', ()=> {
-        document.getElementById('addForm').style.display = 'none';
-    });
-
-    document.getElementById('cancelRemoveButton').addEventListener('click', ()=> {
-        document.getElementById('removeForm').style.display = 'none';
-        document.getElementById('removeResults').style.display = 'none';
-        document.getElementById('removeForm').reset();
-    });
-    
-    document.getElementById('cancelSearchButton').addEventListener('click', ()=> {
-        document.getElementById('searchForm').style.display = 'none';
-        document.getElementById('searchResults').style.display = 'none';
-        document.getElementById('searchForm').reset();
-    });
-
-    document.getElementById('searchRemoveButton').addEventListener('click', async ()=> {
-        const firstName = document.getElementById('removeFirstName').value.trim();
-        const lastName = document.getElementById('removeLastName').value.trim();
-        
-        if (!firstName || !lastName) {
-            alert("Please enter both first name and last name.");
-            return;
-        }
-        
-        // Search for matching members
-        const matchingMembers = members.filter(member => 
-            member.first_name.toLowerCase().includes(firstName.toLowerCase()) && 
-            member.last_name.toLowerCase().includes(lastName.toLowerCase())
-        );
-        
-        if (matchingMembers.length === 0) {
-            alert(`No members found matching "${firstName} ${lastName}".`);
-            return;
-        }
-        
-        // Display results
-        displayRemoveResults(matchingMembers);
-    });
-    
-    document.getElementById('searchMemberButton').addEventListener('click', async ()=> {
-        const firstName = document.getElementById('searchFirstName').value.trim();
-        const lastName = document.getElementById('searchLastName').value.trim();
-        
-        if (!firstName || !lastName) {
-            alert("Please enter both first name and last name.");
-            return;
-        }
-        
-        // Search for matching members
-        const matchingMembers = members.filter(member => 
-            member.first_name.toLowerCase().includes(firstName.toLowerCase()) && 
-            member.last_name.toLowerCase().includes(lastName.toLowerCase())
-        );
-        
-        if (matchingMembers.length === 0) {
-            alert(`No members found matching "${firstName} ${lastName}".`);
-            return;
-        }
-        
-        // Display results
-        displaySearchResults(matchingMembers);
-    });
-
     document.getElementById('addForm').addEventListener('submit', async function(event) {
-        event.preventDefault();
-        const addForm = event.target;
-
         try {
-            const user = await userManager.getUser();
-            if (!user || user.expired) {
-                alert("You must be signed in to add a member.");
-                return;
-            }
-
-            const newFirstName = document.getElementById('addFirstName').value;
-            const newLastName = document.getElementById('addLastName').value;
-            const newZekkenText = document.getElementById('addZekken').value;
-            const newRankType = document.getElementById('addRankType').value;
-            const newRankNumber = parseInt(document.getElementById('addRankNumber').value, 10);
-            const newEmail = document.getElementById('addEmail').value;
-            const newBirthday = document.getElementById('addBirthday').value;
-            
-            const isGuest = document.getElementById('isGuest').checked ? 'yes':'no';
-
-            const response = await fetch('https://j5z43ef3j0.execute-api.us-east-2.amazonaws.com/items', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${user.id_token}`
-                },
-                body: JSON.stringify({
-                    rank_number: newRankNumber,
-                    rank_type: newRankType,
-                    last_name: newLastName,
-                    member_id: null, // backend will generate this
-                    first_name: newFirstName,
-                    zekken_text: newZekkenText,
-                    email: newEmail,
-                    birthday: newBirthday || null,
-                    is_guest: isGuest
-                })
-            });
-
-            if (!response.ok) {
-                throw new Error(`Server returned ${response.status}`);
-            }
-
-            const data = await response.json();
-            console.log("✅ Member added:", data);
-
-            document.getElementById('shelf').innerHTML = '';
+            await buttonLogic.addFormSubmitLogic(event);
             await renderTable(); // ✅ Wait for table refresh
-
-
-            addForm.style.display = 'none';
-            addForm.reset();
-
         } catch (err) {
             console.error("❌ Error adding member:", JSON.stringify(err, Object.getOwnPropertyNames(err), 2));
             alert("Failed to add member. Please check the form and try again.");
         }
     });
 
+    document.getElementById('removeButton').addEventListener('click', async () => {
+        try {
+            await buttonLogic.removeButtonLogic(selectedMember);
+            await renderTable();  // ✅ Wait for re-render
+            closeModal();         // ✅ Only close after table updated
+        } catch (error) {
+            console.error("❌ Failed to delete member:", error);
+            alert("Failed to delete member. Please try again.");
+        }
+    });
+
+    /**
+     * Dropdown buttons
+     */
+    document.getElementById('addDropdownButton').addEventListener('click', ()=>{ buttonLogic.dropdownButtonLogic('add-member'); });
+    
+    document.getElementById('removeDropdownButton').addEventListener('click', ()=>{ buttonLogic.dropdownButtonLogic('remove-member'); });
+    
+    document.getElementById('searchDropdownButton').addEventListener('click', ()=>{ buttonLogic.dropdownButtonLogic('search-member'); });
+    
+    /**
+     * Open form buttons
+     */
+    document.getElementById('openAddButton').addEventListener('click', ()=> { buttonLogic.openFormLogic('addForm'); });
+
+    document.getElementById('openRemoveButton').addEventListener('click', ()=> { buttonLogic.openFormLogic('removeForm'); });
+    
+    document.getElementById('openSearchButton').addEventListener('click', ()=> { buttonLogic.openFormLogic('searchForm'); });
+    
+    /**
+     * Cancel dropdown buttons
+     */
+    document.getElementById('cancelAddButton').addEventListener('click', ()=> {
+        buttonLogic.cancelDropdownLogic('addForm');
+    });
+
+    document.getElementById('cancelRemoveButton').addEventListener('click', ()=> {
+        buttonLogic.cancelDropdownLogic('removeForm', 'removeResults');
+    });
+    
+    document.getElementById('cancelSearchButton').addEventListener('click', ()=> {
+        buttonLogic.cancelDropdownLogic('searchForm', 'searchResults');
+    });
+
+    /**
+     * Search buttons
+     */
+    document.getElementById('searchRemoveButton').addEventListener('click', async ()=> {
+        const matchingMembers = buttonLogic.findMatchingMembers(members, 'removeFirstName', 'removeLastName');
+        if(matchingMembers && matchingMembers.length > 0) { displayRemoveResults(matchingMembers); }
+    });
+    
+    document.getElementById('searchMemberButton').addEventListener('click', async ()=> {
+        const matchingMembers = buttonLogic.findMatchingMembers(members, 'searchFirstName', 'searchLastName');
+        if(matchingMembers && matchingMembers.length > 0) { displaySearchResults(matchingMembers); }
+    });
+
+    /**
+     * CSV button
+     */
     document.getElementById('openAddGroupButton').addEventListener('click', () => {
         document.getElementById('groupCsvInput').click();
     });
 
     document.getElementById('groupCsvInput').addEventListener('change', async (event) => {
-        try {
-            const user = await userManager.getUser();
-            if (!user || user.expired) {
-                alert("You must be signed in to remove a member.");
-                return;
-            }
-            const file = event.target.files[0];
-            const COLS_NUM = 7;
-            let newFirstName = ''; // idx = 0
-            let newLastName = ''; // idx = 1
-            let newZekkenText = ''; // idx = 2
-            let newRankType = ''; // idx = 3
-            let newRankNumber = null; // idx = 4
-            let newEmail = ''; // idx = 5
-            let isGuest = ''; // idx = 6
-
-            if (file) {
-                // Example: Read the CSV file as text
-                const reader = new FileReader();
-
-                reader.onload = async function(e) {
-                    const csvText = e.target.result;
-                    // Split into rows
-                    const rows = csvText.trim().split('\n');
-                    for (let i = 1; i < rows.length; i++) {
-                        const row = rows[i];
-                        const cols = row.split(',');
-
-                        if (cols.length < COLS_NUM) {
-                            alert(`Error: Row ${i + 1} is missing fields. Each row must have ${COLS_NUM} columns.`);
-                            throw new Error(`CSV row ${i + 1} is missing fields`);
-                        }
-                        
-                        for (let j = 0; j < cols.length; j++) {
-                            const col = cols[j].trim();
-                            const idx = j;
-
-                            console.log(`Row: ${i} | Col ${idx}: ${col}`);
-                            
-                            switch(idx){
-                                case 0:
-                                    newFirstName = col;
-                                    break;
-                                case 1:
-                                    newLastName = col;
-                                    break;
-                                case 2:
-                                    newZekkenText = col;
-                                    break;
-                                case 3:
-                                    newRankType = col;
-                                    if (newRankType !== 'shihan' && newRankType !== 'dan' && newRankType !== 'kyu') {
-                                        alert(`Error: Invalid rank type "${newRankType}" in row ${i + 1}. Must be "shihan", "dan", or "kyu".`);
-                                        throw new Error(`Invalid rank type "${newRankType}" in row ${i + 1}`);
-                                    }
-                                    break;
-                                case 4:
-                                    newRankNumber = parseInt(col.trim(), 10);
-
-                                    if (isNaN(newRankNumber) || newRankNumber < 0 || (newRankType === 'dan' && (newRankNumber <= 0 || newRankNumber > 8)) 
-                                        || (newRankType === 'kyu' && (newRankNumber < 0 || newRankNumber > 6))) {
-                                        alert(`Error: Invalid rank number "${newRankNumber}" in row ${i + 1}`);
-                                        throw new Error(`Invalid rank number "${newRankNumber}" in row ${i + 1}`);
-                                    }
-                                    break;
-                                case 5:
-                                    newEmail = col;
-                                    break;
-                                case 6:
-                                    isGuest = col;
-                                    break;
-                            }
-                        }
-
-                        const response = await fetch('https://j5z43ef3j0.execute-api.us-east-2.amazonaws.com/items', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'Authorization': `Bearer ${user.id_token}`
-                            },
-                            body: JSON.stringify({
-                                rank_number: newRankNumber,
-                                rank_type: newRankType,
-                                last_name: newLastName,
-                                member_id: null, // backend will generate this
-                                first_name: newFirstName,
-                                zekken_text: newZekkenText,
-                                email: newEmail,
-                                is_guest: isGuest
-                            })
-                        });
-
-                        if (!response.ok) {
-                            throw new Error(`Server returned ${response.status}`);
-                        }
-                    
-                    }
-                    window.location.reload();
-                };
-                
-                reader.readAsText(file);
-            } 
-        } catch (err) {
-            console.error("❌ Error adding group:", JSON.stringify(err, Object.getOwnPropertyNames(err), 2));
-            alert("Failed to add group. Please resubmit .csv file and try again.");
-        }
+        buttonLogic.csvAddLogic(event);
     });
 
     const rankTypeSelect = document.getElementById('editRankType');
