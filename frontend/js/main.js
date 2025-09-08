@@ -133,7 +133,7 @@ async function generateSlip(frontText, backText, memberId) {
     if(memberId >= 0 && isAdmin) {
         nafuda.addEventListener('click', () => {
 
-            openModal(memberId, selectedMember, members);
+            openModal(memberId);
         });
         nafuda.style.cursor = 'pointer';
     }
@@ -218,7 +218,7 @@ function displaySearchResults(matchingMembers) {
         
         // Add click handler to open edit form
         memberDiv.addEventListener('click', () => {
-            openModal(member.member_id, selectedMember, members);
+            openModal(member.member_id);
             // Close the search form
             document.getElementById('searchForm').style.display = 'none';
             document.getElementById('searchResults').style.display = 'none';
