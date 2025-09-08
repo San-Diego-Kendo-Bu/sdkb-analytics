@@ -1,7 +1,7 @@
 import { userManager } from "./cognitoManager.js";
 import { rankToNum, compareRank, formatName, formatRank, rankToKanji } from "./nafudaTools.js";
 import { addFormSubmitLogic, cancelEditLogic, dropdownButtonLogic, 
-        openFormLogic, removeButtonLogic, saveButtonLogic,setButtonsDisplay, searchButtonLogic,
+        openFormLogic, removeButtonLogic, saveButtonLogic,setButtonsDisplay, findMatchingMembers,
         signInLogic, signOutLogic } from "./buttonLogic.js";
 
 let selectedMember = null;
@@ -554,55 +554,12 @@ window.addEventListener('DOMContentLoaded', async () => {
     });
 
     document.getElementById('searchRemoveButton').addEventListener('click', async ()=> {
-        const firstName = document.getElementById('removeFirstName').value.trim();
-        const lastName = document.getElementById('removeLastName').value.trim();
-        
-        if (!firstName || !lastName) {
-            alert("Please enter both first name and last name.");
-            return;
-        }
-        
-        // Search for matching members
-        const matchingMembers = members.filter(member => 
-            member.first_name.toLowerCase().includes(firstName.toLowerCase()) && 
-            member.last_name.toLowerCase().includes(lastName.toLowerCase())
-        );
-        
-        if (matchingMembers.length === 0) {
-            alert(`No members found matching "${firstName} ${lastName}".`);
-            return;
-        }
-        
-        // Display results
-        displayRemoveResults(matchingMembers);
+        const matchingMembers = findMatchingMembers(members, 'removeFirstName', 'removeLastName');
+        if(matchingMembers && matchingMembers.length > 0) { displayRemoveResults(matchingMembers); }
     });
     
-    // document.getElementById('searchMemberButton').addEventListener('click', async ()=> {
-    //     const firstName = document.getElementById('searchFirstName').value.trim();
-    //     const lastName = document.getElementById('searchLastName').value.trim();
-        
-    //     if (!firstName || !lastName) {
-    //         alert("Please enter both first name and last name.");
-    //         return;
-    //     }
-        
-    //     // Search for matching members
-    //     const matchingMembers = members.filter(member => 
-    //         member.first_name.toLowerCase().includes(firstName.toLowerCase()) && 
-    //         member.last_name.toLowerCase().includes(lastName.toLowerCase())
-    //     );
-        
-    //     if (matchingMembers.length === 0) {
-    //         alert(`No members found matching "${firstName} ${lastName}".`);
-    //         return;
-    //     }
-        
-    //     // Display results
-    //     displaySearchResults(matchingMembers);
-    // });
     document.getElementById('searchMemberButton').addEventListener('click', async ()=> {
-        const matchingMembers = searchButtonLogic(members);
-        // Display results
+        const matchingMembers = findMatchingMembers(members, 'searchFirstName', 'searchLastName');
         if(matchingMembers && matchingMembers.length > 0) { displaySearchResults(matchingMembers); }
     });
 

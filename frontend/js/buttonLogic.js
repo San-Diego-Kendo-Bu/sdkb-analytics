@@ -225,12 +225,13 @@ export function openFormLogic(formId){
 
 }
 
-export function searchButtonLogic(members){
-    console.log("From button logic form");
-    
-    const firstName = document.getElementById('searchFirstName').value.trim();
-    const lastName = document.getElementById('searchLastName').value.trim();
-    
+export function findMatchingMembers(members, firstNameId, lastNameId){
+
+    console.log("From button logic");
+
+    const firstName = document.getElementById(firstNameId).value.trim();
+    const lastName = document.getElementById(lastNameId).value.trim();
+
     if (!firstName || !lastName) {
         alert("Please enter both first name and last name.");
         return;
