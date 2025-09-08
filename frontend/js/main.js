@@ -534,23 +534,25 @@ window.addEventListener('DOMContentLoaded', async () => {
     
     document.getElementById('openSearchButton').addEventListener('click', ()=> { buttonLogic.openFormLogic('searchForm'); });
     
-
+    /**
+     * Cancel dropdown buttons
+     */
     document.getElementById('cancelAddButton').addEventListener('click', ()=> {
-        document.getElementById('addForm').style.display = 'none';
+        buttonLogic.cancelDropdownLogic('addForm');
     });
 
     document.getElementById('cancelRemoveButton').addEventListener('click', ()=> {
-        document.getElementById('removeForm').style.display = 'none';
-        document.getElementById('removeResults').style.display = 'none';
-        document.getElementById('removeForm').reset();
+        buttonLogic.cancelDropdownLogic('removeForm', 'removeResults');
     });
     
     document.getElementById('cancelSearchButton').addEventListener('click', ()=> {
-        document.getElementById('searchForm').style.display = 'none';
-        document.getElementById('searchResults').style.display = 'none';
-        document.getElementById('searchForm').reset();
+        buttonLogic.cancelDropdownLogic('searchForm', 'searchResults');
     });
 
+
+    /**
+     * Search buttons
+     */
     document.getElementById('searchRemoveButton').addEventListener('click', async ()=> {
         const matchingMembers = buttonLogic.findMatchingMembers(members, 'removeFirstName', 'removeLastName');
         if(matchingMembers && matchingMembers.length > 0) { displayRemoveResults(matchingMembers); }
@@ -561,6 +563,10 @@ window.addEventListener('DOMContentLoaded', async () => {
         if(matchingMembers && matchingMembers.length > 0) { displaySearchResults(matchingMembers); }
     });
 
+
+    /**
+     * CSV button
+     */
     document.getElementById('openAddGroupButton').addEventListener('click', () => {
         document.getElementById('groupCsvInput').click();
     });

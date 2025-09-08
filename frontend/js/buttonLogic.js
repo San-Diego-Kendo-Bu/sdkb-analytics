@@ -227,8 +227,6 @@ export function openFormLogic(formId){
 
 export function findMatchingMembers(members, firstNameId, lastNameId){
 
-    console.log("From button logic");
-
     const firstName = document.getElementById(firstNameId).value.trim();
     const lastName = document.getElementById(lastNameId).value.trim();
 
@@ -249,4 +247,13 @@ export function findMatchingMembers(members, firstNameId, lastNameId){
     }
 
     return matchingMembers;
+}
+
+export function cancelDropdownLogic(formId, resultId){
+    const form = document.getElementById(formId);
+    form.style.display = 'none';
+    form.reset();
+    
+    if(resultId)
+        document.getElementById(resultId).style.display = 'none';
 }
