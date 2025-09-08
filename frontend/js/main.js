@@ -345,6 +345,7 @@ function openModal(memberId) {
     document.getElementById('editRankType').value = selectedMember.rank_type || 'dan';
     document.getElementById('editRankNumber').value = selectedMember.rank_number || 0;
     document.getElementById('editEmail').value = selectedMember.email || '';
+    document.getElementById('editBirthday').value = selectedMember.birthday || '';
     document.getElementById('editStatus').value = selectedMember.status || '';
     document.getElementById('modalOverlay').style.display = 'flex';
 

@@ -104,6 +104,7 @@ exports.handler = async (event) => {
         rank_number: data.rank_number,
         rank_type: data.rank_type,
         email: data.email,
+        birthday: data.birthday ?? null,
         status: defaultStatus,
         dedup_key: dedupKey,
       }
