@@ -103,35 +103,35 @@ export class InfraStack extends Stack {
       functionName: 'createMemberCDK',
       runtime: lambda.Runtime.NODEJS_18_X,
       handler: 'index.handler',
-      code: lambda.Code.fromAsset(path.join(__dirname, '../../lambdas/createMember')),
+      code: lambda.Code.fromAsset(path.join(__dirname, '../../lambdas/members/createMember')),
     });
 
     const getMembersLambda = new lambda.Function(this, 'GetMembersLambda', {
       functionName: 'getMembersCDK',
       runtime: lambda.Runtime.NODEJS_18_X,
       handler: 'index.handler',
-      code: lambda.Code.fromAsset(path.join(__dirname, '../../lambdas/getMembers')),
+      code: lambda.Code.fromAsset(path.join(__dirname, '../../lambdas/members/getMembers')),
     });
 
     const getAdminLambda = new lambda.Function(this, 'GetAdminLambda', {
       functionName: 'getAdminCDK',
       runtime: lambda.Runtime.NODEJS_18_X,
       handler: 'index.handler',
-      code: lambda.Code.fromAsset(path.join(__dirname, '../../lambdas/getAdmin')),
+      code: lambda.Code.fromAsset(path.join(__dirname, '../../lambdas/admins/getAdmin')),
     });
 
     const removeMemberLambda = new lambda.Function(this, 'RemoveMemberLambda', {
       functionName: 'removeMemberCDK',
       runtime: lambda.Runtime.NODEJS_18_X,
       handler: 'index.handler',
-      code: lambda.Code.fromAsset(path.join(__dirname, '../../lambdas/removeMember')),
+      code: lambda.Code.fromAsset(path.join(__dirname, '../../lambdas/members/removeMember')),
     });
 
     const modifyMemberLambda = new lambda.Function(this, 'ModifyMemberLambda', {
       functionName: 'modifyMemberCDK',
       runtime: lambda.Runtime.NODEJS_18_X,
       handler: 'index.handler',
-      code: lambda.Code.fromAsset(path.join(__dirname, '../../lambdas/modifyMember')),
+      code: lambda.Code.fromAsset(path.join(__dirname, '../../lambdas/members/modifyMember')),
     });
 
     // HTTP API Gateway (v2)
@@ -210,7 +210,7 @@ export class InfraStack extends Stack {
 
     // Add routes
     httpApi.addRoutes({
-      path: '/items',
+      path: '/members',
       methods: [apigwv2.HttpMethod.GET],
       integration: new integrations.HttpLambdaIntegration('GetIntegration', getMembersLambda),
     });
@@ -222,21 +222,21 @@ export class InfraStack extends Stack {
     });
 
     httpApi.addRoutes({
-      path: '/items',
+      path: '/members',
       methods: [apigwv2.HttpMethod.POST],
       integration: new integrations.HttpLambdaIntegration('PostIntegration', createMemberLambda),
       authorizer: authorizer,
     });
 
     httpApi.addRoutes({
-      path: '/items',
+      path: '/members',
       methods: [apigwv2.HttpMethod.PATCH],
       integration: new integrations.HttpLambdaIntegration('PatchIntegration', modifyMemberLambda),
       authorizer: authorizer,
     });
 
     httpApi.addRoutes({
-      path: '/items',
+      path: '/members',
       methods: [apigwv2.HttpMethod.DELETE],
       integration: new integrations.HttpLambdaIntegration('DeleteIntegration', removeMemberLambda),
       authorizer: authorizer,

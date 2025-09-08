@@ -1,0 +1,127 @@
+const { DynamoDBClient} = require("@aws-sdk/client-dynamodb");
+const {
+  DynamoDBDocumentClient,
+  QueryCommand,
+  PutCommand,
+  UpdateCommand
+} = require("@aws-sdk/lib-dynamodb");
+
+const client = new DynamoDBClient({});
+const ddb = DynamoDBDocumentClient.from(client);
+
+const lc = v => (v ?? "").toString().trim().toLowerCase();
+
+function normalizeGroups(raw) {
+  if (Array.isArray(raw)) {
+    return raw.flatMap(item => normalizeGroups(item)); // handle nested / mixed shapes
+  }
+  const s = String(raw || '').trim();
+
+  // If the value is like "[a, b, c]" (stringified array), strip brackets first
+  const withoutBrackets = (s.startsWith('[') && s.endsWith(']')) ? s.slice(1, -1) : s;
+
+  // Split by comma, trim entries, drop empties
+  return withoutBrackets
+    .split(',')
+    .map(x => x.trim())
+    .filter(Boolean);
+}
+
+exports.handler = async (event) => {
+  // Prefer claims from API Gateway authorizer (ID token path)
+  const claims =
+    event.requestContext?.authorizer?.jwt?.claims ??
+    event.requestContext?.authorizer?.claims ??
+    {};
+
+  const groups = normalizeGroups(claims['cognito:groups']);
+  const isAdmin = groups.some(g => g === 'admins' || g.endsWith(' admins'));
+
+  console.log('Auth debug', {
+    email: claims.email,
+    groups,
+    token_use: claims.token_use,
+  });
+
+  if (!isAdmin) {
+    return { statusCode: 403, body: 'Forbidden' };
+  }
+
+  try {
+    // Increment the idCounter in the appConfigs table
+    const updateParams = {
+      TableName: "appConfigs",
+      Key: { type:"idCounter" },
+      UpdateExpression: "ADD #counter :val",
+      ExpressionAttributeNames: { "#counter": "idCounter" },
+      ExpressionAttributeValues: {':val': 1},
+      ReturnValues: "ALL_NEW"
+    };
+    const updateResult = await ddb.send(new UpdateCommand(updateParams));
+    const newMemberId = updateResult.Attributes.idCounter;
+    const data = JSON.parse(event.body);
+    
+    const dedupKey = [
+      lc(data.first_name),
+      lc(data.last_name),
+      lc(data.rank_type),
+      (data.rank_number ?? "").toString().trim(),
+      (data.zekken_text ?? "").toString().trim(),
+      lc(data.email)
+    ].join("#");
+    
+    const query = new QueryCommand({
+      TableName: 'members',
+      IndexName: 'dedup_key-index',
+      KeyConditionExpression: 'dedup_key = :dedupKey',
+      ExpressionAttributeValues: {
+        ':dedupKey': dedupKey
+      }
+    });
+
+    const query_result = await ddb.send(query);
+
+    // check for other member_id entries with the same fields
+    const duplicates = (query_result.Items || []).filter(it => it.member_id !== newMemberId);
+
+    if (duplicates.length > 0) {
+      console.warn(`Duplicate member detected: ${dedupKey}. Skipping insert.`);
+
+      return {
+        statusCode: 200,
+        body: JSON.stringify({ message: "Duplicate detected. Insert skipped." })
+      };
+    }
+
+    const defaultStatus = (data.is_guest.toLowerCase() == 'yes') ? "guest" : ((data.rank_type == "dan" && data.rank_number >= 4) ? "exempt" : "active");
+    const params = {
+      TableName: "members",
+      Item: {
+        member_id: newMemberId,
+        first_name: data.first_name,
+        last_name: data.last_name,
+        zekken_text: data.zekken_text,
+        rank_number: data.rank_number,
+        rank_type: data.rank_type,
+        email: data.email,
+        birthday: data.birthday ?? null,
+        status: defaultStatus,
+        dedup_key: dedupKey,
+      }
+    };
+
+    await ddb.send(new PutCommand(params));
+
+    return {
+      statusCode: 200,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: "Success", received: params.Item })
+    };
+  } catch (err) {
+    return {
+      statusCode: 500,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ error: err.message })
+    };
+  }
+};
