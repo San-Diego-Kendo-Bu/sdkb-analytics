@@ -1,3 +1,8 @@
+/**
+ * TODO: For the search button logic, you could return the div that's created in it,
+ * this way you can hook the "openModal" function on main.
+ */
+
 import { userManager } from "./cognitoManager.js";
 
 export async function setButtonsDisplay() {
@@ -201,14 +206,11 @@ export async function addFormSubmitLogic(event){
 }
 
 export function dropdownButtonLogic(dropdownElementId){
-    console.log("From buttonLogic");
     const dropdownElement = document.getElementById(dropdownElementId);
     dropdownElement.style.display = (dropdownElement.style.display == 'flex') ? 'none' : 'flex';
 }
 
 export function openFormLogic(formId){
-
-    console.log("From buttonLogic");
 
     document.getElementById(formId).style.display = 'flex';
 
@@ -221,4 +223,29 @@ export function openFormLogic(formId){
     const searchMemberPanel = document.getElementById('search-member');
     if (searchMemberPanel && searchMemberPanel.style.display === 'flex') searchMemberPanel.style.display = 'none';
 
+}
+
+export function searchButtonLogic(members){
+    console.log("From button logic form");
+    
+    const firstName = document.getElementById('searchFirstName').value.trim();
+    const lastName = document.getElementById('searchLastName').value.trim();
+    
+    if (!firstName || !lastName) {
+        alert("Please enter both first name and last name.");
+        return;
+    }
+    
+    // Search for matching members
+    const matchingMembers = members.filter(member => 
+        member.first_name.toLowerCase().includes(firstName.toLowerCase()) && 
+        member.last_name.toLowerCase().includes(lastName.toLowerCase())
+    );
+    
+    if (matchingMembers.length === 0) {
+        alert(`No members found matching "${firstName} ${lastName}".`);
+        return;
+    }
+
+    return matchingMembers;
 }

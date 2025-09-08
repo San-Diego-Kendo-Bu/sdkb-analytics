@@ -1,8 +1,8 @@
 import { userManager } from "./cognitoManager.js";
-import { addFormSubmitLogic, cancelEditLogic, dropdownButtonLogic, 
-        openFormLogic, removeButtonLogic, saveButtonLogic, setButtonsDisplay, signInLogic, 
-        signOutLogic } from "./buttonLogic.js";
 import { rankToNum, compareRank, formatName, formatRank, rankToKanji } from "./nafudaTools.js";
+import { addFormSubmitLogic, cancelEditLogic, dropdownButtonLogic, 
+        openFormLogic, removeButtonLogic, saveButtonLogic,setButtonsDisplay, searchButtonLogic,
+        signInLogic, signOutLogic } from "./buttonLogic.js";
 
 let selectedMember = null;
 let members = null;
@@ -134,7 +134,8 @@ async function generateSlip(frontText, backText, memberId) {
 
     if(memberId >= 0 && isAdmin) {
         nafuda.addEventListener('click', () => {
-            openModal(memberId);
+
+            openModal(memberId, selectedMember, members);
         });
         nafuda.style.cursor = 'pointer';
     }
@@ -219,7 +220,7 @@ function displaySearchResults(matchingMembers) {
         
         // Add click handler to open edit form
         memberDiv.addEventListener('click', () => {
-            openModal(member.member_id);
+            openModal(member.member_id, selectedMember, members);
             // Close the search form
             document.getElementById('searchForm').style.display = 'none';
             document.getElementById('searchResults').style.display = 'none';
@@ -364,8 +365,6 @@ function closeModal() {
     document.getElementById('modalOverlay').style.display = 'none';
     selectedMember = null;
 }
-
-
 
 document.addEventListener('click', function(event){
     /**
@@ -578,28 +577,33 @@ window.addEventListener('DOMContentLoaded', async () => {
         displayRemoveResults(matchingMembers);
     });
     
+    // document.getElementById('searchMemberButton').addEventListener('click', async ()=> {
+    //     const firstName = document.getElementById('searchFirstName').value.trim();
+    //     const lastName = document.getElementById('searchLastName').value.trim();
+        
+    //     if (!firstName || !lastName) {
+    //         alert("Please enter both first name and last name.");
+    //         return;
+    //     }
+        
+    //     // Search for matching members
+    //     const matchingMembers = members.filter(member => 
+    //         member.first_name.toLowerCase().includes(firstName.toLowerCase()) && 
+    //         member.last_name.toLowerCase().includes(lastName.toLowerCase())
+    //     );
+        
+    //     if (matchingMembers.length === 0) {
+    //         alert(`No members found matching "${firstName} ${lastName}".`);
+    //         return;
+    //     }
+        
+    //     // Display results
+    //     displaySearchResults(matchingMembers);
+    // });
     document.getElementById('searchMemberButton').addEventListener('click', async ()=> {
-        const firstName = document.getElementById('searchFirstName').value.trim();
-        const lastName = document.getElementById('searchLastName').value.trim();
-        
-        if (!firstName || !lastName) {
-            alert("Please enter both first name and last name.");
-            return;
-        }
-        
-        // Search for matching members
-        const matchingMembers = members.filter(member => 
-            member.first_name.toLowerCase().includes(firstName.toLowerCase()) && 
-            member.last_name.toLowerCase().includes(lastName.toLowerCase())
-        );
-        
-        if (matchingMembers.length === 0) {
-            alert(`No members found matching "${firstName} ${lastName}".`);
-            return;
-        }
-        
+        const matchingMembers = searchButtonLogic(members);
         // Display results
-        displaySearchResults(matchingMembers);
+        if(matchingMembers && matchingMembers.length > 0) { displaySearchResults(matchingMembers); }
     });
 
     document.getElementById('openAddGroupButton').addEventListener('click', () => {
