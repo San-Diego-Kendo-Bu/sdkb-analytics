@@ -1,8 +1,6 @@
 import { userManager } from "./cognitoManager.js";
 import { rankToNum, compareRank, formatName, formatRank, rankToKanji } from "./nafudaTools.js";
-import { addFormSubmitLogic, cancelEditLogic, dropdownButtonLogic, 
-        openFormLogic, removeButtonLogic, saveButtonLogic,setButtonsDisplay, findMatchingMembers,
-        signInLogic, signOutLogic } from "./buttonLogic.js";
+import * as buttonLogic from "./buttonLogic.js";
 
 let selectedMember = null;
 let members = null;
@@ -477,11 +475,11 @@ window.addEventListener('DOMContentLoaded', async () => {
         }, 150);
     });
 
-    await setButtonsDisplay();
+    await buttonLogic.setButtonsDisplay();
     
-    document.getElementById("signIn").addEventListener("click", signInLogic);
+    document.getElementById("signIn").addEventListener("click", buttonLogic.signInLogic);
 
-    document.getElementById("signOut").addEventListener("click", signOutLogic);
+    document.getElementById("signOut").addEventListener("click", buttonLogic.signOutLogic);
 
     document.getElementById('cancelButton').addEventListener('click', () => {
         closeModal();
@@ -489,7 +487,7 @@ window.addEventListener('DOMContentLoaded', async () => {
 
     document.getElementById('saveButton').addEventListener('click', async () => {
         try {
-            await saveButtonLogic(selectedMember);
+            await buttonLogic.saveButtonLogic(selectedMember);
             await renderTable();  // ✅ WAIT for rendering to complete
         } catch (error) {
             console.error("❌ Failed to save or render table:", error);
@@ -499,7 +497,7 @@ window.addEventListener('DOMContentLoaded', async () => {
 
     document.getElementById('addForm').addEventListener('submit', async function(event) {
         try {
-            await addFormSubmitLogic(event);
+            await buttonLogic.addFormSubmitLogic(event);
             await renderTable(); // ✅ Wait for table refresh
         } catch (err) {
             console.error("❌ Error adding member:", JSON.stringify(err, Object.getOwnPropertyNames(err), 2));
@@ -509,7 +507,7 @@ window.addEventListener('DOMContentLoaded', async () => {
 
     document.getElementById('removeButton').addEventListener('click', async () => {
         try {
-            await removeButtonLogic(selectedMember);
+            await buttonLogic.removeButtonLogic(selectedMember);
             await renderTable();  // ✅ Wait for re-render
             closeModal();         // ✅ Only close after table updated
         } catch (error) {
@@ -521,20 +519,20 @@ window.addEventListener('DOMContentLoaded', async () => {
     /**
      * Dropdown buttons
      */
-    document.getElementById('addDropdownButton').addEventListener('click', ()=>{ dropdownButtonLogic('add-member'); });
+    document.getElementById('addDropdownButton').addEventListener('click', ()=>{ buttonLogic.dropdownButtonLogic('add-member'); });
     
-    document.getElementById('removeDropdownButton').addEventListener('click', ()=>{ dropdownButtonLogic('remove-member'); });
+    document.getElementById('removeDropdownButton').addEventListener('click', ()=>{ buttonLogic.dropdownButtonLogic('remove-member'); });
     
-    document.getElementById('searchDropdownButton').addEventListener('click', ()=>{ dropdownButtonLogic('search-member'); });
+    document.getElementById('searchDropdownButton').addEventListener('click', ()=>{ buttonLogic.dropdownButtonLogic('search-member'); });
     
     /**
      * Open form buttons
      */
-    document.getElementById('openAddButton').addEventListener('click', ()=> { openFormLogic('addForm'); });
+    document.getElementById('openAddButton').addEventListener('click', ()=> { buttonLogic.openFormLogic('addForm'); });
 
-    document.getElementById('openRemoveButton').addEventListener('click', ()=> { openFormLogic('removeForm'); });
+    document.getElementById('openRemoveButton').addEventListener('click', ()=> { buttonLogic.openFormLogic('removeForm'); });
     
-    document.getElementById('openSearchButton').addEventListener('click', ()=> { openFormLogic('searchForm'); });
+    document.getElementById('openSearchButton').addEventListener('click', ()=> { buttonLogic.openFormLogic('searchForm'); });
     
 
     document.getElementById('cancelAddButton').addEventListener('click', ()=> {
@@ -554,12 +552,12 @@ window.addEventListener('DOMContentLoaded', async () => {
     });
 
     document.getElementById('searchRemoveButton').addEventListener('click', async ()=> {
-        const matchingMembers = findMatchingMembers(members, 'removeFirstName', 'removeLastName');
+        const matchingMembers = buttonLogic.findMatchingMembers(members, 'removeFirstName', 'removeLastName');
         if(matchingMembers && matchingMembers.length > 0) { displayRemoveResults(matchingMembers); }
     });
     
     document.getElementById('searchMemberButton').addEventListener('click', async ()=> {
-        const matchingMembers = findMatchingMembers(members, 'searchFirstName', 'searchLastName');
+        const matchingMembers = buttonLogic.findMatchingMembers(members, 'searchFirstName', 'searchLastName');
         if(matchingMembers && matchingMembers.length > 0) { displaySearchResults(matchingMembers); }
     });
 
