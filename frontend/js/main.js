@@ -1,6 +1,8 @@
 import { userManager } from "./cognitoManager.js";
 import { rankToNum, compareRank, formatName, formatRank, rankToKanji } from "./nafudaTools.js";
+
 import * as buttonLogic from "./buttonLogic.js";
+import * as paymentManager from "./paymentManager.js";
 
 let selectedMember = null;
 let members = null;
@@ -485,6 +487,8 @@ window.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('cancelButton').addEventListener('click', () => {
         closeModal();
     });
+
+    document.getElementById('createPaymentButton').addEventListener('click', paymentManager.createPayment);
 
     document.getElementById('saveButton').addEventListener('click', async () => {
         try {
