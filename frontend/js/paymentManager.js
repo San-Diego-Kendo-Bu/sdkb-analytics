@@ -1,34 +1,22 @@
+import { createClient } from "https://esm.sh/@supabase/supabase-js";
 const endpoint = 'https://gsriiicvvxzvidaakctw.supabase.co';
 const anon = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdzcmlpaWN2dnh6dmlkYWFrY3R3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUxNDg0MjUsImV4cCI6MjA3MDcyNDQyNX0.GtHJ405NZAA8V2RQy1h6kz3wIrdraaOEXTKTentoePE';
-export function dummy(){
-    console.log("Dummy!");
-}
-export async function createPayment(){
-    console.log("Creating payment...");
-    try{
-        const response = await fetch(endpoint, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'apikey' : anon,
-            },
-            body: JSON.stringify({
-                payment_id : 0,
-                created_at : '2025-09-09',
-                payment_value : 0,
-                due_date : 0,
-                overdue_penalty : 0,
-                event_id : 0 
-            })
-        });
-        
-        if (!response.ok) {
-            throw new Error(`Database returned returned ${response.status}`);
-        }
 
-        console.log("Payment created successful");
-    
-    }catch(err){
-        console.log(err);
+const supabaseClient = createClient(endpoint,anon);
+
+export async function createPayment(createdAt, paymentValue, dueDate, overduePenalty, eventId){
+    console.log("Creating payment...");
+    const { error } = await supabaseClient.from('Payments').insert({
+        'created_at' : createdAt,
+        'payment_value' : paymentValue,
+        'due_date' : dueDate,
+        'overdue_penalty' : overduePenalty,
+        'event_id' : eventId
+    });
+    if(error){
+        console.log(error);
+    }else{
+        console.log("Payment created successfully.");
     }
+    return error;
 }
