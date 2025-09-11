@@ -271,14 +271,15 @@ export async function csvAddLogic(event){
             return;
         }
         const file = event.target.files[0];
-        const COLS_NUM = 7;
+        const COLS_NUM = 8;
         let newFirstName = ''; // idx = 0
         let newLastName = ''; // idx = 1
         let newZekkenText = ''; // idx = 2
         let newRankType = ''; // idx = 3
         let newRankNumber = null; // idx = 4
         let newEmail = ''; // idx = 5
-        let isGuest = ''; // idx = 6
+        let newBirthday = ''; // idx = 6
+        let isGuest = ''; // idx = 7
 
         if (file) {
             // Example: Read the CSV file as text
@@ -333,6 +334,9 @@ export async function csvAddLogic(event){
                                 newEmail = col;
                                 break;
                             case 6:
+                                newBirthday = col;
+                                break;
+                            case 7:
                                 isGuest = col;
                                 break;
                         }
@@ -352,6 +356,7 @@ export async function csvAddLogic(event){
                             first_name: newFirstName,
                             zekken_text: newZekkenText,
                             email: newEmail,
+                            birthday: newBirthday || null,
                             is_guest: isGuest
                         })
                     });
