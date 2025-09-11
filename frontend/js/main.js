@@ -488,10 +488,6 @@ window.addEventListener('DOMContentLoaded', async () => {
         closeModal();
     });
 
-    document.getElementById('createPaymentButton').addEventListener('click', async () =>{
-        paymentManager.createPayment('2025-01-01 00:00:00',0,0,0,1);
-    });
-
     document.getElementById('saveButton').addEventListener('click', async () => {
         try {
             await buttonLogic.saveButtonLogic(selectedMember);
@@ -511,6 +507,10 @@ window.addEventListener('DOMContentLoaded', async () => {
             alert("Failed to add member. Please check the form and try again.");
         }
     });
+
+    document.getElementById('createPaymentForm').addEventListener('submit', async function(event){
+        await buttonLogic.createPaymentSubmit(event);
+    })
 
     document.getElementById('removeButton').addEventListener('click', async () => {
         try {
@@ -541,6 +541,8 @@ window.addEventListener('DOMContentLoaded', async () => {
     
     document.getElementById('openSearchButton').addEventListener('click', ()=> { buttonLogic.openFormLogic('searchForm'); });
     
+    document.getElementById('openCreatePayment').addEventListener('click', ()=> {buttonLogic.openFormLogic('createPaymentForm'); });
+
     /**
      * Cancel dropdown buttons
      */
@@ -554,6 +556,10 @@ window.addEventListener('DOMContentLoaded', async () => {
     
     document.getElementById('cancelSearchButton').addEventListener('click', ()=> {
         buttonLogic.cancelDropdownLogic('searchForm', 'searchResults');
+    });
+
+    document.getElementById('cancelCreatePayment').addEventListener('click', ()=>{
+        buttonLogic.cancelDropdownLogic('createPaymentForm');
     });
 
     /**

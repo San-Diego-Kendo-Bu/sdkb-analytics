@@ -15,8 +15,25 @@
         <button id="signOut" style="margin-left: 70px; display: none;" class="sign-in-btn">Sign Out</button>
     </div>
 
-    <button id="createPaymentButton" style="color: red;"> Create Payment </button>
+    <button id="openCreatePayment" style="color: red; display: none;"> Create Payment </button>
+    <form id="createPaymentForm" class="formOverlay">
+        <label for="paymentValue"> Value: </label>
+        <input type="number" id="paymentValue" name="paymentValue" required>
+        
+        <label for="dueDate"> Due Date: </label>
+        <input type="date" id="dueDate" name="dueDate" required>
 
+        <label for="overduePenalty"> Overdue Penalty: </label>
+        <input type="number" id="overduePenalty" name="overduePenalty" required>
+
+        <label for="eventId"> Event ID: </label>
+        <input type="number" id="eventId" name="eventId" required>
+
+        <div class="form-action-buttons">
+            <input type="submit" id="submitCreatePayment" value="Create">
+            <button id="cancelCreatePayment" type="button" class="cancel-form-button">Cancel</button>
+        </div>
+    </form>
     <div id="shelf"></div>
     <div id="modalOverlay">
         <div id="modalForm">
@@ -126,9 +143,9 @@
             <label for="isGuest" style="font-size: 1.0em;">I'm adding a guest</label>
         </div>
 
-        <div class="add-form-buttons">
+        <div class="form-action-buttons">
             <input id="addButton" type="submit" value="Add">
-            <button id="cancelAddButton" type="button">Cancel</button>
+            <button id="cancelAddButton" type="button" class="cancel-form-button">Cancel</button>
         </div>
     </form>
     
@@ -138,9 +155,9 @@
         <label for="removeLastName">Last Name (Required)</label>
         <input type="text" id="removeLastName" name="last_name" required>
         
-        <div class="add-form-buttons">
+        <div class="form-action-buttons">
             <button id="searchRemoveButton" type="button">Search</button>
-            <button id="cancelRemoveButton" type="button">Cancel</button>
+            <button id="cancelRemoveButton" type="button" class="cancel-form-button">Cancel</button>
         </div>
         
         <div id="removeResults" style="display: none; margin-top: 20px;">
@@ -155,9 +172,9 @@
         <label for="searchLastName">Last Name (Required)</label>
         <input type="text" id="searchLastName" name="last_name" required>
         
-        <div class="add-form-buttons">
+        <div class="form-action-buttons">
             <button id="searchMemberButton" type="button">Search</button>
-            <button id="cancelSearchButton" type="button">Cancel</button>
+            <button id="cancelSearchButton" type="button" class="cancel-form-button">Cancel</button>
         </div>
         
         <div id="searchResults" style="display: none; margin-top: 20px;">

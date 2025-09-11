@@ -4,6 +4,10 @@ const anon = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZ
 
 const supabaseClient = createClient(endpoint,anon);
 
+/**
+ * TODO: Right now, there's a policy in place that lets every user insert into the table.
+ * We should decide how we're enforcing privileges (service_role key, authentication policies, cognito, etc.)
+ */
 export async function createPayment(createdAt, paymentValue, dueDate, overduePenalty, eventId){
     console.log("Creating payment...");
     const { error } = await supabaseClient.from('Payments').insert({
