@@ -8,7 +8,7 @@ let renderedSlips = [];
 
 async function renderTable() {
     try {
-        const response = await fetch('https://j5z43ef3j0.execute-api.us-east-2.amazonaws.com/items');
+        const response = await fetch('https://j5z43ef3j0.execute-api.us-east-2.amazonaws.com/members');
         if (!response.ok) throw new Error(`HTTP error ${response.status}`);
 
         const data = await response.json();
@@ -239,7 +239,7 @@ async function removeMember(memberId) {
             return;
         }
 
-        const response = await fetch('https://j5z43ef3j0.execute-api.us-east-2.amazonaws.com/items', {
+        const response = await fetch('https://j5z43ef3j0.execute-api.us-east-2.amazonaws.com/members', {
             method: 'DELETE',
             headers: {
                 'Content-Type': 'application/json',
