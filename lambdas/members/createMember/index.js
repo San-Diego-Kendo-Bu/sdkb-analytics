@@ -13,10 +13,11 @@ import {
 
 import Stripe from "stripe";
 
-const secret_name = "test/stripe";
+const REGION = process.env.AWS_REGION;  
+const SECRET_ID = process.env.SECRET_ID;
 
 const secrets_client = new SecretsManagerClient({
-  region: "us-east-2",
+  region: REGION,
 });
 
 let response;
@@ -24,7 +25,7 @@ let response;
 try {
   response = await secrets_client.send(
     new GetSecretValueCommand({
-      SecretId: secret_name,
+      SecretId: SECRET_ID,
       VersionStage: "AWSCURRENT", // VersionStage defaults to AWSCURRENT if unspecified
     })
   );

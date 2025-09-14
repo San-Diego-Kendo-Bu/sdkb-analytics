@@ -13,6 +13,8 @@ import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as s3deploy from 'aws-cdk-lib/aws-s3-deployment';
 import { Duration } from 'aws-cdk-lib';
 
+import * as secretsmanager from "aws-cdk-lib/aws-secretsmanager";
+
 import { UserPool, UserPoolClient } from 'aws-cdk-lib/aws-cognito';
 import { HttpUserPoolAuthorizer } from 'aws-cdk-lib/aws-apigatewayv2-authorizers';
 
@@ -36,6 +38,10 @@ export class InfraStack extends Stack {
     const authorizer = new HttpUserPoolAuthorizer('MyCognitoAuth', userPool, {
       userPoolClients: [userPoolClient],
     });
+
+    const secret = secretsmanager.Secret.fromSecretNameV2(
+      this, "StripeSecret", "test/stripe"
+    );
 
     // Long-cache everything EXCEPT index.html and JS
     new s3deploy.BucketDeployment(this, 'AssetsLongCache', {
@@ -104,6 +110,10 @@ export class InfraStack extends Stack {
       runtime: lambda.Runtime.NODEJS_18_X,
       handler: 'index.handler',
       code: lambda.Code.fromAsset(path.join(__dirname, '../../lambdas/members/createMember')),
+      timeout: Duration.seconds(10),
+      environment: {
+        SECRET_ID: secret.secretName, // "test/stripe"
+      },
     });
 
     const getMembersLambda = new lambda.Function(this, 'GetMembersLambda', {
@@ -133,6 +143,9 @@ export class InfraStack extends Stack {
       handler: 'index.handler',
       code: lambda.Code.fromAsset(path.join(__dirname, '../../lambdas/members/modifyMember')),
     });
+
+    // grant secret permissions
+    secret.grantRead(createMemberLambda);
 
     // HTTP API Gateway (v2)
     const httpApi = new apigwv2.HttpApi(this, 'MyHttpApi', {
