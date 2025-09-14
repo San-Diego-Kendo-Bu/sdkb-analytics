@@ -27,6 +27,18 @@ function normalizeGroups(raw) {
     .filter(Boolean);
 }
 
+async function createCustomer(email, name, member_id_value) {
+  const customer = await stripe.customers.create({
+    email,
+    name,
+    metadata: { member_id: member_id_value }, // optional
+  });
+
+  console.log("✅ Customer created!");
+  console.log("Customer ID:", customer.id); // e.g., cus_N7zYd9s123abc
+  return customer.id;
+}
+
 exports.handler = async (event) => {
   // Prefer claims from API Gateway authorizer (ID token path)
   const claims =
@@ -94,6 +106,8 @@ exports.handler = async (event) => {
     }
 
     const defaultStatus = (data.is_guest.toLowerCase() == 'yes') ? "guest" : ((data.rank_type == "dan" && data.rank_number >= 4) ? "exempt" : "active");
+    const new_customer_id = await createCustomer(data.email, data.first_name + " " + data.last_name, newMemberId);
+
     const params = {
       TableName: "members",
       Item: {
@@ -106,12 +120,13 @@ exports.handler = async (event) => {
         email: data.email,
         birthday: data.birthday ?? null,
         status: defaultStatus,
+        cusomter_id: new_customer_id,
         dedup_key: dedupKey,
       }
     };
 
     await ddb.send(new PutCommand(params));
-
+    
     return {
       statusCode: 200,
       headers: { "Content-Type": "application/json" },
