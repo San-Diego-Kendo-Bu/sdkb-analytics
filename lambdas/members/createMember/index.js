@@ -6,8 +6,39 @@ const {
   UpdateCommand
 } = require("@aws-sdk/lib-dynamodb");
 
+import {
+  SecretsManagerClient,
+  GetSecretValueCommand,
+} from "@aws-sdk/client-secrets-manager";
+
+import Stripe from "stripe";
+
+const secret_name = "test/stripe";
+
+const secrets_client = new SecretsManagerClient({
+  region: "us-east-2",
+});
+
+let response;
+
+try {
+  response = await secrets_client.send(
+    new GetSecretValueCommand({
+      SecretId: secret_name,
+      VersionStage: "AWSCURRENT", // VersionStage defaults to AWSCURRENT if unspecified
+    })
+  );
+} catch (error) {
+  // For a list of exceptions thrown, see
+  // https://docs.aws.amazon.com/secretsmanager/latest/apireference/API_GetSecretValue.html
+  throw error;
+}
+
+const stripe_api_key = response.SecretString; // as of 9/13 using test keys
 const client = new DynamoDBClient({});
 const ddb = DynamoDBDocumentClient.from(client);
+
+const stripe = new Stripe(stripe_api_key);
 
 const lc = v => (v ?? "").toString().trim().toLowerCase();
 
