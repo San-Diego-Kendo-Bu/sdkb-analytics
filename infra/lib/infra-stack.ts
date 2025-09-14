@@ -12,6 +12,8 @@ import * as iam from 'aws-cdk-lib/aws-iam';
 import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as s3deploy from 'aws-cdk-lib/aws-s3-deployment';
 import { Duration } from 'aws-cdk-lib';
+import { Runtime } from "aws-cdk-lib/aws-lambda";
+import { NodejsFunction, OutputFormat, LogLevel } from "aws-cdk-lib/aws-lambda-nodejs";
 
 import * as secretsmanager from "aws-cdk-lib/aws-secretsmanager";
 
@@ -105,14 +107,27 @@ export class InfraStack extends Stack {
     });
 
     // Lambda functions
-    const createMemberLambda = new lambda.Function(this, 'CreateMemberLambda', {
-      functionName: 'createMemberCDK',
-      runtime: lambda.Runtime.NODEJS_18_X,
-      handler: 'index.handler',
-      code: lambda.Code.fromAsset(path.join(__dirname, '../../lambdas/members/createMember')),
+    const createMemberLambda = new NodejsFunction(this, "CreateMemberLambda", {
+      functionName: "createMemberCDK",
+      entry: path.join(__dirname, "../lambdas/members/createMember/index.js"),
+      handler: "handler",
+      runtime: Runtime.NODEJS_18_X,
       timeout: Duration.seconds(10),
+
+      projectRoot: path.join(__dirname, "../"),
+      depsLockFilePath: path.join(__dirname, "../package-lock.json"),
+
+      bundling: {
+        target: "node18",
+        format: OutputFormat.CJS,
+        externalModules: [],
+        minify: true,
+        sourceMap: true,
+        logLevel: LogLevel.DEBUG,
+      },
+
       environment: {
-        SECRET_ID: secret.secretName, // "test/stripe"
+        SECRET_ID: secret.secretName,
       },
     });
 
@@ -120,28 +135,28 @@ export class InfraStack extends Stack {
       functionName: 'getMembersCDK',
       runtime: lambda.Runtime.NODEJS_18_X,
       handler: 'index.handler',
-      code: lambda.Code.fromAsset(path.join(__dirname, '../../lambdas/members/getMembers')),
+      code: lambda.Code.fromAsset(path.join(__dirname, '../lambdas/members/getMembers')),
     });
 
     const getAdminLambda = new lambda.Function(this, 'GetAdminLambda', {
       functionName: 'getAdminCDK',
       runtime: lambda.Runtime.NODEJS_18_X,
       handler: 'index.handler',
-      code: lambda.Code.fromAsset(path.join(__dirname, '../../lambdas/admins/getAdmin')),
+      code: lambda.Code.fromAsset(path.join(__dirname, '../lambdas/admins/getAdmin')),
     });
 
     const removeMemberLambda = new lambda.Function(this, 'RemoveMemberLambda', {
       functionName: 'removeMemberCDK',
       runtime: lambda.Runtime.NODEJS_18_X,
       handler: 'index.handler',
-      code: lambda.Code.fromAsset(path.join(__dirname, '../../lambdas/members/removeMember')),
+      code: lambda.Code.fromAsset(path.join(__dirname, '../lambdas/members/removeMember')),
     });
 
     const modifyMemberLambda = new lambda.Function(this, 'ModifyMemberLambda', {
       functionName: 'modifyMemberCDK',
       runtime: lambda.Runtime.NODEJS_18_X,
       handler: 'index.handler',
-      code: lambda.Code.fromAsset(path.join(__dirname, '../../lambdas/members/modifyMember')),
+      code: lambda.Code.fromAsset(path.join(__dirname, '../lambdas/members/modifyMember')),
     });
 
     // grant secret permissions
