@@ -90,7 +90,7 @@ export async function saveButtonLogic(selectedMember){
         const newBirthday = document.getElementById('editBirthday').value;
         const newStatus = document.getElementById('editStatus').value;
 
-        const response = await fetch('https://j5z43ef3j0.execute-api.us-east-2.amazonaws.com/items', {
+        const response = await fetch('https://j5z43ef3j0.execute-api.us-east-2.amazonaws.com/members', {
             method: 'PATCH',
             headers: {
                 'Content-Type': 'application/json',
@@ -130,7 +130,7 @@ export async function removeButtonLogic(selectedMember){
             return;
         }
 
-        const response = await fetch('https://j5z43ef3j0.execute-api.us-east-2.amazonaws.com/items', {
+        const response = await fetch('https://j5z43ef3j0.execute-api.us-east-2.amazonaws.com/members', {
             method: 'DELETE',
             headers: {
                 'Content-Type': 'application/json',
@@ -175,7 +175,7 @@ export async function addFormSubmitLogic(event){
         
         const isGuest = document.getElementById('isGuest').checked ? 'yes':'no';
 
-        const response = await fetch('https://j5z43ef3j0.execute-api.us-east-2.amazonaws.com/items', {
+        const response = await fetch('https://j5z43ef3j0.execute-api.us-east-2.amazonaws.com/members', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -298,14 +298,15 @@ export async function csvAddLogic(event){
             return;
         }
         const file = event.target.files[0];
-        const COLS_NUM = 7;
+        const COLS_NUM = 8;
         let newFirstName = ''; // idx = 0
         let newLastName = ''; // idx = 1
         let newZekkenText = ''; // idx = 2
         let newRankType = ''; // idx = 3
         let newRankNumber = null; // idx = 4
         let newEmail = ''; // idx = 5
-        let isGuest = ''; // idx = 6
+        let newBirthday = ''; // idx = 6
+        let isGuest = ''; // idx = 7
 
         if (file) {
             // Example: Read the CSV file as text
@@ -360,12 +361,15 @@ export async function csvAddLogic(event){
                                 newEmail = col;
                                 break;
                             case 6:
+                                newBirthday = col;
+                                break;
+                            case 7:
                                 isGuest = col;
                                 break;
                         }
                     }
 
-                    const response = await fetch('https://j5z43ef3j0.execute-api.us-east-2.amazonaws.com/items', {
+                    const response = await fetch('https://j5z43ef3j0.execute-api.us-east-2.amazonaws.com/members', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -379,6 +383,7 @@ export async function csvAddLogic(event){
                             first_name: newFirstName,
                             zekken_text: newZekkenText,
                             email: newEmail,
+                            birthday: newBirthday || null,
                             is_guest: isGuest
                         })
                     });
