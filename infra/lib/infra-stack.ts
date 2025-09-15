@@ -131,6 +131,31 @@ export class InfraStack extends Stack {
       },
     });
 
+    //Not sure if you need the secret id here
+    const createPayment = new NodejsFunction(this, "CreatePaymentLambda", {
+      functionName: "createPaymentCDK",
+      entry: path.join(__dirname, "../lambdas/payments/createPayment/index.js"),
+      handler: "handler",
+      runtime: Runtime.NODEJS_18_X,
+      timeout: Duration.seconds(10),
+
+      projectRoot: path.join(__dirname, "../"),
+      depsLockFilePath: path.join(__dirname, "../package-lock.json"),
+
+      bundling: {
+        target: "node18",
+        format: OutputFormat.CJS,
+        externalModules: [],
+        minify: true,
+        sourceMap: true,
+        logLevel: LogLevel.DEBUG,
+      },
+
+      environment: {
+        SECRET_ID: secret.secretName,
+      },
+    });
+
     const getMembersLambda = new lambda.Function(this, 'GetMembersLambda', {
       functionName: 'getMembersCDK',
       runtime: lambda.Runtime.NODEJS_18_X,
@@ -157,13 +182,6 @@ export class InfraStack extends Stack {
       runtime: lambda.Runtime.NODEJS_18_X,
       handler: 'index.handler',
       code: lambda.Code.fromAsset(path.join(__dirname, '../lambdas/members/modifyMember')),
-    });
-
-    const createPayment = new lambda.Function(this, 'CreatePaymentLambda', {
-      functionName: 'createPaymentCDK',
-      runtime: lambda.Runtime.NODEJS_18_X,
-      handler: 'index.handler',
-      code: lambda.Code.fromAsset(path.join(__dirname, '../lambdas/payments/createPayment')),
     });
 
     // grant secret permissions
