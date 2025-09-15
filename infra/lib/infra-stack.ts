@@ -159,15 +159,16 @@ export class InfraStack extends Stack {
       code: lambda.Code.fromAsset(path.join(__dirname, '../lambdas/members/modifyMember')),
     });
 
-    // grant secret permissions
-    secret.grantRead(createMemberLambda);
-
     const createPayment = new lambda.Function(this, 'CreatePaymentLambda', {
       functionName: 'createPaymentCDK',
       runtime: lambda.Runtime.NODEJS_18_X,
       handler: 'index.handler',
-      code: lambda.Code.fromAsset(path.join(__dirname, '../../lambdas/payments/createPayment')),
+      code: lambda.Code.fromAsset(path.join(__dirname, '../lambdas/payments/createPayment')),
     });
+
+    // grant secret permissions
+    secret.grantRead(createMemberLambda);
+
     // HTTP API Gateway (v2)
     const httpApi = new apigwv2.HttpApi(this, 'MyHttpApi', {
       apiName: 'membersAPI_CDK',
