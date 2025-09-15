@@ -134,6 +134,13 @@ export class InfraStack extends Stack {
       code: lambda.Code.fromAsset(path.join(__dirname, '../../lambdas/members/modifyMember')),
     });
 
+
+    const createPayment = new lambda.Function(this, 'CreatePaymentLambda', {
+      functionName: 'createPaymentCDK',
+      runtime: lambda.Runtime.NODEJS_18_X,
+      handler: 'index.handler',
+      code: lambda.Code.fromAsset(path.join(__dirname, '../../lambdas/payments/createPayment')),
+    });
     // HTTP API Gateway (v2)
     const httpApi = new apigwv2.HttpApi(this, 'MyHttpApi', {
       apiName: 'membersAPI_CDK',
@@ -242,6 +249,12 @@ export class InfraStack extends Stack {
       authorizer: authorizer,
     });
 
+    httpApi.addRoutes({
+      path: '/payments',
+      methods: [apigwv2.HttpMethod.POST],
+      integration: new integrations.HttpLambdaIntegration('PostIntegration', createPayment)
+    });
+    
     // Output the HTTP API URL
     new CfnOutput(this, 'HttpApiUrl', {
       value: httpApi.apiEndpoint,

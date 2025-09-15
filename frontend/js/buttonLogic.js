@@ -222,10 +222,11 @@ export async function createPaymentSubmit(event){
     const month = String(currDate.getMonth() + 1).padStart(2, '0'); // Months are 0-indexed
     const day = String(currDate.getDate()).padStart(2, '0');
 
+
     const createdAt = `${year}-${month}-${day}`;
     const paymentValue = document.getElementById('paymentValue').value;
     // const dueDate = document.getElementById('dueDate').value;
-    const dueDate = 0;
+    const dueDate = document.getElementById('dueDate').value;
     const overduePenalty = document.getElementById('overduePenalty').value;
     const eventId = document.getElementById('eventId').value;
 

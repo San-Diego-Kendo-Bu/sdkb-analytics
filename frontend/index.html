@@ -15,7 +15,7 @@
         <button id="signOut" style="margin-left: 70px; display: none;" class="sign-in-btn">Sign Out</button>
     </div>
 
-    <button id="openCreatePayment" style="color: red; display: none;"> Create Payment </button>
+    <button id="openCreatePayment" style="color: red; display: inline;"> Create Payment </button>
     <form id="createPaymentForm" class="formOverlay">
         <label for="paymentValue"> Value: </label>
         <input type="number" id="paymentValue" name="paymentValue" required>
@@ -27,7 +27,7 @@
         <input type="number" id="overduePenalty" name="overduePenalty" required>
 
         <label for="eventId"> Event ID: </label>
-        <input type="number" id="eventId" name="eventId" required>
+        <input type="number" id="eventId" name="eventId">
 
         <div class="form-action-buttons">
             <input type="submit" id="submitCreatePayment" value="Create">
