@@ -87,7 +87,7 @@ export async function saveButtonLogic(selectedMember){
         const newBirthday = document.getElementById('editBirthday').value;
         const newStatus = document.getElementById('editStatus').value;
 
-        const response = await fetch('https://j5z43ef3j0.execute-api.us-east-2.amazonaws.com/items', {
+        const response = await fetch('https://j5z43ef3j0.execute-api.us-east-2.amazonaws.com/members', {
             method: 'PATCH',
             headers: {
                 'Content-Type': 'application/json',
@@ -127,7 +127,7 @@ export async function removeButtonLogic(selectedMember){
             return;
         }
 
-        const response = await fetch('https://j5z43ef3j0.execute-api.us-east-2.amazonaws.com/items', {
+        const response = await fetch('https://j5z43ef3j0.execute-api.us-east-2.amazonaws.com/members', {
             method: 'DELETE',
             headers: {
                 'Content-Type': 'application/json',
@@ -172,7 +172,7 @@ export async function addFormSubmitLogic(event){
         
         const isGuest = document.getElementById('isGuest').checked ? 'yes':'no';
 
-        const response = await fetch('https://j5z43ef3j0.execute-api.us-east-2.amazonaws.com/items', {
+        const response = await fetch('https://j5z43ef3j0.execute-api.us-east-2.amazonaws.com/members', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -342,7 +342,7 @@ export async function csvAddLogic(event){
                         }
                     }
 
-                    const response = await fetch('https://j5z43ef3j0.execute-api.us-east-2.amazonaws.com/items', {
+                    const response = await fetch('https://j5z43ef3j0.execute-api.us-east-2.amazonaws.com/members', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
