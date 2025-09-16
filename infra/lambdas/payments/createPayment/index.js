@@ -1,9 +1,3 @@
-/**
- * TODO: 
- * 1. Change supabase policy so that only people with the service key can make changes to the supabase
- * 2. Use secret manager to allow this lambda to read the service key.
- */
-
 const { createClient } = require("@supabase/supabase-js");
 const ENDPOINT = 'https://gsriiicvvxzvidaakctw.supabase.co';
 const PAYMENTS_TABLE = "Payments";
@@ -41,8 +35,6 @@ exports.handler = async (event) => {
         return { statusCode: 403, body: "Forbidden" };
 
     try {
-        const supabase = await getSupabase();
-
         const parameters = JSON.parse(event.body);
 
         const createdAt = parameters.created_at;
@@ -50,6 +42,19 @@ exports.handler = async (event) => {
         const paymentValue = parameters.payment_value ? parseFloat(parameters.payment_value) : null;
         const overduePenalty = parameters.overdue_penalty ? parseFloat(parameters.overdue_penalty) : null;
         const eventId = parameters.event_id ? parseInt(parameters.event_id, 10) : null;
+        
+        if(!paymentValue || paymentValue < 1.0){
+            return{
+                statusCode: 400,
+                message: "Invalid payment value. Please create a payment of at least $1.00.",
+                body: JSON.stringify({
+                    message: "Please create a payment of at least $1.00.",
+                    payment_value : paymentValue
+                })
+            };
+        }
+
+        const supabase = await getSupabase();
 
         const { err } = await supabase.from(PAYMENTS_TABLE).insert({
             created_at: createdAt,
