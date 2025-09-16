@@ -6,13 +6,43 @@
 
 const { createClient } = require("@supabase/supabase-js");
 const ENDPOINT = 'https://gsriiicvvxzvidaakctw.supabase.co';
-const ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdzcmlpaWN2dnh6dmlkYWFrY3R3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUxNDg0MjUsImV4cCI6MjA3MDcyNDQyNX0.GtHJ405NZAA8V2RQy1h6kz3wIrdraaOEXTKTentoePE';
-const PAYMENTS_TABLE = "Payments"
- 
+const PAYMENTS_TABLE = "Payments";
+
+const { SecretsManagerClient, GetSecretValueCommand } = require("@aws-sdk/client-secrets-manager");
+const REGION = process.env.AWS_REGION;
+const SUPABASE_SECRET_ID = process.env.SUPABASE_SECRET_ID;
+const secrets_client = new SecretsManagerClient({ region: REGION });
+
+function dummyCognito(){
+    return ['admin@gmail.com'];
+}
+
+function isAdmin(clientEmail){
+    return dummyCognito()[0] === clientEmail;
+}
+
+let cachedSupabase;
+async function getSupabase(){
+    if(cachedSupabase) return cachedSupabase;
+
+    const r = await secrets_client.send(new GetSecretValueCommand({ SecretId: SUPABASE_SECRET_ID }));
+    const raw = r.SecretString ?? Buffer.from(r.SecretBinary || "", "base64").toString("utf8");
+    const obj = JSON.parse(raw); 
+    const api_key = obj.SUPABASE_SECRET_KEY;
+    cachedSupabase = createClient(ENDPOINT, api_key);
+    return cachedSupabase;
+}
+
 exports.handler = async (event) => {
+
+    const clientEmail = event.headers["client_email"];
+    
+    if(!isAdmin(clientEmail))
+        return { statusCode: 403, body: "Forbidden" };
+
     try {
-        const supabase = createClient(ENDPOINT, ANON);
-        
+        const supabase = await getSupabase();
+
         const parameters = JSON.parse(event.body);
 
         const createdAt = parameters.created_at;
@@ -45,7 +75,7 @@ exports.handler = async (event) => {
             },
             body : JSON.stringify({
                 message: "Created Payment Successfully",
-                parameters: parameters
+                request_parameters: parameters,
             })
         };
 

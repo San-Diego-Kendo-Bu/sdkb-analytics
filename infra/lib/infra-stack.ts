@@ -45,6 +45,10 @@ export class InfraStack extends Stack {
       this, "StripeSecret", "test/stripe"
     );
 
+    const supaBaseSecret = secretsmanager.Secret.fromSecretNameV2(
+      this, "SupabaseSecret", "prod/supabase" 
+    );
+
     // Long-cache everything EXCEPT index.html and JS
     new s3deploy.BucketDeployment(this, 'AssetsLongCache', {
       sources: [s3deploy.Source.asset(frontendDir, { exclude: ['index.html', 'js/**', 'css/**'] })],
@@ -131,7 +135,6 @@ export class InfraStack extends Stack {
       },
     });
 
-    //Not sure if you need the secret id here
     const createPayment = new NodejsFunction(this, "CreatePaymentLambda", {
       functionName: "createPaymentCDK",
       entry: path.join(__dirname, "../lambdas/payments/createPayment/index.js"),
@@ -152,7 +155,7 @@ export class InfraStack extends Stack {
       },
 
       environment: {
-        SECRET_ID: secret.secretName,
+        SUPABASE_SECRET_ID: supaBaseSecret.secretName,
       },
     });
 
@@ -186,6 +189,7 @@ export class InfraStack extends Stack {
 
     // grant secret permissions
     secret.grantRead(createMemberLambda);
+    supaBaseSecret.grantRead(createPayment);
 
     // HTTP API Gateway (v2)
     const httpApi = new apigwv2.HttpApi(this, 'MyHttpApi', {
