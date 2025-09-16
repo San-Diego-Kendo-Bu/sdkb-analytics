@@ -2,7 +2,6 @@ import { userManager } from "./cognitoManager.js";
 import { rankToNum, compareRank, formatName, formatRank, rankToKanji } from "./nafudaTools.js";
 
 import * as buttonLogic from "./buttonLogic.js";
-import * as paymentManager from "./paymentManager.js";
 
 let selectedMember = null;
 let members = null;
@@ -508,10 +507,6 @@ window.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
-    document.getElementById('createPaymentForm').addEventListener('submit', async function(event){
-        await buttonLogic.createPaymentSubmit(event);
-    })
-
     document.getElementById('removeButton').addEventListener('click', async () => {
         try {
             await buttonLogic.removeButtonLogic(selectedMember);
@@ -541,8 +536,6 @@ window.addEventListener('DOMContentLoaded', async () => {
     
     document.getElementById('openSearchButton').addEventListener('click', ()=> { buttonLogic.openFormLogic('searchForm'); });
     
-    document.getElementById('openCreatePayment').addEventListener('click', ()=> {buttonLogic.openFormLogic('createPaymentForm'); });
-
     /**
      * Cancel dropdown buttons
      */
@@ -556,10 +549,6 @@ window.addEventListener('DOMContentLoaded', async () => {
     
     document.getElementById('cancelSearchButton').addEventListener('click', ()=> {
         buttonLogic.cancelDropdownLogic('searchForm', 'searchResults');
-    });
-
-    document.getElementById('cancelCreatePayment').addEventListener('click', ()=>{
-        buttonLogic.cancelDropdownLogic('createPaymentForm');
     });
 
     /**

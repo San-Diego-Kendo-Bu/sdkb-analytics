@@ -4,7 +4,6 @@
  */
 
 import { userManager } from "./cognitoManager.js";
-import * as paymentManager from "./paymentManager.js";
 
 export async function setButtonsDisplay() {
     
@@ -36,12 +35,10 @@ export async function setButtonsDisplay() {
         const addDropdownButton = document.getElementById('addDropdownButton');
         const removeDropdownButton = document.getElementById('removeDropdownButton');
         const searchDropdownButton = document.getElementById('searchDropdownButton');
-        const openCreatePayment = document.getElementById('openCreatePayment');
 
         addDropdownButton.style.display = "inline";
         removeDropdownButton.style.display = "inline";
         searchDropdownButton.style.display = "inline";
-        openCreatePayment.style.display = "inline";
         
     } catch (error) {
         console.error(error);
@@ -210,30 +207,6 @@ export async function addFormSubmitLogic(event){
         console.error("❌ Error adding member:", JSON.stringify(err, Object.getOwnPropertyNames(err), 2));
         alert("Failed to add member. Please check the form and try again.");
     }
-}
-
-export async function createPaymentSubmit(event){
-    event.preventDefault();
-    const createForm = event.target;
-
-    const currDate = new Date();
-
-    const year = currDate.getFullYear();
-    const month = String(currDate.getMonth() + 1).padStart(2, '0'); // Months are 0-indexed
-    const day = String(currDate.getDate()).padStart(2, '0');
-
-
-    const createdAt = `${year}-${month}-${day}`;
-    const paymentValue = document.getElementById('paymentValue').value;
-    // const dueDate = document.getElementById('dueDate').value;
-    const dueDate = document.getElementById('dueDate').value;
-    const overduePenalty = document.getElementById('overduePenalty').value;
-    const eventId = document.getElementById('eventId').value;
-
-    await paymentManager.createPayment(createdAt,paymentValue,dueDate,overduePenalty,eventId);
-
-    createForm.style.display = 'none';
-    createForm.reset();
 }
 
 export function dropdownButtonLogic(dropdownElementId){
