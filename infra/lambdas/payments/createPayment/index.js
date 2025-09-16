@@ -37,6 +37,7 @@ exports.handler = async (event) => {
     try {
         const parameters = JSON.parse(event.body);
 
+        const title = parameters.title;
         const createdAt = parameters.created_at;
         const dueDate = parameters.due_date;
         const paymentValue = parameters.payment_value ? parseFloat(parameters.payment_value) : null;
@@ -57,6 +58,7 @@ exports.handler = async (event) => {
         const supabase = await getSupabase();
 
         const { err } = await supabase.from(PAYMENTS_TABLE).insert({
+            title: title,
             created_at: createdAt,
             due_date: dueDate,
             payment_value: paymentValue,
