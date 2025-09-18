@@ -72,6 +72,17 @@ exports.handler = async (event) => {
             };
         }
 
+        if(overduePenalty && overduePenalty < 0.0){
+            return{
+                statusCode: 400,
+                message: "Invalid overdue penalty value. Please create a penalty of at least $0.00.",
+                body: JSON.stringify({
+                    message: "Please create a penalty of at least $0.00.",
+                    payment_value : overduePenalty
+                })
+            };
+        }
+
         const supabase = await getSupabase();
 
         const response = await supabase.from(PAYMENTS_TABLE).insert({
