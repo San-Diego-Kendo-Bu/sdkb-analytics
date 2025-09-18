@@ -1,8 +1,3 @@
-const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
-const {
-  DynamoDBDocumentClient, UpdateCommand,
-} = require("@aws-sdk/lib-dynamodb");
-
 const { createClient } = require("@supabase/supabase-js");
 const ENDPOINT = 'https://gsriiicvvxzvidaakctw.supabase.co';
 const PAYMENTS_TABLE = "Payments";
@@ -11,7 +6,6 @@ const { SecretsManagerClient, GetSecretValueCommand } = require("@aws-sdk/client
 const REGION = process.env.AWS_REGION;
 const SUPABASE_SECRET_ID = process.env.SUPABASE_SECRET_ID;
 const secrets_client = new SecretsManagerClient({ region: REGION });
-const ddb = DynamoDBDocumentClient.from(new DynamoDBClient({ region: REGION }));
 
 function dummyCognito(){
     return ['admin@gmail.com'];
@@ -41,68 +35,59 @@ exports.handler = async (event) => {
         return { statusCode: 403, body: "Forbidden" };
 
     try {
-        const updateParams = {
-            TableName: "appConfigs",
-            Key: { type: "paymentIdCounter" },
-            UpdateExpression: "ADD #counter :val",
-            ExpressionAttributeNames: { "#counter": "idCounter" },
-            ExpressionAttributeValues: { ":val": 1 },
-            ReturnValues: "ALL_NEW",
-        };
-        const updateResult = await ddb.send(new UpdateCommand(updateParams));
-        const newPaymentId = updateResult.Attributes.idCounter;
-
-        const parameters = JSON.parse(event.body);
-
-        const title = parameters.title;
-        const createdAt = parameters.created_at;
-        const dueDate = parameters.due_date;
-        const paymentValue = parameters.payment_value ? parseFloat(parameters.payment_value) : null;
-        const overduePenalty = parameters.overdue_penalty ? parseFloat(parameters.overdue_penalty) : null;
-        const eventId = parameters.event_id ? parseInt(parameters.event_id, 10) : null;
         
-        if(!paymentValue || paymentValue < 1.0){
+        const parameters = JSON.parse(event.body);
+        const paymentId = parameters.payment_id;
+
+        if(!paymentId){
+            return{
+                status: 400,
+                message: "Please specify a payment id"
+            }
+        }
+        const payload = {};
+        if(parameters.title !== undefined) payload.title = parameters.title;
+        if(parameters.created_at !== undefined) payload.created_at = parameters.created_at;
+        if(parameters.due_date !== undefined) payload.due_date = parameters.due_date;
+        if(parameters.payment_value !== undefined) payload.payment_value = parameters.payment_value;
+        if(parameters.overdue_penalty !== undefined) payload.overdue_penalty = parameters.overdue_penalty;
+        if(parameters.event_id !== undefined) payload.event_id = parameters.event_id;
+        
+        if(payload.payment_value && parseFloat(payload.payment_value) < 1.0){
             return{
                 statusCode: 400,
-                message: "Invalid payment value. Please create a payment of at least $1.00.",
+                message: "Invalid payment value. Please update payment to at least $1.00.",
                 body: JSON.stringify({
-                    message: "Please create a payment of at least $1.00.",
-                    payment_value : paymentValue
+                    message: " Please update payment to at least $1.00.",
+                    payment_value : payload.payment_value
                 })
             };
         }
 
-        if(overduePenalty && overduePenalty < 0.0){
+        if(payload.overdue_penalty && parseFloat(payload.overdue_penalty) < 0.0){
             return{
                 statusCode: 400,
-                message: "Invalid overdue penalty value. Please create a penalty of at least $0.00.",
+                message: "Invalid overdue value. Please update overdue value to at least $0.00.",
                 body: JSON.stringify({
-                    message: "Please create a penalty of at least $0.00.",
-                    payment_value : overduePenalty
+                    message: "Please update overdue value to at least $0.00.",
+                    payment_value : payload.overdue_penalty
                 })
             };
         }
 
         const supabase = await getSupabase();
+        const response = await supabase.from(PAYMENTS_TABLE)
+            .update(payload)
+            .eq('payment_id', paymentId);
 
-        const response = await supabase.from(PAYMENTS_TABLE).insert({
-            payment_id: newPaymentId,
-            title: title,
-            created_at: createdAt,
-            due_date: dueDate,
-            payment_value: paymentValue,
-            overdue_penalty: overduePenalty,
-            event_id: eventId
-        });
-        
         if(response.error){
-            return {
+            return{
                 statusCode: 500,
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ error: err.message })
-            }; 
+                body: JSON.stringify({ error: response.error }),
+            };
         }
-
+        
         return{
             statusCode : 200,
             headers : {
@@ -110,7 +95,7 @@ exports.handler = async (event) => {
                 "Access-Control-Allow-Origin": "*"
             },
             body : JSON.stringify({
-                message: "Created Payment Successfully",
+                message: "Updated Payment Successfully",
                 request_parameters: parameters,
             })
         };
