@@ -159,6 +159,30 @@ export class InfraStack extends Stack {
       },
     });
 
+    const removePaymentLambda = new NodejsFunction(this, "removePaymentLambda", {
+      functionName: "removePaymentCDK",
+      entry: path.join(__dirname, "../lambdas/payments/removePayment/index.js"),
+      handler: "handler",
+      runtime: Runtime.NODEJS_18_X,
+      timeout: Duration.seconds(10),
+
+      projectRoot: path.join(__dirname, "../"),
+      depsLockFilePath: path.join(__dirname, "../package-lock.json"),
+
+      bundling: {
+        target: "node18",
+        format: OutputFormat.CJS,
+        externalModules: [],
+        minify: true,
+        sourceMap: true,
+        logLevel: LogLevel.DEBUG,
+      },
+
+      environment: {
+        SUPABASE_SECRET_ID: supaBaseSecret.secretName,
+      },
+    });
+
     const getMembersLambda = new lambda.Function(this, 'GetMembersLambda', {
       functionName: 'getMembersCDK',
       runtime: lambda.Runtime.NODEJS_18_X,
@@ -190,6 +214,7 @@ export class InfraStack extends Stack {
     // grant secret permissions
     secret.grantRead(createMemberLambda);
     supaBaseSecret.grantRead(createPaymentLambda);
+    supaBaseSecret.grantRead(removePaymentLambda);
 
     // HTTP API Gateway (v2)
     const httpApi = new apigwv2.HttpApi(this, 'MyHttpApi', {
@@ -311,6 +336,12 @@ export class InfraStack extends Stack {
       integration: new integrations.HttpLambdaIntegration('PostIntegration', createPaymentLambda)
     });
     
+    httpApi.addRoutes({
+      path: '/payments',
+      methods: [apigwv2.HttpMethod.DELETE],
+      integration: new integrations.HttpLambdaIntegration('DeleteIntegration', removePaymentLambda)
+    });
+
     // Output the HTTP API URL
     new CfnOutput(this, 'HttpApiUrl', {
       value: httpApi.apiEndpoint,

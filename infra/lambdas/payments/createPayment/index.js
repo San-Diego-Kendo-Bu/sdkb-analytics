@@ -74,7 +74,7 @@ exports.handler = async (event) => {
 
         const supabase = await getSupabase();
 
-        const { err } = await supabase.from(PAYMENTS_TABLE).insert({
+        const response = await supabase.from(PAYMENTS_TABLE).insert({
             payment_id: newPaymentId,
             title: title,
             created_at: createdAt,
@@ -84,7 +84,7 @@ exports.handler = async (event) => {
             event_id: eventId
         });
         
-        if(err){
+        if(response.error){
             return {
                 statusCode: 500,
                 headers: { "Content-Type": "application/json" },
