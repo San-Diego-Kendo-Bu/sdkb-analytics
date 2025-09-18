@@ -135,7 +135,7 @@ export class InfraStack extends Stack {
       },
     });
 
-    const createPayment = new NodejsFunction(this, "CreatePaymentLambda", {
+    const createPaymentLambda = new NodejsFunction(this, "CreatePaymentLambda", {
       functionName: "createPaymentCDK",
       entry: path.join(__dirname, "../lambdas/payments/createPayment/index.js"),
       handler: "handler",
@@ -189,7 +189,7 @@ export class InfraStack extends Stack {
 
     // grant secret permissions
     secret.grantRead(createMemberLambda);
-    supaBaseSecret.grantRead(createPayment);
+    supaBaseSecret.grantRead(createPaymentLambda);
 
     // HTTP API Gateway (v2)
     const httpApi = new apigwv2.HttpApi(this, 'MyHttpApi', {
@@ -265,6 +265,12 @@ export class InfraStack extends Stack {
       ],
     }));
 
+    createPaymentLambda.addToRolePolicy(new iam.PolicyStatement({
+      effect: iam.Effect.ALLOW,
+      actions: ['dynamodb:UpdateItem'],
+      resources: ['arn:aws:dynamodb:us-east-2:222575804757:table/appConfigs'],
+    }));
+
     // Add routes
     httpApi.addRoutes({
       path: '/members',
@@ -302,7 +308,7 @@ export class InfraStack extends Stack {
     httpApi.addRoutes({
       path: '/payments',
       methods: [apigwv2.HttpMethod.POST],
-      integration: new integrations.HttpLambdaIntegration('PostIntegration', createPayment)
+      integration: new integrations.HttpLambdaIntegration('PostIntegration', createPaymentLambda)
     });
     
     // Output the HTTP API URL

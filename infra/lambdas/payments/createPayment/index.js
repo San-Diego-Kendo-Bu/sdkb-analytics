@@ -1,3 +1,8 @@
+const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
+const {
+  DynamoDBDocumentClient, UpdateCommand,
+} = require("@aws-sdk/lib-dynamodb");
+
 const { createClient } = require("@supabase/supabase-js");
 const ENDPOINT = 'https://gsriiicvvxzvidaakctw.supabase.co';
 const PAYMENTS_TABLE = "Payments";
@@ -6,6 +11,7 @@ const { SecretsManagerClient, GetSecretValueCommand } = require("@aws-sdk/client
 const REGION = process.env.AWS_REGION;
 const SUPABASE_SECRET_ID = process.env.SUPABASE_SECRET_ID;
 const secrets_client = new SecretsManagerClient({ region: REGION });
+const ddb = DynamoDBDocumentClient.from(new DynamoDBClient({ region: REGION }));
 
 function dummyCognito(){
     return ['admin@gmail.com'];
@@ -35,6 +41,17 @@ exports.handler = async (event) => {
         return { statusCode: 403, body: "Forbidden" };
 
     try {
+        const updateParams = {
+            TableName: "appConfigs",
+            Key: { type: "paymentIdCounter" },
+            UpdateExpression: "ADD #counter :val",
+            ExpressionAttributeNames: { "#counter": "idCounter" },
+            ExpressionAttributeValues: { ":val": 1 },
+            ReturnValues: "ALL_NEW",
+        };
+        const updateResult = await ddb.send(new UpdateCommand(updateParams));
+        const newPaymentId = updateResult.Attributes.idCounter;
+
         const parameters = JSON.parse(event.body);
 
         const title = parameters.title;
@@ -58,6 +75,7 @@ exports.handler = async (event) => {
         const supabase = await getSupabase();
 
         const { err } = await supabase.from(PAYMENTS_TABLE).insert({
+            payment_id: newPaymentId,
             title: title,
             created_at: createdAt,
             due_date: dueDate,
