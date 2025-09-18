@@ -35,10 +35,12 @@ export async function setButtonsDisplay() {
         const addDropdownButton = document.getElementById('addDropdownButton');
         const removeDropdownButton = document.getElementById('removeDropdownButton');
         const searchDropdownButton = document.getElementById('searchDropdownButton');
+        const downloadDropdownButton = document.getElementById('downloadDropdownButton');
 
         addDropdownButton.style.display = "inline";
         removeDropdownButton.style.display = "inline";
         searchDropdownButton.style.display = "inline";
+        if(downloadDropdownButton) downloadDropdownButton.style.display = "inline";
         
     } catch (error) {
         console.error(error);
@@ -260,6 +262,50 @@ export function cancelDropdownLogic(formId, resultId){
     
     if(resultId)
         document.getElementById(resultId).style.display = 'none';
+}
+
+export function exportCsv(members){
+    try {
+        if(!Array.isArray(members) || members.length === 0){
+            alert('No members to export.');
+            return;
+        }
+        const header = ['first_name','last_name','zekken_text','rank_type','rank_number','email','birthday','is_guest'];
+        const escapeCsv = (value) => {
+            const str = (value ?? '').toString();
+            if(/[",\n]/.test(str)){
+                return '"' + str.replace(/"/g, '""') + '"';
+            }
+            return str;
+        };
+        const rows = [header.join(',')];
+        for(const m of members){
+            const row = [
+                escapeCsv(m.first_name),
+                escapeCsv(m.last_name),
+                escapeCsv(m.zekken_text),
+                escapeCsv(m.rank_type),
+                escapeCsv(m.rank_number),
+                escapeCsv(m.email),
+                escapeCsv(m.birthday),
+                escapeCsv(m.is_guest)
+            ];
+            rows.push(row.join(','));
+        }
+        const csvText = rows.join('\n');
+        const blob = new Blob([csvText], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'members.csv';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    } catch (err) {
+        console.error('❌ Failed to export CSV:', err);
+        alert('Failed to export CSV.');
+    }
 }
 
 export async function csvAddLogic(event){
