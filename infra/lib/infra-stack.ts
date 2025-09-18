@@ -145,11 +145,28 @@ export class InfraStack extends Stack {
       code: lambda.Code.fromAsset(path.join(__dirname, '../lambdas/admins/getAdmin')),
     });
 
-    const removeMemberLambda = new lambda.Function(this, 'RemoveMemberLambda', {
-      functionName: 'removeMemberCDK',
-      runtime: lambda.Runtime.NODEJS_18_X,
-      handler: 'index.handler',
-      code: lambda.Code.fromAsset(path.join(__dirname, '../lambdas/members/removeMember')),
+    const removeMemberLambda = new NodejsFunction(this, "RemoveMemberLambda", {
+      functionName: "removeMemberCDK",
+      entry: path.join(__dirname, "../lambdas/members/removeMember/index.js"),
+      handler: "handler",
+      runtime: Runtime.NODEJS_18_X,
+      timeout: Duration.seconds(10),
+
+      projectRoot: path.join(__dirname, "../"),
+      depsLockFilePath: path.join(__dirname, "../package-lock.json"),
+
+      bundling: {
+        target: "node18",
+        format: OutputFormat.CJS,
+        externalModules: [],
+        minify: true,
+        sourceMap: true,
+        logLevel: LogLevel.DEBUG,
+      },
+
+      environment: {
+        SECRET_ID: secret.secretName,
+      },
     });
 
     const modifyMemberLambda = new lambda.Function(this, 'ModifyMemberLambda', {
@@ -161,6 +178,7 @@ export class InfraStack extends Stack {
 
     // grant secret permissions
     secret.grantRead(createMemberLambda);
+    secret.grantRead(removeMemberLambda);
 
     // HTTP API Gateway (v2)
     const httpApi = new apigwv2.HttpApi(this, 'MyHttpApi', {
@@ -218,6 +236,12 @@ export class InfraStack extends Stack {
     removeMemberLambda.addToRolePolicy(new iam.PolicyStatement({
       effect: iam.Effect.ALLOW,
       actions: ['dynamodb:DeleteItem'],
+      resources: ['arn:aws:dynamodb:us-east-2:222575804757:table/members'],
+    }));
+
+    removeMemberLambda.addToRolePolicy(new iam.PolicyStatement({
+      effect: iam.Effect.ALLOW,
+      actions: ['dynamodb:Query'],
       resources: ['arn:aws:dynamodb:us-east-2:222575804757:table/members'],
     }));
 
