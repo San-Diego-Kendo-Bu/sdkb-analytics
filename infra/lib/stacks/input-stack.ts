@@ -65,6 +65,30 @@ export class InputStack extends Stack {
       authorizer: props.membersAuthorizer,
     });
 
+    httpApi.addRoutes({
+      path: '/payments',
+      methods: [HttpMethod.POST],
+      integration: new HttpLambdaIntegration('PostIntegration', props.lambdaFunctions.createPaymentLambda),
+    });
+
+    httpApi.addRoutes({
+      path: '/payments',
+      methods: [HttpMethod.DELETE],
+      integration: new HttpLambdaIntegration('DeleteIntegration', props.lambdaFunctions.removePaymentLambda),
+    });
+
+    httpApi.addRoutes({
+      path: '/payments',
+      methods: [HttpMethod.PATCH],
+      integration: new HttpLambdaIntegration('PatchIntegration', props.lambdaFunctions.updatePaymentLambda),
+    });
+    
+    httpApi.addRoutes({
+      path: '/payments',
+      methods: [HttpMethod.GET],
+      integration: new HttpLambdaIntegration('GetIntegration', props.lambdaFunctions.getPaymentLambda),
+    });
+
     this.httpApiUrl = httpApi.apiEndpoint;
   }
 }

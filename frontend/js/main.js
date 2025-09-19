@@ -1,5 +1,6 @@
 import { userManager } from "./cognitoManager.js";
 import { rankToNum, compareRank, formatName, formatRank, rankToKanji } from "./nafudaTools.js";
+
 import * as buttonLogic from "./buttonLogic.js";
 
 let selectedMember = null;

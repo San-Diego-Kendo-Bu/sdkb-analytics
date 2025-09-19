@@ -157,10 +157,10 @@ body {
     animation: on-hover 0.5s forwards;
 }
 
-.add-form-buttons {
+.form-action-buttons {
     display: flex;
 }
-.add-form-buttons *{
+.form-action-buttons *{
     color:white;
     background-color: #b8860b;
     font-size: 1.0em;
@@ -172,7 +172,7 @@ body {
     cursor: pointer;
 }
 
-#cancelAddButton{
+.cancel-form-button{
     color:#b8860b;
     border-style: solid;
     border-color: #b8860b;
