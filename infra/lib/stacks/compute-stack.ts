@@ -20,6 +20,7 @@ export interface NafudakakeLambdaFunctions {
   createPaymentLambda: IFunction;
   removePaymentLambda: IFunction;
   updatePaymentLambda: IFunction;
+  getPaymentLambda : IFunction;
 }
 
 export class ComputeStack extends Stack {
@@ -132,6 +133,26 @@ export class ComputeStack extends Stack {
         },
         environment: {
           SUPABASE_SECRET_ID: props.supabaseSecretName,
+        },
+      }),
+      getPaymentLambda: new NodejsFunction(this, "GetPaymentLambda", {
+        functionName: "GetPaymentLambda",
+        entry: path.join(__dirname, "../../lambdas/payments/getPayment/index.js"),
+        handler: "handler",
+        runtime: Runtime.NODEJS_18_X,
+        timeout: Duration.seconds(10),
+        projectRoot: path.join(__dirname, "../../"),
+        depsLockFilePath: path.join(__dirname, "../../package-lock.json"),
+        bundling: {
+          target: "node18",
+          format: OutputFormat.CJS,
+          externalModules: [],
+          minify: true,
+          sourceMap: true,
+          logLevel: LogLevel.DEBUG,
+        },
+        environment: {
+          ANON: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdzcmlpaWN2dnh6dmlkYWFrY3R3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUxNDg0MjUsImV4cCI6MjA3MDcyNDQyNX0.GtHJ405NZAA8V2RQy1h6kz3wIrdraaOEXTKTentoePE',
         },
       })
     }

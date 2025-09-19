@@ -83,6 +83,12 @@ export class InputStack extends Stack {
       integration: new HttpLambdaIntegration('PatchIntegration', props.lambdaFunctions.updatePaymentLambda),
     });
     
+    httpApi.addRoutes({
+      path: '/payments',
+      methods: [HttpMethod.GET],
+      integration: new HttpLambdaIntegration('GetIntegration', props.lambdaFunctions.getPaymentLambda),
+    });
+
     this.httpApiUrl = httpApi.apiEndpoint;
   }
 }
