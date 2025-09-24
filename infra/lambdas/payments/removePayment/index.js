@@ -15,15 +15,12 @@ function isAdmin(clientEmail){
     return dummyCognito()[0] === clientEmail;
 }
 
-let cachedSupabase;
 async function getSupabase(){
-    if(cachedSupabase) return cachedSupabase;
-
     const r = await secrets_client.send(new GetSecretValueCommand({ SecretId: SUPABASE_SECRET_ID }));
     const raw = r.SecretString ?? Buffer.from(r.SecretBinary || "", "base64").toString("utf8");
     const obj = JSON.parse(raw); 
     const api_key = obj.SUPABASE_SECRET_KEY;
-    cachedSupabase = createClient(ENDPOINT, api_key);
+    const cachedSupabase = createClient(ENDPOINT, api_key);
     return cachedSupabase;
 }
 

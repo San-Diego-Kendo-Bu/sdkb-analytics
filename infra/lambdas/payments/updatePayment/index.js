@@ -7,6 +7,9 @@ const REGION = process.env.AWS_REGION;
 const SUPABASE_SECRET_ID = process.env.SUPABASE_SECRET_ID;
 const secrets_client = new SecretsManagerClient({ region: REGION });
 
+const FIELDS = ['payment_id', 'title', 'created_at', 'due_date', 'payment_value', 'overdue_penalty', 'event_id'];
+
+
 function dummyCognito(){
     return ['admin@gmail.com'];
 }
@@ -15,15 +18,12 @@ function isAdmin(clientEmail){
     return dummyCognito()[0] === clientEmail;
 }
 
-let cachedSupabase;
 async function getSupabase(){
-    if(cachedSupabase) return cachedSupabase;
-
     const r = await secrets_client.send(new GetSecretValueCommand({ SecretId: SUPABASE_SECRET_ID }));
     const raw = r.SecretString ?? Buffer.from(r.SecretBinary || "", "base64").toString("utf8");
     const obj = JSON.parse(raw); 
     const api_key = obj.SUPABASE_SECRET_KEY;
-    cachedSupabase = createClient(ENDPOINT, api_key);
+    const cachedSupabase = createClient(ENDPOINT, api_key);
     return cachedSupabase;
 }
 
@@ -45,13 +45,13 @@ exports.handler = async (event) => {
                 message: "Please specify a payment id"
             }
         }
+        
         const payload = {};
-        if(parameters.title !== undefined) payload.title = parameters.title;
-        if(parameters.created_at !== undefined) payload.created_at = parameters.created_at;
-        if(parameters.due_date !== undefined) payload.due_date = parameters.due_date;
-        if(parameters.payment_value !== undefined) payload.payment_value = parameters.payment_value;
-        if(parameters.overdue_penalty !== undefined) payload.overdue_penalty = parameters.overdue_penalty;
-        if(parameters.event_id !== undefined) payload.event_id = parameters.event_id;
+        for(const field of FIELDS){
+            if(field in parameters){
+                payload[field] = parameters[field];
+            }
+        }
         
         if(payload.payment_value && parseFloat(payload.payment_value) < 1.0){
             return{

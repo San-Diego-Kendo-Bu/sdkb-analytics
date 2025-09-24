@@ -2,6 +2,7 @@ const { createClient } = require("@supabase/supabase-js");
 const ENDPOINT = 'https://gsriiicvvxzvidaakctw.supabase.co';
 const PAYMENTS_TABLE = "Payments";
 const ANON = process.env.ANON;
+const FIELDS = ['payment_id', 'title', 'created_at', 'due_date', 'payment_value', 'overdue_penalty', 'event_id'];
 
 function dummyRegisteredUsers(){
     return ['admin@gmail.com', 'user@gmail.com'];
@@ -28,13 +29,11 @@ exports.handler = async (event) => {
         const parameters = JSON.parse(event.body);
         const payload = {};
 
-        if(parameters.payment_id !== undefined) payload.payment_id = parameters.payment_id;
-        if(parameters.title !== undefined) payload.title = parameters.title;
-        if(parameters.created_at !== undefined) payload.created_at = parameters.created_at;
-        if(parameters.due_date !== undefined) payload.due_date = parameters.due_date;
-        if(parameters.payment_value !== undefined) payload.payment_value = parameters.payment_value;
-        if(parameters.overdue_penalty !== undefined) payload.overdue_penalty = parameters.overdue_penalty;
-        if(parameters.event_id !== undefined) payload.event_id = parameters.event_id;
+        for(const field of FIELDS){
+            if(field in parameters){
+                payload[field] = parameters[field];
+            }
+        }
 
         const supabase = await getSupabase();
         const response = (Object.keys(payload).length === 0) ? 
@@ -56,7 +55,8 @@ exports.handler = async (event) => {
                 "Access-Control-Allow-Origin": "*"
             },
             body : JSON.stringify({
-                message: "Payment(s) retrieved successfully",
+                message: "Payment(s) retrieved successfully.",
+                payload : payload,
                 body: response.data,
             })
         };
