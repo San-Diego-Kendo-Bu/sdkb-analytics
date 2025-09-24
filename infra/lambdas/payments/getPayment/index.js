@@ -26,7 +26,7 @@ exports.handler = async (event) => {
 
     try {
         
-        const parameters = JSON.parse(event.body);
+        const parameters = event.headers;
         const payload = {};
 
         for(const field of FIELDS){
