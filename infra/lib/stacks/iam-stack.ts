@@ -18,6 +18,9 @@ export class IamStack extends Stack {
     // Grant read permissions to the member creation Lambda
     props.stripeSecret.grantRead(props.lambdaFunctions.createMemberLambda);
 
+    // Grant read permissions to the member remove Lambda
+    props.stripeSecret.grantRead(props.lambdaFunctions.removeMemberLambda);
+
     // add roles
     props.lambdaFunctions.getMembersLambda.addToRolePolicy(new PolicyStatement({
       effect: Effect.ALLOW,
@@ -58,6 +61,12 @@ export class IamStack extends Stack {
     props.lambdaFunctions.removeMemberLambda.addToRolePolicy(new PolicyStatement({
       effect: Effect.ALLOW,
       actions: ['dynamodb:DeleteItem'],
+      resources: [props.membersTableArn],
+    }));
+
+    props.lambdaFunctions.removeMemberLambda.addToRolePolicy(new PolicyStatement({
+      effect: Effect.ALLOW,
+      actions: ['dynamodb:Query'],
       resources: [props.membersTableArn],
     }));
 
