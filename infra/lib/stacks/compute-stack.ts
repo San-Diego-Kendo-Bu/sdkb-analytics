@@ -59,7 +59,7 @@ export class ComputeStack extends Stack {
         code: Code.fromAsset(path.join(__dirname, '../../lambdas/admins/getAdmin')),
       }),
       removeMemberLambda: new NodejsFunction(this, "RemoveMemberLambda", {
-        functionName: "removeMemberCDK",
+        functionName: "RemoveMemberLambda",
         entry: path.join(__dirname, "../../lambdas/members/removeMember/index.js"),
         handler: "handler",
         runtime: Runtime.NODEJS_18_X,
