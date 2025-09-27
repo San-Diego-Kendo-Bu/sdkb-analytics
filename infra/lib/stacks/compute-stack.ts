@@ -58,11 +58,28 @@ export class ComputeStack extends Stack {
         handler: 'index.handler',
         code: Code.fromAsset(path.join(__dirname, '../../lambdas/admins/getAdmin')),
       }),
-      removeMemberLambda: new Function(this, 'RemoveMemberLambda', {
-        functionName: 'RemoveMemberLambda',
+      removeMemberLambda: new NodejsFunction(this, "RemoveMemberLambda", {
+        functionName: "RemoveMemberLambda",
+        entry: path.join(__dirname, "../../lambdas/members/removeMember/index.js"),
+        handler: "handler",
         runtime: Runtime.NODEJS_18_X,
-        handler: 'index.handler',
-        code: Code.fromAsset(path.join(__dirname, '../../lambdas/members/removeMember')),
+        timeout: Duration.seconds(10),
+
+        projectRoot: path.join(__dirname, "../../"),
+        depsLockFilePath: path.join(__dirname, "../../package-lock.json"),
+
+        bundling: {
+          target: "node18",
+          format: OutputFormat.CJS,
+          externalModules: [],
+          minify: true,
+          sourceMap: true,
+          logLevel: LogLevel.DEBUG,
+        },
+
+        environment: {
+          SECRET_ID: props.stripeSecretName,
+        },
       }),
       modifyMemberLambda: new Function(this, 'ModifyMemberLambda', {
         functionName: 'ModifyMemberLambda',
