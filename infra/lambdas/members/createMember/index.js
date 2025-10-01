@@ -20,15 +20,12 @@ function normalizeGroups(raw) {
   return withoutBrackets.split(",").map((x) => x.trim()).filter(Boolean);
 }
 
-let cachedStripe;
 async function getStripe() {
-  if (cachedStripe) return cachedStripe;
   const r = await secrets_client.send(new GetSecretValueCommand({ SecretId: SECRET_ID }));
   const raw = r.SecretString ?? Buffer.from(r.SecretBinary || "", "base64").toString("utf8");
   const obj = JSON.parse(raw); 
   const api_key = obj.STRIPE_TEST_SECRET_KEY;
-  cachedStripe = new Stripe(api_key); // optionally add { apiVersion: '2024-06-20' }
-  return cachedStripe;
+  return new Stripe(api_key); // optionally add { apiVersion: '2024-06-20' }
 }
 
 async function createCustomer(stripe, email, name, memberId) {
