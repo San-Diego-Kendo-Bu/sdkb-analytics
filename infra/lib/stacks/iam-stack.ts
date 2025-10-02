@@ -6,6 +6,7 @@ import { Effect, PolicyStatement } from "aws-cdk-lib/aws-iam";
 
 export interface IamStackProps extends StackProps {
   stripeSecret: ISecret;
+  supabaseSecret: ISecret;
   lambdaFunctions: NafudakakeLambdaFunctions;
   membersTableArn: string;
   configTableArn: string;
@@ -17,6 +18,9 @@ export class IamStack extends Stack {
 
     // Grant read permissions to the member creation Lambda
     props.stripeSecret.grantRead(props.lambdaFunctions.createMemberLambda);
+    props.supabaseSecret.grantRead(props.lambdaFunctions.createPaymentLambda);
+    props.supabaseSecret.grantRead(props.lambdaFunctions.removePaymentLambda);
+    props.supabaseSecret.grantRead(props.lambdaFunctions.updatePaymentLambda);
 
     // Grant read permissions to the member remove Lambda
     props.stripeSecret.grantRead(props.lambdaFunctions.removeMemberLambda);
@@ -84,5 +88,12 @@ export class IamStack extends Stack {
         `${props.membersTableArn}/index/dedup_key-index`
       ],
     }));
+
+    props.lambdaFunctions.createPaymentLambda.addToRolePolicy(new PolicyStatement({
+      effect: Effect.ALLOW,
+      actions: ['dynamodb:UpdateItem'],
+      resources: [props.configTableArn],
+    }));
+
   }
 }

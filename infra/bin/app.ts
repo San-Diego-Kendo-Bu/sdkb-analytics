@@ -26,6 +26,7 @@ STAGES.forEach((stage) => {
     env: stage.env,
     membersAuthorizer: identityStack.membersAuthorizer,
     stripeSecretName: secretsStack.stripeSecret.secretName,
+    supabaseSecretName: secretsStack.supabaseSecret.secretName
   });
 
   const storageStack = new StorageStack(app, `StorageStack-${stage.name}-${stage.env.region}`, {
@@ -35,11 +36,12 @@ STAGES.forEach((stage) => {
   const iamStack = new IamStack(app, `IamStack-${stage.name}-${stage.env.region}`, {
     env: stage.env,
     stripeSecret: secretsStack.stripeSecret,
+    supabaseSecret: secretsStack.supabaseSecret,
     lambdaFunctions: computeStack.lambdaFunctions,
     membersTableArn: stage.membersTableArn,
     configTableArn: stage.configTableArn,
   });
-
+  
   const inputStack = new InputStack(app, `InputStack-${stage.name}-${stage.env.region}`, {
     env: stage.env,
     membersAuthorizer: identityStack.membersAuthorizer,
