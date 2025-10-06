@@ -4,6 +4,7 @@ import { Code, Function, IFunction, Runtime } from "aws-cdk-lib/aws-lambda";
 import { LogLevel, NodejsFunction, OutputFormat } from "aws-cdk-lib/aws-lambda-nodejs";
 import { Construct } from "constructs";
 import path from "path";
+import * as logs from "aws-cdk-lib/aws-logs";
 
 export interface ComputeStackProps extends StackProps {
   membersAuthorizer: IHttpRouteAuthorizer;
@@ -50,18 +51,21 @@ export class ComputeStack extends Stack {
         environment: {
           SECRET_ID: props.stripeSecretName,
         },
+        logRetention: logs.RetentionDays.ONE_WEEK,
       }),
       getMembersLambda: new Function(this, 'GetMembersLambda', {
         functionName: 'GetMembersLambda',
         runtime: Runtime.NODEJS_18_X,
         handler: 'index.handler',
         code: Code.fromAsset(path.join(__dirname, '../../lambdas/members/getMembers')),
+        logRetention: logs.RetentionDays.ONE_WEEK,
       }),
       getAdminLambda: new Function(this, 'GetAdminLambda', {
         functionName: 'GetAdminLambda',
         runtime: Runtime.NODEJS_18_X,
         handler: 'index.handler',
         code: Code.fromAsset(path.join(__dirname, '../../lambdas/admins/getAdmin')),
+        logRetention: logs.RetentionDays.ONE_WEEK,
       }),
       removeMemberLambda: new NodejsFunction(this, "RemoveMemberLambda", {
         functionName: "RemoveMemberLambda",
@@ -85,12 +89,14 @@ export class ComputeStack extends Stack {
         environment: {
           SECRET_ID: props.stripeSecretName,
         },
+        logRetention: logs.RetentionDays.ONE_WEEK,
       }),
       modifyMemberLambda: new Function(this, 'ModifyMemberLambda', {
         functionName: 'ModifyMemberLambda',
         runtime: Runtime.NODEJS_18_X,
         handler: 'index.handler',
         code: Code.fromAsset(path.join(__dirname, '../../lambdas/members/modifyMember')),
+        logRetention: logs.RetentionDays.ONE_WEEK,
       }),
       createPaymentLambda: new NodejsFunction(this, "CreatePaymentLambda", {
         functionName: "CreatePaymentLambda",
@@ -111,6 +117,7 @@ export class ComputeStack extends Stack {
         environment: {
           SUPABASE_SECRET_ID: props.supabaseSecretName,
         },
+        logRetention: logs.RetentionDays.ONE_WEEK,
       }),
       removePaymentLambda: new NodejsFunction(this, "RemovePaymentLambda", {
         functionName: "RemovePaymentLambda",
@@ -131,6 +138,7 @@ export class ComputeStack extends Stack {
         environment: {
           SUPABASE_SECRET_ID: props.supabaseSecretName,
         },
+        logRetention: logs.RetentionDays.ONE_WEEK,
       }),
       updatePaymentLambda: new NodejsFunction(this, "UpdatePaymentLambda", {
         functionName: "UpdatePaymentLambda",
@@ -151,6 +159,7 @@ export class ComputeStack extends Stack {
         environment: {
           SUPABASE_SECRET_ID: props.supabaseSecretName,
         },
+        logRetention: logs.RetentionDays.ONE_WEEK,
       }),
       getPaymentLambda: new NodejsFunction(this, "GetPaymentLambda", {
         functionName: "GetPaymentLambda",
@@ -171,6 +180,7 @@ export class ComputeStack extends Stack {
         environment: {
           ANON: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdzcmlpaWN2dnh6dmlkYWFrY3R3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUxNDg0MjUsImV4cCI6MjA3MDcyNDQyNX0.GtHJ405NZAA8V2RQy1h6kz3wIrdraaOEXTKTentoePE',
         },
+        logRetention: logs.RetentionDays.ONE_WEEK,
       })
     }
   }
