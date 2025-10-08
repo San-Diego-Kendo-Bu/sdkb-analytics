@@ -288,7 +288,7 @@ export function exportCsv(members){
                 escapeCsv(m.rank_number),
                 escapeCsv(m.email),
                 escapeCsv(m.birthday),
-                escapeCsv(m.is_guest)
+                escapeCsv(m.status === "guest" ? "yes" : "no")
             ];
             rows.push(row.join(','));
         }
