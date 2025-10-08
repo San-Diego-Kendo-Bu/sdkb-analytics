@@ -24,7 +24,7 @@ STAGES.forEach((stage) => {
     env: stage.env,
   });
 
-  new ServiceStack(app, `ServiceStack-${stage.name}-${stage.env.region}`, {
+  const serviceStack = new ServiceStack(app, `ServiceStack-${stage.name}-${stage.env.region}`, {
     env: stage.env,
     membersAuthorizer: identityStack.membersAuthorizer, // if you have one
     stripeSecret: secretsStack.stripeSecret,
