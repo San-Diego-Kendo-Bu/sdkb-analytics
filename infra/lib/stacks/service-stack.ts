@@ -126,6 +126,13 @@ export class ServiceStack extends Stack {
       environment: { SUPABASE_SECRET_ID: props.supabaseSecret.secretName },
     });
 
+    const removeEventLambda = new NodejsFunction(this, "RemoveEventLambda", {
+      entry: path.join(__dirname, "../../lambdas/events/removeEvent/index.js"),
+      handler: "handler",
+      ...commonNodejs,
+      environment: { SUPABASE_SECRET_ID: props.supabaseSecret.secretName },
+    });
+
     // ---- Secrets access (same as your IamStack)
     props.stripeSecret.grantRead(createMemberLambda);
     props.stripeSecret.grantRead(removeMemberLambda);
@@ -135,6 +142,7 @@ export class ServiceStack extends Stack {
     props.supabaseSecret.grantRead(updatePaymentLambda);
 
     props.supabaseSecret.grantRead(createEventLambda);
+    props.supabaseSecret.grantRead(removeEventLambda);
 
     // ---- DynamoDB policies (same as your IamStack)
     const members = props.membersTableArn;
@@ -268,6 +276,12 @@ export class ServiceStack extends Stack {
       path: "/events",
       methods: [HttpMethod.POST],
       integration: new HttpLambdaIntegration("EventsPostInt", createEventLambda),
+    });
+
+    httpApi.addRoutes({
+      path: "/events",
+      methods: [HttpMethod.DELETE],
+      integration: new HttpLambdaIntegration("EventsDeleteInt", removeEventLambda),
     });
 
     this.httpApiUrl = httpApi.apiEndpoint;
