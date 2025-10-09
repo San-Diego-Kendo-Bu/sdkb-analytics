@@ -56,7 +56,6 @@ exports.handler = async (event) => {
         const dueDate = parameters.due_date;
         const paymentValue = parameters.payment_value ? parseFloat(parameters.payment_value) : null;
         const overduePenalty = parameters.overdue_penalty ? parseFloat(parameters.overdue_penalty) : null;
-        const eventId = parameters.event_id ? parseInt(parameters.event_id, 10) : null;
         
         if(!paymentValue || paymentValue < 1.0){
             return{
@@ -89,7 +88,6 @@ exports.handler = async (event) => {
             due_date: dueDate,
             payment_value: paymentValue,
             overdue_penalty: overduePenalty,
-            event_id: eventId
         });
         
         if(response.error){

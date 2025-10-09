@@ -2,7 +2,7 @@ const { createClient } = require("@supabase/supabase-js");
 const ENDPOINT = 'https://gsriiicvvxzvidaakctw.supabase.co';
 const PAYMENTS_TABLE = "Payments";
 const ANON = process.env.ANON;
-const FIELDS = ['payment_id', 'title', 'created_at', 'due_date', 'payment_value', 'overdue_penalty', 'event_id'];
+const FIELDS = ['payment_id', 'title', 'created_at', 'due_date', 'payment_value', 'overdue_penalty'];
 
 function dummyRegisteredUsers(){
     return ['admin@gmail.com', 'user@gmail.com'];

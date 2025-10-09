@@ -7,7 +7,7 @@ const REGION = process.env.AWS_REGION;
 const SUPABASE_SECRET_ID = process.env.SUPABASE_SECRET_ID;
 const secrets_client = new SecretsManagerClient({ region: REGION });
 
-const FIELDS = ['payment_id', 'title', 'created_at', 'due_date', 'payment_value', 'overdue_penalty', 'event_id'];
+const FIELDS = ['payment_id', 'title', 'created_at', 'due_date', 'payment_value', 'overdue_penalty'];
 
 
 function dummyCognito(){
