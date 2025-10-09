@@ -193,6 +193,7 @@ export class ServiceStack extends Stack {
 
     // ---- HTTP API + routes
     const httpApi = new HttpApi(this, "ServiceApi", {
+      apiName: "Nafuda-ServiceApi",
       corsPreflight: {
         allowHeaders: ["*"],
         exposeHeaders: ["*"],
