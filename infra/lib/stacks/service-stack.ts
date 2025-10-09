@@ -113,10 +113,7 @@ export class ServiceStack extends Stack {
       entry: path.join(__dirname, "../../lambdas/payments/getPayment/index.js"),
       handler: "handler",
       ...commonNodejs,
-      environment: {
-        ANON:
-          "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdzcmlpaWN2dnh6dmlkYWFrY3R3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUxNDg0MjUsImV4cCI6MjA3MDcyNDQyNX0.GtHJ405NZAA8V2RQy1h6kz3wIrdraaOEXTKTentoePE",
-      },
+      environment: { SUPABASE_SECRET_ID: props.supabaseSecret.secretName },
     });
 
     const createEventLambda = new NodejsFunction(this, "CreateEventLambda", {

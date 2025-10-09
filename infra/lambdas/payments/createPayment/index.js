@@ -3,14 +3,11 @@ const {
   DynamoDBDocumentClient, UpdateCommand,
 } = require("@aws-sdk/lib-dynamodb");
 
-const { createClient } = require("@supabase/supabase-js");
-const ENDPOINT = 'https://gsriiicvvxzvidaakctw.supabase.co';
-const PAYMENTS_TABLE = "Payments";
+const { getSupabase } = require("../../shared_utils/supabase");
 
-const { SecretsManagerClient, GetSecretValueCommand } = require("@aws-sdk/client-secrets-manager");
-const REGION = process.env.AWS_REGION;
+const PAYMENTS_TABLE = "Payments";
 const SUPABASE_SECRET_ID = process.env.SUPABASE_SECRET_ID;
-const secrets_client = new SecretsManagerClient({ region: REGION });
+const REGION = process.env.AWS_REGION;
 const ddb = DynamoDBDocumentClient.from(new DynamoDBClient({ region: REGION }));
 
 function dummyCognito(){
@@ -19,15 +16,6 @@ function dummyCognito(){
 
 function isAdmin(clientEmail){
     return dummyCognito()[0] === clientEmail;
-}
-
-async function getSupabase(){
-    const r = await secrets_client.send(new GetSecretValueCommand({ SecretId: SUPABASE_SECRET_ID }));
-    const raw = r.SecretString ?? Buffer.from(r.SecretBinary || "", "base64").toString("utf8");
-    const obj = JSON.parse(raw); 
-    const api_key = obj.SUPABASE_SECRET_KEY;
-    const cachedSupabase = createClient(ENDPOINT, api_key);
-    return cachedSupabase;
 }
 
 exports.handler = async (event) => {
@@ -79,7 +67,7 @@ exports.handler = async (event) => {
             };
         }
 
-        const supabase = await getSupabase();
+        const supabase = await getSupabase(SUPABASE_SECRET_ID, REGION);
 
         const response = await supabase.from(PAYMENTS_TABLE).insert({
             payment_id: newPaymentId,
