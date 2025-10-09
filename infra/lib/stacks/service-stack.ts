@@ -119,6 +119,13 @@ export class ServiceStack extends Stack {
       },
     });
 
+    const createEventLambda = new NodejsFunction(this, "CreateEventLambda", {
+      entry: path.join(__dirname, "../../lambdas/events/createEvent/index.js"),
+      handler: "handler",
+      ...commonNodejs,
+      environment: { SUPABASE_SECRET_ID: props.supabaseSecret.secretName },
+    });
+
     // ---- Secrets access (same as your IamStack)
     props.stripeSecret.grantRead(createMemberLambda);
     props.stripeSecret.grantRead(removeMemberLambda);
@@ -126,6 +133,8 @@ export class ServiceStack extends Stack {
     props.supabaseSecret.grantRead(createPaymentLambda);
     props.supabaseSecret.grantRead(removePaymentLambda);
     props.supabaseSecret.grantRead(updatePaymentLambda);
+
+    props.supabaseSecret.grantRead(createEventLambda);
 
     // ---- DynamoDB policies (same as your IamStack)
     const members = props.membersTableArn;
@@ -175,6 +184,12 @@ export class ServiceStack extends Stack {
       actions: ["dynamodb:UpdateItem"],
       resources: [config],
     }));
+
+    createEventLambda.role?.addToPrincipalPolicy(new iam.PolicyStatement({
+      actions: ["dynamodb:UpdateItem"],
+      resources: [config],
+    }));
+
 
     // ---- HTTP API + routes
     const httpApi = new HttpApi(this, "ServiceApi", {
@@ -246,6 +261,13 @@ export class ServiceStack extends Stack {
       path: "/payments",
       methods: [HttpMethod.GET],
       integration: new HttpLambdaIntegration("PaymentsGetInt", getPaymentLambda),
+    });
+
+    // Events
+    httpApi.addRoutes({
+      path: "/events",
+      methods: [HttpMethod.POST],
+      integration: new HttpLambdaIntegration("EventsPostInt", createEventLambda),
     });
 
     this.httpApiUrl = httpApi.apiEndpoint;
