@@ -423,6 +423,18 @@ document.addEventListener('click', function(event){
     }
     
     /**
+     * Check if user has clicked away from the download member dropdown. If they did, then close it if it's open.
+     */
+    const downloadDropdownButton = document.getElementById('downloadDropdownButton');
+    const downloadMember = document.getElementById('download-member');
+    if(
+        event.target !== downloadMember && !downloadMember.contains(event.target) &&
+        event.target !== downloadDropdownButton && !downloadDropdownButton.contains(event.target)
+    ){
+        if(downloadMember && downloadMember.style.display == 'flex') downloadMember.style.display = 'none';
+    }
+    
+    /**
      * Check if user has clicked away from the remove form. If they did, then close it if it's open.
      * Do not close when clicking the REMOVE MEMBER button or within the remove-member container.
      */
@@ -527,6 +539,8 @@ window.addEventListener('DOMContentLoaded', async () => {
     
     document.getElementById('searchDropdownButton').addEventListener('click', ()=>{ buttonLogic.dropdownButtonLogic('search-member'); });
     
+    document.getElementById('downloadDropdownButton').addEventListener('click', ()=>{ buttonLogic.dropdownButtonLogic('download-member'); });
+    
     /**
      * Open form buttons
      */
@@ -535,6 +549,8 @@ window.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('openRemoveButton').addEventListener('click', ()=> { buttonLogic.openFormLogic('removeForm'); });
     
     document.getElementById('openSearchButton').addEventListener('click', ()=> { buttonLogic.openFormLogic('searchForm'); });
+    
+    document.getElementById('openDownloadButton').addEventListener('click', ()=> { buttonLogic.exportCsv(members); });
     
     /**
      * Cancel dropdown buttons
