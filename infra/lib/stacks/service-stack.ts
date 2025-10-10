@@ -116,6 +116,13 @@ export class ServiceStack extends Stack {
       environment: { SUPABASE_SECRET_ID: props.supabaseSecret.secretName },
     });
 
+    const assignPaymentLambda = new NodejsFunction(this, "AssignPaymentLambda", {
+      entry: path.join(__dirname, "../../lambdas/assigned_payments/assignPayment/index.js"),
+      handler: "handler",
+      ...commonNodejs,
+      environment: { SUPABASE_SECRET_ID: props.supabaseSecret.secretName },
+    });
+
     const createEventLambda = new NodejsFunction(this, "CreateEventLambda", {
       entry: path.join(__dirname, "../../lambdas/events/createEvent/index.js"),
       handler: "handler",
@@ -137,6 +144,8 @@ export class ServiceStack extends Stack {
     props.supabaseSecret.grantRead(createPaymentLambda);
     props.supabaseSecret.grantRead(removePaymentLambda);
     props.supabaseSecret.grantRead(updatePaymentLambda);
+
+    props.supabaseSecret.grantRead(assignPaymentLambda);
 
     props.supabaseSecret.grantRead(createEventLambda);
     props.supabaseSecret.grantRead(removeEventLambda);
@@ -188,6 +197,11 @@ export class ServiceStack extends Stack {
     createPaymentLambda.role?.addToPrincipalPolicy(new iam.PolicyStatement({
       actions: ["dynamodb:UpdateItem"],
       resources: [config],
+    }));
+
+    assignPaymentLambda.role?.addToPrincipalPolicy(new iam.PolicyStatement({
+      actions: ["dynamodb:Query"],
+      resources: [members],
     }));
 
     createEventLambda.role?.addToPrincipalPolicy(new iam.PolicyStatement({
@@ -266,6 +280,13 @@ export class ServiceStack extends Stack {
       path: "/payments",
       methods: [HttpMethod.GET],
       integration: new HttpLambdaIntegration("PaymentsGetInt", getPaymentLambda),
+    });
+    
+    // Assigned Payments
+    httpApi.addRoutes({
+      path: "/assignedpayments",
+      methods: [HttpMethod.POST],
+      integration: new HttpLambdaIntegration("AssignedPaymentsPostInt", assignPaymentLambda),
     });
 
     // Events
