@@ -113,10 +113,21 @@ export class ServiceStack extends Stack {
       entry: path.join(__dirname, "../../lambdas/payments/getPayment/index.js"),
       handler: "handler",
       ...commonNodejs,
-      environment: {
-        ANON:
-          "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdzcmlpaWN2dnh6dmlkYWFrY3R3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUxNDg0MjUsImV4cCI6MjA3MDcyNDQyNX0.GtHJ405NZAA8V2RQy1h6kz3wIrdraaOEXTKTentoePE",
-      },
+      environment: { SUPABASE_SECRET_ID: props.supabaseSecret.secretName },
+    });
+
+    const createEventLambda = new NodejsFunction(this, "CreateEventLambda", {
+      entry: path.join(__dirname, "../../lambdas/events/createEvent/index.js"),
+      handler: "handler",
+      ...commonNodejs,
+      environment: { SUPABASE_SECRET_ID: props.supabaseSecret.secretName },
+    });
+
+    const removeEventLambda = new NodejsFunction(this, "RemoveEventLambda", {
+      entry: path.join(__dirname, "../../lambdas/events/removeEvent/index.js"),
+      handler: "handler",
+      ...commonNodejs,
+      environment: { SUPABASE_SECRET_ID: props.supabaseSecret.secretName },
     });
 
     // ---- Secrets access (same as your IamStack)
@@ -126,6 +137,9 @@ export class ServiceStack extends Stack {
     props.supabaseSecret.grantRead(createPaymentLambda);
     props.supabaseSecret.grantRead(removePaymentLambda);
     props.supabaseSecret.grantRead(updatePaymentLambda);
+
+    props.supabaseSecret.grantRead(createEventLambda);
+    props.supabaseSecret.grantRead(removeEventLambda);
 
     // ---- DynamoDB policies (same as your IamStack)
     const members = props.membersTableArn;
@@ -175,6 +189,12 @@ export class ServiceStack extends Stack {
       actions: ["dynamodb:UpdateItem"],
       resources: [config],
     }));
+
+    createEventLambda.role?.addToPrincipalPolicy(new iam.PolicyStatement({
+      actions: ["dynamodb:UpdateItem"],
+      resources: [config],
+    }));
+
 
     // ---- HTTP API + routes
     const httpApi = new HttpApi(this, "ServiceApi", {
@@ -246,6 +266,19 @@ export class ServiceStack extends Stack {
       path: "/payments",
       methods: [HttpMethod.GET],
       integration: new HttpLambdaIntegration("PaymentsGetInt", getPaymentLambda),
+    });
+
+    // Events
+    httpApi.addRoutes({
+      path: "/events",
+      methods: [HttpMethod.POST],
+      integration: new HttpLambdaIntegration("EventsPostInt", createEventLambda),
+    });
+
+    httpApi.addRoutes({
+      path: "/events",
+      methods: [HttpMethod.DELETE],
+      integration: new HttpLambdaIntegration("EventsDeleteInt", removeEventLambda),
     });
 
     this.httpApiUrl = httpApi.apiEndpoint;

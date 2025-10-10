@@ -1,8 +1,9 @@
-const { createClient } = require("@supabase/supabase-js");
-const ENDPOINT = 'https://gsriiicvvxzvidaakctw.supabase.co';
+const { getSupabase } = require("../../shared_utils/supabase");
+
 const PAYMENTS_TABLE = "Payments";
-const ANON = process.env.ANON;
-const FIELDS = ['payment_id', 'title', 'created_at', 'due_date', 'payment_value', 'overdue_penalty', 'event_id'];
+const SUPABASE_SECRET_ID = process.env.SUPABASE_SECRET_ID;
+const REGION = process.env.AWS_REGION;
+const FIELDS = ['payment_id', 'title', 'created_at', 'due_date', 'payment_value', 'overdue_penalty'];
 
 function dummyRegisteredUsers(){
     return ['admin@gmail.com', 'user@gmail.com'];
@@ -12,10 +13,6 @@ function isRegisteredUser(clientEmail){
     return (dummyRegisteredUsers()[0] === clientEmail || dummyRegisteredUsers()[1] === clientEmail);
 }
 
-async function getSupabase(){
-    const supabase = createClient(ENDPOINT, ANON);
-    return supabase;
-}
 
 exports.handler = async (event) => {
 
@@ -35,7 +32,7 @@ exports.handler = async (event) => {
             }
         }
 
-        const supabase = await getSupabase();
+        const supabase = await getSupabase(SUPABASE_SECRET_ID, REGION);
         const response = (Object.keys(payload).length === 0) ? 
             await supabase.from(PAYMENTS_TABLE).select('*') :
             await supabase.from(PAYMENTS_TABLE).select('*').match(payload);
