@@ -13,7 +13,6 @@ function isRegisteredUser(clientEmail){
     return (dummyRegisteredUsers()[0] === clientEmail || dummyRegisteredUsers()[1] === clientEmail);
 }
 
-
 exports.handler = async (event) => {
 
     const clientEmail = event.headers["client_email"];

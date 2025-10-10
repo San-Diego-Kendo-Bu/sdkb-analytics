@@ -137,6 +137,7 @@ export class ServiceStack extends Stack {
     props.supabaseSecret.grantRead(createPaymentLambda);
     props.supabaseSecret.grantRead(removePaymentLambda);
     props.supabaseSecret.grantRead(updatePaymentLambda);
+    props.supabaseSecret.grantRead(getPaymentLambda);
 
     props.supabaseSecret.grantRead(createEventLambda);
     props.supabaseSecret.grantRead(removeEventLambda);
