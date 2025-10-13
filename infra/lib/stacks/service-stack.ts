@@ -122,7 +122,14 @@ export class ServiceStack extends Stack {
       ...commonNodejs,
       environment: { SUPABASE_SECRET_ID: props.supabaseSecret.secretName },
     });
-
+    
+    const unassignPaymentLambda = new NodejsFunction(this, "UnassignPaymentLambda", {
+      entry: path.join(__dirname, "../../lambdas/assigned_payments/unassignPayment/index.js"),
+      handler: "handler",
+      ...commonNodejs,
+      environment: { SUPABASE_SECRET_ID: props.supabaseSecret.secretName },
+    });
+    
     const createEventLambda = new NodejsFunction(this, "CreateEventLambda", {
       entry: path.join(__dirname, "../../lambdas/events/createEvent/index.js"),
       handler: "handler",
@@ -146,6 +153,7 @@ export class ServiceStack extends Stack {
     props.supabaseSecret.grantRead(updatePaymentLambda);
 
     props.supabaseSecret.grantRead(assignPaymentLambda);
+    props.supabaseSecret.grantRead(unassignPaymentLambda);
 
     props.supabaseSecret.grantRead(createEventLambda);
     props.supabaseSecret.grantRead(removeEventLambda);
@@ -287,6 +295,12 @@ export class ServiceStack extends Stack {
       path: "/assignedpayments",
       methods: [HttpMethod.POST],
       integration: new HttpLambdaIntegration("AssignedPaymentsPostInt", assignPaymentLambda),
+    });
+
+    httpApi.addRoutes({
+      path: "/assignedpayments",
+      methods: [HttpMethod.DELETE],
+      integration: new HttpLambdaIntegration("AssignedPaymentsDeleteInt", unassignPaymentLambda),
     });
 
     // Events

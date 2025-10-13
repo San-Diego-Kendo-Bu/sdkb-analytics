@@ -63,7 +63,7 @@ exports.handler = async (event) => {
         }
 
         // Create new AssignedPayment with member_id, payment_id, assigned_on, status
-        const response = await supabase.from(ASSIGNED_PAYMENTS_TABLE).insert(payload);
+        const response = await supabase.from(ASSIGNED_PAYMENTS_TABLE).insert(payload).select();
         
         if(response.error){
             return {
@@ -73,11 +73,14 @@ exports.handler = async (event) => {
             }; 
         }
 
+        const data = response.data[0];
         return{
             statusCode : 200,
             headers : {"Content-Type" : "application/json"},
             body : JSON.stringify({
-                response : response.data
+                payment_id: data.payment_id,
+                member_id: data.member_id,
+                data: data,
             })
         };
 
