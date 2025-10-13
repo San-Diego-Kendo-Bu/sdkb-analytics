@@ -32,7 +32,7 @@ exports.handler = async (event) => {
         }
 
         const supabase = await getSupabase(SUPABASE_SECRET_ID, REGION);
-        const response = await supabase.from(PAYMENTS_TABLE).delete().eq('payment_id', paymentId);
+        const response = await supabase.from(PAYMENTS_TABLE).delete().eq('payment_id', paymentId).select();
 
         if(response.error){
             return{
@@ -42,6 +42,7 @@ exports.handler = async (event) => {
             };
         }
         
+        const data = response.data[0];
         return{
             statusCode : 200,
             headers : {
@@ -50,6 +51,8 @@ exports.handler = async (event) => {
             },
             body : JSON.stringify({
                 message: "Deleted Payment Successfully",
+                id: data.payment_id,
+                data: data,
             })
         };
 
