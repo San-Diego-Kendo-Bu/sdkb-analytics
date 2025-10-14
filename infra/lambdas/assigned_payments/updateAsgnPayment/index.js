@@ -6,6 +6,7 @@ const SUPABASE_SECRET_ID = process.env.SUPABASE_SECRET_ID;
 const REGION = process.env.AWS_REGION;
 
 const REQUIRED_FIELDS = ["member_id", "payment_id"];
+const UPDATE_FIELDS = ["assigned_on", "status"];
 
 function dummyCognito(){
     return ['admin@gmail.com'];
@@ -23,6 +24,7 @@ exports.handler = async (event) => {
     try{
 
         const parameters = JSON.parse(event.body);
+        const ids = {};
         const payload = {};
 
         for(const field of REQUIRED_FIELDS){
@@ -32,15 +34,20 @@ exports.handler = async (event) => {
                     body: `${field} is missing from your request, please include it.` 
                 };
             }
-            payload[field] = parameters[field];
+            ids[field] = parameters[field];
         }
         
+        for(const field of UPDATE_FIELDS){
+            if(field in parameters){
+                payload[field] = parameters[field];
+            }
+        }
+
         const supabase = await getSupabase(SUPABASE_SECRET_ID, REGION);
-        // Delete AssignedPayment with member_id, payment_id
         const response = await supabase.from(ASSIGNED_PAYMENTS_TABLE)
-        .delete()
-        .match(payload)
-        .select();
+            .update(payload)
+            .match(ids)
+            .select();
         
         if(response.error){
             return {
