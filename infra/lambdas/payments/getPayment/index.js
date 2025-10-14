@@ -52,8 +52,7 @@ exports.handler = async (event) => {
             },
             body : JSON.stringify({
                 message: "Payment(s) retrieved successfully.",
-                payload : payload,
-                body: response.data,
+                data: response.data,
             })
         };
 
