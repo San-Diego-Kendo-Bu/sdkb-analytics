@@ -143,7 +143,18 @@ export class ServiceStack extends Stack {
       ...commonNodejs,
       environment: { SUPABASE_SECRET_ID: props.supabaseSecret.secretName },
     });
-
+    const getEventLambda = new NodejsFunction(this, "GetEventLambda", {
+      entry: path.join(__dirname, "../../lambdas/events/getEvents/index.js"),
+      handler: "handler",
+      ...commonNodejs,
+      environment: { SUPABASE_SECRET_ID: props.supabaseSecret.secretName },
+    });
+    const updateEventLambda = new NodejsFunction(this, "UpdateEventLambda", {
+      entry: path.join(__dirname, "../../lambdas/events/updateEvent/index.js"),
+      handler: "handler",
+      ...commonNodejs,
+      environment: { SUPABASE_SECRET_ID: props.supabaseSecret.secretName },
+    });
     const removeEventLambda = new NodejsFunction(this, "RemoveEventLambda", {
       entry: path.join(__dirname, "../../lambdas/events/removeEvent/index.js"),
       handler: "handler",
@@ -158,12 +169,15 @@ export class ServiceStack extends Stack {
     props.supabaseSecret.grantRead(createPaymentLambda);
     props.supabaseSecret.grantRead(removePaymentLambda);
     props.supabaseSecret.grantRead(updatePaymentLambda);
+    props.supabaseSecret.grantRead(getPaymentLambda);
 
     props.supabaseSecret.grantRead(assignPaymentLambda);
     props.supabaseSecret.grantRead(unassignPaymentLambda);
     props.supabaseSecret.grantRead(updateAsgnPaymentLambda);
 
     props.supabaseSecret.grantRead(createEventLambda);
+    props.supabaseSecret.grantRead(getEventLambda);
+    props.supabaseSecret.grantRead(updateEventLambda);
     props.supabaseSecret.grantRead(removeEventLambda);
 
     // ---- DynamoDB policies (same as your IamStack)
@@ -323,7 +337,16 @@ export class ServiceStack extends Stack {
       methods: [HttpMethod.POST],
       integration: new HttpLambdaIntegration("EventsPostInt", createEventLambda),
     });
-
+    httpApi.addRoutes({
+      path: "/events",
+      methods: [HttpMethod.GET],
+      integration: new HttpLambdaIntegration("EventsGetInt", getEventLambda),
+    });
+    httpApi.addRoutes({
+      path: "/events",
+      methods: [HttpMethod.PATCH],
+      integration: new HttpLambdaIntegration("EventsPatchInt", updateEventLambda),
+    });
     httpApi.addRoutes({
       path: "/events",
       methods: [HttpMethod.DELETE],

@@ -1,48 +1,49 @@
 const { getSupabase } = require("../../shared_utils/supabase");
 
-const PAYMENTS_TABLE = "Payments";
+const EVENTS_TABLE = "Events";
 const SUPABASE_SECRET_ID = process.env.SUPABASE_SECRET_ID;
 const REGION = process.env.AWS_REGION;
+const FIELDS = ["event_id", "event_date", "event_name", "event_type", "event_deadline", "created_at", "event_location"];
 
-function dummyCognito(){
-    return ['admin@gmail.com'];
+function dummyRegisteredUsers(){
+    return ["admin@gmail.com", "user@gmail.com"];
 }
 
-function isAdmin(clientEmail){
-    return dummyCognito()[0] === clientEmail;
+function isRegisteredUser(clientEmail){
+    return (dummyRegisteredUsers()[0] === clientEmail || dummyRegisteredUsers()[1] === clientEmail);
 }
 
 exports.handler = async (event) => {
 
     const clientEmail = event.headers["client_email"];
-    
-    if(!isAdmin(clientEmail))
+
+    if(!isRegisteredUser(clientEmail))
         return { statusCode: 403, body: "Forbidden" };
 
     try {
-        
-        const parameters = JSON.parse(event.body);
-        const paymentId = parameters.payment_id;
-        
-        if(!paymentId){
-            return{
-                status: 400,
-                message: "Please specify a payment id"
+
+        const parameters = event.headers;
+        const payload = {};
+
+        for(const field of FIELDS){
+            if(field in parameters){
+                payload[field] = parameters[field];
             }
         }
 
         const supabase = await getSupabase(SUPABASE_SECRET_ID, REGION);
-        const response = await supabase.from(PAYMENTS_TABLE).delete().eq('payment_id', paymentId).select();
+        const response = (Object.keys(payload).length === 0) ?
+            await supabase.from(EVENTS_TABLE).select("*") :
+            await supabase.from(EVENTS_TABLE).select("*").match(payload);
 
         if(response.error){
             return{
                 statusCode: 500,
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ error: response.error })
+                body: JSON.stringify({ error: response.error }),
             };
         }
-        
-        const data = response.data[0];
+
         return{
             statusCode : 200,
             headers : {
@@ -50,9 +51,9 @@ exports.handler = async (event) => {
                 "Access-Control-Allow-Origin": "*"
             },
             body : JSON.stringify({
-                message: "Deleted Payment Successfully",
-                id: data.payment_id,
-                data: data,
+                message: "Event(s) retrieved successfully.",
+                payload : payload,
+                body: response.data,
             })
         };
 

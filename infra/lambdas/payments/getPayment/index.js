@@ -13,7 +13,6 @@ function isRegisteredUser(clientEmail){
     return (dummyRegisteredUsers()[0] === clientEmail || dummyRegisteredUsers()[1] === clientEmail);
 }
 
-
 exports.handler = async (event) => {
 
     const clientEmail = event.headers["client_email"];
@@ -53,8 +52,7 @@ exports.handler = async (event) => {
             },
             body : JSON.stringify({
                 message: "Payment(s) retrieved successfully.",
-                payload : payload,
-                body: response.data,
+                data: response.data,
             })
         };
 

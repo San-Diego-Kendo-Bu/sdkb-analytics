@@ -76,7 +76,7 @@ exports.handler = async (event) => {
             due_date: dueDate,
             payment_value: paymentValue,
             overdue_penalty: overduePenalty,
-        });
+        }).select();
         
         if(response.error){
             return {
@@ -86,6 +86,8 @@ exports.handler = async (event) => {
             }; 
         }
 
+        const data = response.data[0];
+
         return{
             statusCode : 200,
             headers : {
@@ -94,7 +96,8 @@ exports.handler = async (event) => {
             },
             body : JSON.stringify({
                 message: "Created Payment Successfully",
-                request_parameters: parameters,
+                id: data.payment_id,
+                data: data,
             })
         };
 
