@@ -60,11 +60,17 @@ export class ServiceStack extends Stack {
       environment: { SECRET_ID: props.stripeSecret.secretName },
     });
 
-    const getMembersLambda = new LambdaFunction(this, "GetMembersLambda", {
-      runtime: Runtime.NODEJS_18_X,
-      handler: "index.handler",
-      code: Code.fromAsset(path.join(__dirname, "../../lambdas/members/getMembers")),
-      logRetention: logs.RetentionDays.ONE_WEEK,
+    // const getMembersLambda = new LambdaFunction(this, "GetMembersLambda", {
+    //   runtime: Runtime.NODEJS_18_X,
+    //   handler: "index.handler",
+    //   code: Code.fromAsset(path.join(__dirname, "../../lambdas/members/getMembers")),
+    //   logRetention: logs.RetentionDays.ONE_WEEK,
+    // });
+
+    const getMembersLambda = new NodejsFunction(this, "GetMembersLambda", {
+      entry: path.join(__dirname, "../../lambdas/members/getMembers/index.js"),
+      handler: "handler",
+      ...commonNodejs,
     });
 
     const getAdminLambda = new LambdaFunction(this, "GetAdminLambda", {

@@ -1,7 +1,7 @@
 const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
+const { getMemberById, getMembersByEmail } = require("../../shared_utils/members");
 const {
   ScanCommand,
-  QueryCommand,
   DynamoDBDocumentClient
 } = require("@aws-sdk/lib-dynamodb");
 
@@ -10,23 +10,20 @@ const DEFAULT_GET_RESPONSE_HEADERS = { "Content-Type": "application/json" };
 // Initialize SDK v3 client
 const client = new DynamoDBClient({});
 const ddb = DynamoDBDocumentClient.from(client);
-
 const MEMBERS_TABLE  = "members";
-const EMAIL_INDEX    = "email-index";
-const EMAIL_ATTR     = "email";
-const MEMBER_ID_ATTR = "member_id";
 
 exports.handler = async (event) => {
   try {
+    
     if (event.queryStringParameters) {
       if (event.queryStringParameters.email) {
         // Handle query by email address
         let email = event.queryStringParameters.email;
-        return await getMembersByEmail(email);
+        return await getByEmail(email);
       } else if (event.queryStringParameters.member_id) {
         // Handle query by member ID 
         let member_id = parseInt(event.queryStringParameters.member_id);
-        return await getMemberByMemberId(member_id);
+        return await getById(member_id);
       } else {
         return {
           statusCode: 500,
@@ -53,22 +50,8 @@ exports.handler = async (event) => {
   }
 };
 
-async function getMembersByEmail(email) {
-  // NOTE: GSI index lookups are eventually consistent
-  const responseItems = [];
-  let lastKey;
-  do {
-    const response = await ddb.send(new QueryCommand({
-      TableName: MEMBERS_TABLE,
-      IndexName: EMAIL_INDEX,
-      KeyConditionExpression: "#e = :e",
-      ExpressionAttributeNames:  { "#e": EMAIL_ATTR },
-      ExpressionAttributeValues: { ":e": email },
-      ExclusiveStartKey: lastKey,
-    }));
-    responseItems.push(...(response.Items || []));
-    lastKey = response.LastEvaluatedKey;
-  } while (lastKey);
+async function getByEmail(email) {
+  const responseItems = await getMembersByEmail(email);
 
   return { 
     statusCode: 200, 
@@ -80,25 +63,13 @@ async function getMembersByEmail(email) {
   };
 }
 
-async function getMemberByMemberId(memberId) {
-  const responseItems = [];
-  let lastKey;
-  do {
-    const response = await ddb.send(new QueryCommand({
-      TableName: MEMBERS_TABLE,
-      KeyConditionExpression: "#e = :e",
-      ExpressionAttributeNames:  { "#e": MEMBER_ID_ATTR },
-      ExpressionAttributeValues: { ":e": memberId },
-      ExclusiveStartKey: lastKey,
-    }));
-    responseItems.push(...(response.Items || []));
-    lastKey = response.LastEvaluatedKey;
-  } while (lastKey);
+async function getById(memberId) {
+  const responseItems = await getMemberById(memberId);
 
   return { 
     statusCode: 200, 
     headers: DEFAULT_GET_RESPONSE_HEADERS,
-    body: JSON.stringify({ 
+    body: JSON.stringify({
       count: responseItems.length,
       items: responseItems
     }),
