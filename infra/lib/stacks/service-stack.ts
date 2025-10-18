@@ -116,6 +116,20 @@ export class ServiceStack extends Stack {
       environment: { SUPABASE_SECRET_ID: props.supabaseSecret.secretName },
     });
 
+    const registerEventLambda = new NodejsFunction(this, "RegisterEventLambda", {
+      entry: path.join(__dirname, "../../lambdas/events/registerEvent/index.js"),
+      handler: "handler",
+      ...commonNodejs,
+      environment: { SUPABASE_SECRET_ID: props.supabaseSecret.secretName },
+    });
+
+    const unregisterEventLambda = new NodejsFunction(this, "UnregisterEventLambda", {
+      entry: path.join(__dirname, "../../lambdas/events/unregisterEvent/index.js"),
+      handler: "handler",
+      ...commonNodejs,
+      environment: { SUPABASE_SECRET_ID: props.supabaseSecret.secretName },
+    });
+
     const createEventLambda = new NodejsFunction(this, "CreateEventLambda", {
       entry: path.join(__dirname, "../../lambdas/events/createEvent/index.js"),
       handler: "handler",
@@ -154,6 +168,8 @@ export class ServiceStack extends Stack {
     props.supabaseSecret.grantRead(getEventLambda);
     props.supabaseSecret.grantRead(updateEventLambda);
     props.supabaseSecret.grantRead(removeEventLambda);
+    props.supabaseSecret.grantRead(registerEventLambda);
+    props.supabaseSecret.grantRead(unregisterEventLambda);
 
     // ---- DynamoDB policies (same as your IamStack)
     const members = props.membersTableArn;
@@ -287,6 +303,16 @@ export class ServiceStack extends Stack {
       path: "/events",
       methods: [HttpMethod.POST],
       integration: new HttpLambdaIntegration("EventsPostInt", createEventLambda),
+    });
+    httpApi.addRoutes({
+      path: "/register",
+      methods: [HttpMethod.POST],
+      integration: new HttpLambdaIntegration("EventsPostInt", registerEventLambda),
+    });
+    httpApi.addRoutes({
+      path: "/register",
+      methods: [HttpMethod.DELETE],
+      integration: new HttpLambdaIntegration("EventDeleteInt", unregisterEventLambda),
     });
     httpApi.addRoutes({
       path: "/events",
