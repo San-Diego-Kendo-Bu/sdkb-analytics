@@ -24,15 +24,13 @@ exports.handler = async (event) => {
 
         const eventId = parameters.event_id;
         const memberId = parameters.member_id;
-        const registered_date = parameters.registered_date;
 
         const supabase = await getSupabase(SUPABASE_SECRET_ID, REGION);
 
-        const response = await supabase.from(REGISTRATION_TABLE).insert({
-            event_id: eventId,
-            member_id: memberId,
-            registered_date: registered_date,
-        });
+        const response = await supabase
+            .from(REGISTRATION_TABLE)
+            .delete()
+            .match({ event_id: eventId, member_id: memberId });
         
         if(response.error){
             return {
@@ -49,7 +47,7 @@ exports.handler = async (event) => {
                 "Access-Control-Allow-Origin": "*"
             },
             body : JSON.stringify({
-                message: "Registered Event Successfully",
+                message: "Event Unregistered Successfully",
                 request_parameters: parameters,
             })
         };
