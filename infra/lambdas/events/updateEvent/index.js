@@ -87,15 +87,18 @@ exports.handler = async (event) => {
             };
         }
 
-        return {
+        const data = response.data[0];
+
+        return{
             statusCode : 200,
             headers : {
                 "Content-Type": "application/json",
                 "Access-Control-Allow-Origin": "*"
             },
             body : JSON.stringify({
-                message: "Updated event successfully",
-                request_parameters: parameters,
+                message: "Updated Event Successfully",
+                id: data.event_id,
+                data: data,
             })
         };
 

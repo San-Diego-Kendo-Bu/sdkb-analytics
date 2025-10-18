@@ -66,6 +66,8 @@ exports.handler = async (event) => {
             }; 
         }
 
+        const data = response.data[0];
+
         return{
             statusCode : 200,
             headers : {
@@ -74,7 +76,8 @@ exports.handler = async (event) => {
             },
             body : JSON.stringify({
                 message: "Created Event Successfully",
-                request_parameters: parameters,
+                id: data.event_id,
+                data: data,
             })
         };
 
