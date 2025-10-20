@@ -357,9 +357,9 @@ export class ServiceStack extends Stack {
       integration: new HttpLambdaIntegration("EventsPostInt", createEventLambda),
     });
     httpApi.addRoutes({
-      path: "/tournaments",
+      path: "/events/configure",
       methods: [HttpMethod.POST],
-      integration: new HttpLambdaIntegration("TournamentsPostInt", configureEventLambda),
+      integration: new HttpLambdaIntegration("EventsConfigureInt", configureEventLambda),
     });
     httpApi.addRoutes({
       path: "/events",
