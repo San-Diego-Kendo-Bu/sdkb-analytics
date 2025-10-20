@@ -1,7 +1,9 @@
 const { getSupabase } = require("../../shared_utils/supabase");
 
 const SUPABASE_SECRET_ID = process.env.SUPABASE_SECRET_ID;
-const REGISTRATION_TABLE = "Registrations";
+const TOURNAMENT_REGISTRATION_TABLE = "Registrations";
+const SHINSA_REGISTRATION_TABLE = "ShinsaRegistrations";
+const SEMINAR_REGISTRATION_TABLE = "SeminarRegistrations";
 const REGION = process.env.AWS_REGION;
 
 function dummyCognito(){
@@ -21,25 +23,77 @@ exports.handler = async (event) => {
 
     try {
         const parameters = JSON.parse(event.body);
-
-        const eventId = parameters.event_id;
-        const memberId = parameters.member_id;
-        const registered_date = parameters.registered_date;
-
+        const configType = parameters.config_type;
         const supabase = await getSupabase(SUPABASE_SECRET_ID, REGION);
 
-        const response = await supabase.from(REGISTRATION_TABLE).insert({
-            event_id: eventId,
-            member_id: memberId,
-            registered_date: registered_date,
-        });
-        
-        if(response.error){
+        if (configType === "tournament") {
+            const eventId = parameters.event_id;
+            const memberId = parameters.member_id;
+            const registered_date = parameters.registered_date;
+            const shinpanning = parameters.shinpanning;
+            const division = parameters.division;
+            const doingTeams = parameters.doing_teams;
+
+            const response = await supabase.from(TOURNAMENT_REGISTRATION_TABLE).insert({
+                event_id: eventId,
+                member_id: memberId,
+                registered_date: registered_date,
+                shinpanning: shinpanning,
+                division: division,
+                doing_teams: doingTeams
+            });
+            
+            if(response.error){
+                return {
+                    statusCode: 500,
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ error: response.error })
+                }; 
+            }
+        } else if (configType === "shinsa") {
+            const eventId = parameters.event_id;
+            const memberId = parameters.member_id;
+            const registered_date = parameters.registered_date;
+            const testing_for = parameters.testing_for;
+
+            const response = await supabase.from(SHINSA_REGISTRATION_TABLE).insert({
+                event_id: eventId,
+                member_id: memberId,
+                registered_date: registered_date,
+                testing_for: testing_for
+            });
+
+            if(response.error){
+                return {
+                    statusCode: 500,
+                    headers: { "Content-Type": "application/json" },     
+                    body: JSON.stringify({ error: response.error })
+                };
+            }
+        } else if (configType === "seminar") {
+            const eventId = parameters.event_id;
+            const memberId = parameters.member_id;
+            const registered_date = parameters.registered_date;
+
+            const response = await supabase.from(SEMINAR_REGISTRATION_TABLE).insert({
+                event_id: eventId,
+                member_id: memberId,
+                registered_date: registered_date
+            });
+
+            if(response.error){
+                return {
+                    statusCode: 500,   
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ error: response.error })
+                };
+            }
+        } else {
             return {
-                statusCode: 500,
+                statusCode: 400,
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ error: response.error })
-            }; 
+                body: JSON.stringify({ error: "Invalid config_type" })
+            };
         }
 
         return{

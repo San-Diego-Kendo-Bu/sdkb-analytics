@@ -305,14 +305,14 @@ export class ServiceStack extends Stack {
       integration: new HttpLambdaIntegration("EventsPostInt", createEventLambda),
     });
     httpApi.addRoutes({
-      path: "/register",
+      path: "/events/register",
       methods: [HttpMethod.POST],
-      integration: new HttpLambdaIntegration("EventsPostInt", registerEventLambda),
+      integration: new HttpLambdaIntegration("EventsRegisterInt", registerEventLambda),
     });
     httpApi.addRoutes({
-      path: "/register",
+      path: "/events/register",
       methods: [HttpMethod.DELETE],
-      integration: new HttpLambdaIntegration("EventDeleteInt", unregisterEventLambda),
+      integration: new HttpLambdaIntegration("EventsUnregisterInt", unregisterEventLambda),
     });
     httpApi.addRoutes({
       path: "/events",
