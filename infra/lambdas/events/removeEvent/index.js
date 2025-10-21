@@ -41,7 +41,9 @@ exports.handler = async (event) => {
                 body: JSON.stringify({ error: response.error })
             };
         }
-        
+
+        const data = response.data[0];
+
         return{
             statusCode : 200,
             headers : {
@@ -50,6 +52,8 @@ exports.handler = async (event) => {
             },
             body : JSON.stringify({
                 message: "Deleted Event Successfully",
+                id: data.event_id,
+                data: data,
             })
         };
 

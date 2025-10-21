@@ -3,7 +3,7 @@ const { getSupabase } = require("../../shared_utils/supabase");
 const EVENTS_TABLE = "Events";
 const SUPABASE_SECRET_ID = process.env.SUPABASE_SECRET_ID;
 const REGION = process.env.AWS_REGION;
-const FIELDS = ["event_id", "event_date", "event_name", "event_type", "event_deadline", "created_at", "event_location"];
+const FIELDS = ["event_id", "event_date", "event_name", "event_type", "event_deadline", "created_at", "event_location", "payment_id"];
 const DATE_FIELDS = ["event_date", "event_deadline", "created_at"];
 
 function dummyCognito(){
@@ -87,15 +87,18 @@ exports.handler = async (event) => {
             };
         }
 
-        return {
+        const data = response.data[0];
+
+        return{
             statusCode : 200,
             headers : {
                 "Content-Type": "application/json",
                 "Access-Control-Allow-Origin": "*"
             },
             body : JSON.stringify({
-                message: "Updated event successfully",
-                request_parameters: parameters,
+                message: "Updated Event Successfully",
+                id: data.event_id,
+                data: data,
             })
         };
 
