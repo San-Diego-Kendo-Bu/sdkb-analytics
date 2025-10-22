@@ -1,4 +1,5 @@
 const { getSupabase } = require("../../shared_utils/supabase");
+const { verifyMemberExists } = require("../../shared_utils/members");
 
 const SUPABASE_SECRET_ID = process.env.SUPABASE_SECRET_ID;
 const TOURNAMENT_REGISTRATION_TABLE = "Registrations";
@@ -24,12 +25,22 @@ exports.handler = async (event) => {
     try {
         const parameters = JSON.parse(event.body);
         const configType = parameters.config_type;
+        const eventId = parameters.event_id;
+        const memberId = parameters.member_id;
+        const registered_date = parameters.registered_date;
         const supabase = await getSupabase(SUPABASE_SECRET_ID, REGION);
 
+        // check if this member_id is in the members database
+        const memberExists = await verifyMemberExists(supabase, memberId);
+        if(!memberExists){
+            return {    
+                statusCode: 404,
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ error: "Member not found" })
+            };
+        }
+
         if (configType === "tournament") {
-            const eventId = parameters.event_id;
-            const memberId = parameters.member_id;
-            const registered_date = parameters.registered_date;
             const shinpanning = parameters.shinpanning;
             const division = parameters.division;
             const doingTeams = parameters.doing_teams;
@@ -51,9 +62,6 @@ exports.handler = async (event) => {
                 }; 
             }
         } else if (configType === "shinsa") {
-            const eventId = parameters.event_id;
-            const memberId = parameters.member_id;
-            const registered_date = parameters.registered_date;
             const testing_for = parameters.testing_for;
 
             const response = await supabase.from(SHINSA_REGISTRATION_TABLE).insert({
@@ -71,10 +79,6 @@ exports.handler = async (event) => {
                 };
             }
         } else if (configType === "seminar") {
-            const eventId = parameters.event_id;
-            const memberId = parameters.member_id;
-            const registered_date = parameters.registered_date;
-
             const response = await supabase.from(SEMINAR_REGISTRATION_TABLE).insert({
                 event_id: eventId,
                 member_id: memberId,
