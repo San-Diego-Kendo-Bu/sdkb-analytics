@@ -7,18 +7,21 @@ const {
 const REGION = process.env.AWS_REGION;
 const ddb = DynamoDBDocumentClient.from(new DynamoDBClient({ region : REGION }));
 const MEMBERS_TABLE  = "members";
+const MEMBER_ID_ATTR = "member_id";
 
 async function verifyMemberExists(memberId) {
-    const params = {
+    let lastKey;
+    const response = await ddb.send(new QueryCommand({
         TableName: MEMBERS_TABLE,
-        KeyConditionExpression: "member_id = :m_id",
-        ExpressionAttributeValues: {
-            ":m_id": memberId
-        }
-    };
-    const command = new QueryCommand(params);
-    const response = await ddb.send(command);
-    return response.Items && response.Items.length > 0;
+        KeyConditionExpression: "#e = :e",
+        ExpressionAttributeNames:  { "#e": MEMBER_ID_ATTR },
+        ExpressionAttributeValues: { ":e": memberId },
+    }));
+
+    if(response.Items.length === 0)
+        return false;
+
+  return true;
 }
 
 module.exports = { verifyMemberExists };

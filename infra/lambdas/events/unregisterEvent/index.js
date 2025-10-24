@@ -1,4 +1,5 @@
 const { getSupabase } = require("../../shared_utils/supabase");
+const { verifyMemberExists } = require("../../shared_utils/members");
 
 const SUPABASE_SECRET_ID = process.env.SUPABASE_SECRET_ID;
 const TOURNAMENT_REGISTRATION_TABLE = "Registrations";
@@ -26,6 +27,15 @@ exports.handler = async (event) => {
         const configType = parameters.config_type;
         const eventId = parameters.event_id;
         const memberId = parameters.member_id;
+
+        const memberExists = await verifyMemberExists(memberId);
+        if(!memberExists){
+            return {    
+                statusCode: 404,
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ error: "Member not found" })
+            };
+        }
 
         const supabase = await getSupabase(SUPABASE_SECRET_ID, REGION);
 

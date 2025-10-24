@@ -225,6 +225,15 @@ export class ServiceStack extends Stack {
       resources: [config],
     }));
 
+    registerEventLambda.role?.addToPrincipalPolicy(new iam.PolicyStatement({
+      actions: ["dynamodb:Query"],
+      resources: [members],
+    }));
+
+    unregisterEventLambda.role?.addToPrincipalPolicy(new iam.PolicyStatement({
+      actions: ["dynamodb:Query"],
+      resources: [members],
+    }));
 
     // ---- HTTP API + routes
     const httpApi = new HttpApi(this, "ServiceApi", {

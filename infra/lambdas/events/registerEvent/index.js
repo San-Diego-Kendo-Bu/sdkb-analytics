@@ -2,7 +2,7 @@ const { getSupabase } = require("../../shared_utils/supabase");
 const { verifyMemberExists } = require("../../shared_utils/members");
 
 const SUPABASE_SECRET_ID = process.env.SUPABASE_SECRET_ID;
-const TOURNAMENT_REGISTRATION_TABLE = "Registrations";
+const TOURNAMENT_REGISTRATION_TABLE = "TournamentRegistrations";
 const SHINSA_REGISTRATION_TABLE = "ShinsaRegistrations";
 const SEMINAR_REGISTRATION_TABLE = "SeminarRegistrations";
 const REGION = process.env.AWS_REGION;
@@ -31,7 +31,7 @@ exports.handler = async (event) => {
         const supabase = await getSupabase(SUPABASE_SECRET_ID, REGION);
 
         // check if this member_id is in the members database
-        const memberExists = await verifyMemberExists(supabase, memberId);
+        const memberExists = await verifyMemberExists(memberId);
         if(!memberExists){
             return {    
                 statusCode: 404,
