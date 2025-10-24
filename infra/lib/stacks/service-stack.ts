@@ -165,6 +165,14 @@ export class ServiceStack extends Stack {
       ...commonNodejs,
       environment: { SUPABASE_SECRET_ID: props.supabaseSecret.secretName },
     });
+
+    const configureEventLambda = new NodejsFunction(this, "ConfigureEventLambda", {
+      entry: path.join(__dirname, "../../lambdas/events/configureEvent/index.js"),
+      handler: "handler",
+      ...commonNodejs,
+      environment: { SUPABASE_SECRET_ID: props.supabaseSecret.secretName },
+    });
+
     const getEventLambda = new NodejsFunction(this, "GetEventLambda", {
       entry: path.join(__dirname, "../../lambdas/events/getEvents/index.js"),
       handler: "handler",
@@ -206,6 +214,7 @@ export class ServiceStack extends Stack {
     props.supabaseSecret.grantRead(getEventLambda);
     props.supabaseSecret.grantRead(updateEventLambda);
     props.supabaseSecret.grantRead(removeEventLambda);
+    props.supabaseSecret.grantRead(configureEventLambda);
 
     // ---- DynamoDB policies (same as your IamStack)
     const members = props.membersTableArn;
@@ -383,6 +392,11 @@ export class ServiceStack extends Stack {
       path: "/events",
       methods: [HttpMethod.POST],
       integration: new HttpLambdaIntegration("EventsPostInt", createEventLambda),
+    });
+    httpApi.addRoutes({
+      path: "/events/configure",
+      methods: [HttpMethod.POST],
+      integration: new HttpLambdaIntegration("EventsConfigureInt", configureEventLambda),
     });
     httpApi.addRoutes({
       path: "/events",

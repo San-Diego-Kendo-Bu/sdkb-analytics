@@ -3,7 +3,7 @@ const { getSupabase } = require("../../shared_utils/supabase");
 const EVENTS_TABLE = "Events";
 const SUPABASE_SECRET_ID = process.env.SUPABASE_SECRET_ID;
 const REGION = process.env.AWS_REGION;
-const FIELDS = ["event_id", "event_date", "event_name", "event_type", "event_deadline", "created_at", "event_location"];
+const FIELDS = ["event_id", "event_date", "event_name", "event_type", "event_deadline", "created_at", "event_location", "payment_id"];
 
 function dummyRegisteredUsers(){
     return ["admin@gmail.com", "user@gmail.com"];
