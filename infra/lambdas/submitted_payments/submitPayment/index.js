@@ -20,22 +20,6 @@ function isAdmin(clientEmail){
     return dummyCognito()[0] === clientEmail;
 }
 
-/**
- * There's a lot going on here. You probably wanna test this is parts.
- * 1. Look up AssignedPayments w/ member ID + payment ID. If no entry is found, return
- * 2. Store: payment_id, assigned_on, status.
- * 3. Delete entry from AssignedPayments
- * 4. Look up at Payments w/ payment_id.
- * 5. Store: payment_value, overdue_penalty.
- * 6. Create new Submission with { 
- *      payment_id : payment_id, 
- *      member_id : member_id, 
- *      assigned_on : assigned_on,
- *      submitted_on : current date,
- *      overdue : (status == "overdue"),
- *      total_paid : payment_value + overdue_penalty (if overdue == true)
- * }
- */
 exports.handler = async (event) => {
     const clientEmail = event.headers["client_email"];
     if(!isAdmin(clientEmail))
