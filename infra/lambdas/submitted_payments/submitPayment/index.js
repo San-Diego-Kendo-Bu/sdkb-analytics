@@ -66,15 +66,14 @@ exports.handler = async (event) => {
             .delete()
             .match(ids)
             .select();
-        
         const assignedEntry = assignedPaymentResponse.data[0];
-        const paymentId = parseInt(assignedEntry["payment_id"]);
-        const memberId = parseInt(assignedEntry["member_id"]);
-        const assignedOn = assignedEntry["assigned_on"];
-        const status = assignedEntry["status"];
+        const paymentId = parseInt(assignedEntry.payment_id);
+        const memberId = parseInt(assignedEntry.member_id);
+        const assignedOn = assignedEntry.assigned_on;
+        const status = assignedEntry.status;
 
         // 4. Look up at Payments w/ payment_id.
-        const paymentResponse = await supabase.from(PAYMENTS_TABLE).eq('payment_id', paymentId).select('*');
+        const paymentResponse = await supabase.from(PAYMENTS_TABLE).select().eq('payment_id', paymentId);
         const paymentEntry = paymentResponse.data[0];
         // 5. Store: payment_value, overdue_penalty.
         const paymentValue = (paymentEntry["payment_value"]) ? parseFloat(paymentEntry["payment_value"]) : 0.00;
