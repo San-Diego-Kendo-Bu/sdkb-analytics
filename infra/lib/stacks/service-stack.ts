@@ -152,6 +152,12 @@ export class ServiceStack extends Stack {
       ...commonNodejs,
       environment: { SUPABASE_SECRET_ID: props.supabaseSecret.secretName },
     });
+    const getSbmtPaymentLambda = new NodejsFunction(this, "GetSbmtPaymentLambda", {
+      entry: path.join(__dirname, "../../lambdas/submitted_payments/getSbmtPayment/index.js"),
+      handler: "handler",
+      ...commonNodejs,
+      environment: { SUPABASE_SECRET_ID: props.supabaseSecret.secretName },
+    });
 
     const createEventLambda = new NodejsFunction(this, "CreateEventLambda", {
       entry: path.join(__dirname, "../../lambdas/events/createEvent/index.js"),
@@ -194,6 +200,7 @@ export class ServiceStack extends Stack {
 
     props.supabaseSecret.grantRead(submitPaymentLambda);
     props.supabaseSecret.grantRead(removeSbmtPaymentLambda);
+    props.supabaseSecret.grantRead(getSbmtPaymentLambda);
 
     props.supabaseSecret.grantRead(createEventLambda);
     props.supabaseSecret.grantRead(getEventLambda);
@@ -364,6 +371,11 @@ export class ServiceStack extends Stack {
       path: "/submittedpayments",
       methods: [HttpMethod.DELETE],
       integration: new HttpLambdaIntegration("SubmittedPaymentsDeleteInt", removeSbmtPaymentLambda),
+    });
+    httpApi.addRoutes({
+      path: "/submittedpayments",
+      methods: [HttpMethod.GET],
+      integration: new HttpLambdaIntegration("SubmittedPaymentsGetInt", getSbmtPaymentLambda),
     });
 
     // Events
