@@ -60,11 +60,10 @@ export class ServiceStack extends Stack {
       environment: { SECRET_ID: props.stripeSecret.secretName },
     });
 
-    const getMembersLambda = new LambdaFunction(this, "GetMembersLambda", {
-      runtime: Runtime.NODEJS_18_X,
-      handler: "index.handler",
-      code: Code.fromAsset(path.join(__dirname, "../../lambdas/members/getMembers")),
-      logRetention: logs.RetentionDays.ONE_WEEK,
+    const getMembersLambda = new NodejsFunction(this, "GetMembersLambda", {
+      entry: path.join(__dirname, "../../lambdas/members/getMembers/index.js"),
+      handler: "handler",
+      ...commonNodejs,
     });
 
     const getAdminLambda = new LambdaFunction(this, "GetAdminLambda", {
@@ -122,9 +121,37 @@ export class ServiceStack extends Stack {
       ...commonNodejs,
       environment: { SUPABASE_SECRET_ID: props.supabaseSecret.secretName },
     });
+    
+    const assignPaymentLambda = new NodejsFunction(this, "AssignPaymentLambda", {
+      entry: path.join(__dirname, "../../lambdas/assigned_payments/assignPayment/index.js"),
+      handler: "handler",
+      ...commonNodejs,
+      environment: { SUPABASE_SECRET_ID: props.supabaseSecret.secretName },
+    });
+    
+    const unassignPaymentLambda = new NodejsFunction(this, "UnassignPaymentLambda", {
+      entry: path.join(__dirname, "../../lambdas/assigned_payments/unassignPayment/index.js"),
+      handler: "handler",
+      ...commonNodejs,
+      environment: { SUPABASE_SECRET_ID: props.supabaseSecret.secretName },
+    });
+    
+    const updateAsgnPaymentLambda = new NodejsFunction(this, "updateAsgnPaymentLambda", {
+      entry: path.join(__dirname, "../../lambdas/assigned_payments/updateAsgnPayment/index.js"),
+      handler: "handler",
+      ...commonNodejs,
+      environment: { SUPABASE_SECRET_ID: props.supabaseSecret.secretName },
+    });
 
     const unregisterEventLambda = new NodejsFunction(this, "UnregisterEventLambda", {
       entry: path.join(__dirname, "../../lambdas/events/unregisterEvent/index.js"),
+      handler: "handler",
+      ...commonNodejs,
+      environment: { SUPABASE_SECRET_ID: props.supabaseSecret.secretName },
+    });
+
+    const getAsgnPaymentLambda = new NodejsFunction(this, "getAsgnPaymentLambda", {
+      entry: path.join(__dirname, "../../lambdas/assigned_payments/getAsgnPayment/index.js"),
       handler: "handler",
       ...commonNodejs,
       environment: { SUPABASE_SECRET_ID: props.supabaseSecret.secretName },
@@ -136,6 +163,14 @@ export class ServiceStack extends Stack {
       ...commonNodejs,
       environment: { SUPABASE_SECRET_ID: props.supabaseSecret.secretName },
     });
+
+    const configureEventLambda = new NodejsFunction(this, "ConfigureEventLambda", {
+      entry: path.join(__dirname, "../../lambdas/events/configureEvent/index.js"),
+      handler: "handler",
+      ...commonNodejs,
+      environment: { SUPABASE_SECRET_ID: props.supabaseSecret.secretName },
+    });
+
     const getEventLambda = new NodejsFunction(this, "GetEventLambda", {
       entry: path.join(__dirname, "../../lambdas/events/getEvents/index.js"),
       handler: "handler",
@@ -164,12 +199,18 @@ export class ServiceStack extends Stack {
     props.supabaseSecret.grantRead(updatePaymentLambda);
     props.supabaseSecret.grantRead(getPaymentLambda);
 
+    props.supabaseSecret.grantRead(assignPaymentLambda);
+    props.supabaseSecret.grantRead(unassignPaymentLambda);
+    props.supabaseSecret.grantRead(updateAsgnPaymentLambda);
+    props.supabaseSecret.grantRead(getAsgnPaymentLambda);
+
     props.supabaseSecret.grantRead(createEventLambda);
     props.supabaseSecret.grantRead(getEventLambda);
     props.supabaseSecret.grantRead(updateEventLambda);
     props.supabaseSecret.grantRead(removeEventLambda);
     props.supabaseSecret.grantRead(registerEventLambda);
     props.supabaseSecret.grantRead(unregisterEventLambda);
+    props.supabaseSecret.grantRead(configureEventLambda);
 
     // ---- DynamoDB policies (same as your IamStack)
     const members = props.membersTableArn;
@@ -218,6 +259,11 @@ export class ServiceStack extends Stack {
     createPaymentLambda.role?.addToPrincipalPolicy(new iam.PolicyStatement({
       actions: ["dynamodb:UpdateItem"],
       resources: [config],
+    }));
+
+    assignPaymentLambda.role?.addToPrincipalPolicy(new iam.PolicyStatement({
+      actions: ["dynamodb:Query"],
+      resources: [members],
     }));
 
     createEventLambda.role?.addToPrincipalPolicy(new iam.PolicyStatement({
@@ -306,6 +352,28 @@ export class ServiceStack extends Stack {
       methods: [HttpMethod.GET],
       integration: new HttpLambdaIntegration("PaymentsGetInt", getPaymentLambda),
     });
+    
+    // Assigned Payments
+    httpApi.addRoutes({
+      path: "/assignedpayments",
+      methods: [HttpMethod.POST],
+      integration: new HttpLambdaIntegration("AssignedPaymentsPostInt", assignPaymentLambda),
+    });
+    httpApi.addRoutes({
+      path: "/assignedpayments",
+      methods: [HttpMethod.DELETE],
+      integration: new HttpLambdaIntegration("AssignedPaymentsDeleteInt", unassignPaymentLambda),
+    });
+    httpApi.addRoutes({
+      path: "/assignedpayments",
+      methods: [HttpMethod.PATCH],
+      integration: new HttpLambdaIntegration("AssignedPaymentsPatchInt", updateAsgnPaymentLambda),
+    });
+    httpApi.addRoutes({
+      path: "/assignedpayments",
+      methods: [HttpMethod.GET],
+      integration: new HttpLambdaIntegration("AssignedPaymentsGetInt", getAsgnPaymentLambda),
+    });
 
     // Events
     httpApi.addRoutes({
@@ -322,6 +390,11 @@ export class ServiceStack extends Stack {
       path: "/events/register",
       methods: [HttpMethod.DELETE],
       integration: new HttpLambdaIntegration("EventsUnregisterInt", unregisterEventLambda),
+    });
+    httpApi.addRoutes({
+      path: "/events/configure",
+      methods: [HttpMethod.POST],
+      integration: new HttpLambdaIntegration("EventsConfigureInt", configureEventLambda),
     });
     httpApi.addRoutes({
       path: "/events",
