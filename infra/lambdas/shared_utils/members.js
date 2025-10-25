@@ -51,4 +51,19 @@ async function getMembersByEmail(email) {
   return responseItems;
 }
 
-module.exports = { getMemberById, getMembersByEmail };
+async function verifyMemberExists(memberId) {
+    let lastKey;
+    const response = await ddb.send(new QueryCommand({
+        TableName: MEMBERS_TABLE,
+        KeyConditionExpression: "#e = :e",
+        ExpressionAttributeNames:  { "#e": MEMBER_ID_ATTR },
+        ExpressionAttributeValues: { ":e": memberId },
+    }));
+
+    if(response.Items.length === 0)
+        return false;
+
+  return true;
+}
+
+module.exports = { getMemberById, getMembersByEmail, verifyMemberExists };
