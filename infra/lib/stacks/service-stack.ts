@@ -115,6 +115,13 @@ export class ServiceStack extends Stack {
       environment: { SUPABASE_SECRET_ID: props.supabaseSecret.secretName },
     });
 
+    const registerEventLambda = new NodejsFunction(this, "RegisterEventLambda", {
+      entry: path.join(__dirname, "../../lambdas/events/registerEvent/index.js"),
+      handler: "handler",
+      ...commonNodejs,
+      environment: { SUPABASE_SECRET_ID: props.supabaseSecret.secretName },
+    });
+    
     const assignPaymentLambda = new NodejsFunction(this, "AssignPaymentLambda", {
       entry: path.join(__dirname, "../../lambdas/assigned_payments/assignPayment/index.js"),
       handler: "handler",
@@ -131,6 +138,13 @@ export class ServiceStack extends Stack {
     
     const updateAsgnPaymentLambda = new NodejsFunction(this, "updateAsgnPaymentLambda", {
       entry: path.join(__dirname, "../../lambdas/assigned_payments/updateAsgnPayment/index.js"),
+      handler: "handler",
+      ...commonNodejs,
+      environment: { SUPABASE_SECRET_ID: props.supabaseSecret.secretName },
+    });
+
+    const unregisterEventLambda = new NodejsFunction(this, "UnregisterEventLambda", {
+      entry: path.join(__dirname, "../../lambdas/events/unregisterEvent/index.js"),
       handler: "handler",
       ...commonNodejs,
       environment: { SUPABASE_SECRET_ID: props.supabaseSecret.secretName },
@@ -194,6 +208,8 @@ export class ServiceStack extends Stack {
     props.supabaseSecret.grantRead(getEventLambda);
     props.supabaseSecret.grantRead(updateEventLambda);
     props.supabaseSecret.grantRead(removeEventLambda);
+    props.supabaseSecret.grantRead(registerEventLambda);
+    props.supabaseSecret.grantRead(unregisterEventLambda);
     props.supabaseSecret.grantRead(configureEventLambda);
 
     // ---- DynamoDB policies (same as your IamStack)
@@ -255,6 +271,15 @@ export class ServiceStack extends Stack {
       resources: [config],
     }));
 
+    registerEventLambda.role?.addToPrincipalPolicy(new iam.PolicyStatement({
+      actions: ["dynamodb:Query"],
+      resources: [members],
+    }));
+
+    unregisterEventLambda.role?.addToPrincipalPolicy(new iam.PolicyStatement({
+      actions: ["dynamodb:Query"],
+      resources: [members],
+    }));
 
     // ---- HTTP API + routes
     const httpApi = new HttpApi(this, "ServiceApi", {
@@ -355,6 +380,16 @@ export class ServiceStack extends Stack {
       path: "/events",
       methods: [HttpMethod.POST],
       integration: new HttpLambdaIntegration("EventsPostInt", createEventLambda),
+    });
+    httpApi.addRoutes({
+      path: "/events/register",
+      methods: [HttpMethod.POST],
+      integration: new HttpLambdaIntegration("EventsRegisterInt", registerEventLambda),
+    });
+    httpApi.addRoutes({
+      path: "/events/register",
+      methods: [HttpMethod.DELETE],
+      integration: new HttpLambdaIntegration("EventsUnregisterInt", unregisterEventLambda),
     });
     httpApi.addRoutes({
       path: "/events/configure",
