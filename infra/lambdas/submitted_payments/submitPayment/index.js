@@ -1,4 +1,5 @@
 const { getCurrentTimeUTC } = require("../../shared_utils/dates");
+const { verifyMemberExists } = require("../../shared_utils/members.js");
 const { getSupabase } = require("../../shared_utils/supabase");
 
 const PAYMENTS_TABLE = "Payments";
@@ -38,6 +39,12 @@ exports.handler = async (event) => {
             }
             ids[field] = parameters[field];
         }
+        
+        const memberId = parseInt(ids['member_id']);
+        const memberFound = await verifyMemberExists(memberId);
+        if(!memberFound){
+            return { statusCode: 400, body: "Invalid member ID." };
+        }
 
         const supabase = await getSupabase(SUPABASE_SECRET_ID, REGION);
         
@@ -51,7 +58,6 @@ exports.handler = async (event) => {
             .select();
         const assignedEntry = assignedPaymentResponse.data[0];
         const paymentId = parseInt(assignedEntry.payment_id);
-        const memberId = parseInt(assignedEntry.member_id);
         const assignedOn = assignedEntry.assigned_on;
         const status = assignedEntry.status;
 

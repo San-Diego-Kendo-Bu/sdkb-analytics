@@ -285,6 +285,11 @@ export class ServiceStack extends Stack {
       actions: ["dynamodb:Query"],
       resources: [members],
     }));
+    
+    submitPaymentLambda.role?.addToPrincipalPolicy(new iam.PolicyStatement({
+      actions: ["dynamodb:Query"],
+      resources: [members],
+    }));
 
     createEventLambda.role?.addToPrincipalPolicy(new iam.PolicyStatement({
       actions: ["dynamodb:UpdateItem"],
