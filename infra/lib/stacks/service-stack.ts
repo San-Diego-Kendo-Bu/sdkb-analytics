@@ -121,6 +121,12 @@ export class ServiceStack extends Stack {
       ...commonNodejs,
       environment: { SUPABASE_SECRET_ID: props.supabaseSecret.secretName },
     });
+    const unregisterEventLambda = new NodejsFunction(this, "UnregisterEventLambda", {
+      entry: path.join(__dirname, "../../lambdas/events/unregisterEvent/index.js"),
+      handler: "handler",
+      ...commonNodejs,
+      environment: { SUPABASE_SECRET_ID: props.supabaseSecret.secretName },
+    });
     
     const assignPaymentLambda = new NodejsFunction(this, "AssignPaymentLambda", {
       entry: path.join(__dirname, "../../lambdas/assigned_payments/assignPayment/index.js"),
@@ -136,13 +142,6 @@ export class ServiceStack extends Stack {
     });
     const updateAsgnPaymentLambda = new NodejsFunction(this, "updateAsgnPaymentLambda", {
       entry: path.join(__dirname, "../../lambdas/assigned_payments/updateAsgnPayment/index.js"),
-      handler: "handler",
-      ...commonNodejs,
-      environment: { SUPABASE_SECRET_ID: props.supabaseSecret.secretName },
-    });
-
-    const unregisterEventLambda = new NodejsFunction(this, "UnregisterEventLambda", {
-      entry: path.join(__dirname, "../../lambdas/events/unregisterEvent/index.js"),
       handler: "handler",
       ...commonNodejs,
       environment: { SUPABASE_SECRET_ID: props.supabaseSecret.secretName },

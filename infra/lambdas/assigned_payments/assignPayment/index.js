@@ -1,6 +1,5 @@
 const { getSupabase } = require("../../shared_utils/supabase");
-const { getMemberById } = require("../../shared_utils/members");
-
+const { verifyMemberExists } = require("../../shared_utils/members");
 
 const PAYMENTS_TABLE = "Payments";
 const PAYMENT_ID_ATTR = "payment_id";
@@ -43,8 +42,8 @@ exports.handler = async (event) => {
         const memberId = parseInt(payload[MEMBER_ID_ATTR]);
         const paymentId = parseInt(payload[PAYMENT_ID_ATTR]);
 
-        const member = await getMemberById(memberId);
-        if(member.length == 0){
+        const memberFound = await verifyMemberExists(memberId);
+        if(!memberFound){
             return { statusCode: 400, body: "Invalid member ID." };
         }
 

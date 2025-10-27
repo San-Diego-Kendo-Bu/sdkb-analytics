@@ -1,10 +1,9 @@
+const { getCurrentTimeUTC } = require("../../shared_utils/dates");
 const { getSupabase } = require("../../shared_utils/supabase");
 
 const PAYMENTS_TABLE = "Payments";
-const PAYMENT_ID_ATTR = "payment_id";
 const ASSIGNED_PAYMENTS_TABLE = "AssignedPayments";
 
-const MEMBER_ID_ATTR = "member_id";
 const REQUIRED_FIELDS = ["member_id", "payment_id"];
 
 const SUBMITTED_TABLE = "SubmittedPayments";
@@ -64,7 +63,7 @@ exports.handler = async (event) => {
         const overdue = (status === "overdue"); // TODO: not sure if this is formatted correctly for payload...
         const overdueValue = (paymentEntry["overdue_penalty"] && overdue) ? parseFloat(paymentEntry["overdue_penalty"]) : 0.00;
         const totalPaid = paymentValue + overdueValue;
-        const submittedOn = getTodayDate();
+        const submittedOn = getCurrentTimeUTC();
         
         // 6. Create new Submission
         const payload = {
@@ -104,16 +103,4 @@ exports.handler = async (event) => {
             body : JSON.stringify({ error : err.message })
         };
     }
-}
-
-function getTodayDate(){
-    const date = new Date();
-    const year = date.getFullYear();
-    const monthVal = date.getMonth() + 1;
-    const dayVal = date.getDate();
-
-    const monthString = monthVal < 10 ? '0' + monthVal : monthVal.toString(); 
-    const dayString = dayVal < 10 ? '0' + dayVal : dayVal.toString();
-
-    return `${year}-${monthString}-${dayString}`;
 }
