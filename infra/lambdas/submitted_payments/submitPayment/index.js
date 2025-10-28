@@ -56,6 +56,14 @@ exports.handler = async (event) => {
             .delete()
             .match(ids)
             .select();
+        if(assignedPaymentResponse.error){
+            return {
+                statusCode: 500,
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ error: response.error })
+            }; 
+        }
+
         const assignedEntry = assignedPaymentResponse.data[0];
         const paymentId = parseInt(assignedEntry.payment_id);
         const assignedOn = assignedEntry.assigned_on;
@@ -66,7 +74,7 @@ exports.handler = async (event) => {
         const paymentEntry = paymentResponse.data[0];
         // 5. Store: payment_value, overdue_penalty.
         const paymentValue = (paymentEntry["payment_value"]) ? parseFloat(paymentEntry["payment_value"]) : 0.00;
-        const overdue = (status === "overdue"); // TODO: not sure if this is formatted correctly for payload...
+        const overdue = (status === "overdue");
         const overdueValue = (paymentEntry["overdue_penalty"] && overdue) ? parseFloat(paymentEntry["overdue_penalty"]) : 0.00;
         const totalPaid = paymentValue + overdueValue;
         const submittedOn = getCurrentTimeUTC();
