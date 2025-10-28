@@ -43,7 +43,7 @@ exports.handler = async (event) => {
         const createdAt = parameters.created_at;
         const dueDate = parameters.due_date;
         const paymentValue = parameters.payment_value ? parseFloat(parameters.payment_value) : null;
-        const overduePenalty = parameters.overdue_penalty ? parseFloat(parameters.overdue_penalty) : null;
+        const overduePenalty = parameters.overdue_penalty ? parseFloat(parameters.overdue_penalty) : 0.0;
         
         if(!paymentValue || paymentValue < 1.0){
             return{
@@ -56,7 +56,7 @@ exports.handler = async (event) => {
             };
         }
 
-        if(overduePenalty && overduePenalty < 0.0){
+        if(overduePenalty < 0.0){
             return{
                 statusCode: 400,
                 message: "Invalid overdue penalty value. Please create a penalty of at least $0.00.",
