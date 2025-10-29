@@ -61,6 +61,45 @@ function createEmptySlip() {
     return nafuda;
 }
 
+// Reduce spacing first, then scale down the zekken front to fit within available space
+function fitZekkenFront(frontEl){
+    if(!frontEl) return;
+
+    // Reset any styles to measure
+    frontEl.style.transform = '';
+    const spans = frontEl.querySelectorAll('span');
+    spans.forEach(s => {
+        s.style.lineHeight = '';
+        s.style.marginTop = '';
+        s.style.marginBottom = '';
+    });
+    frontEl.offsetHeight;
+
+    const available = frontEl.clientHeight;
+    let content = frontEl.scrollHeight;
+    if(content <= available) return;
+
+    // reduce line-gap first
+    const lineHeights = [1.0, 0.95, 0.9, 0.85, 0.8, 0.75];
+    for(const lh of lineHeights){
+        spans.forEach(s => { s.style.lineHeight = String(lh); });
+        frontEl.offsetHeight; // reflow
+        content = frontEl.scrollHeight;
+        if(content <= available) return;
+    }
+
+    // scale down to fit
+    const scale = Math.max(0.6, Math.min(1, available / content));
+    frontEl.style.transform = `translateZ(0.001px) scale(${scale})`;
+}
+
+function fitAllZekkenFronts(){
+    const shelf = document.getElementById('shelf');
+    if(!shelf) return;
+    const fronts = shelf.querySelectorAll('.slip .front');
+    fronts.forEach(fitZekkenFront);
+}
+
 async function generateSlip(frontText, backText, memberId) {
     const user = await userManager.getUser();
 
@@ -290,6 +329,9 @@ function layoutShelf() {
             rowDiv.classList.add('slip-row');
             renderedSlips.forEach(slip => rowDiv.appendChild(slip));
             shelf.appendChild(rowDiv);
+
+            // Fit after DOM paints
+            (window.requestAnimationFrame || setTimeout)(() => fitAllZekkenFronts(), 0);
         } else {
             // desktop
             const slipsPerRow = Math.max(2, Math.floor(shelfWidth / slipWidth));
@@ -326,6 +368,9 @@ function layoutShelf() {
                 r.forEach(slip => rowDiv.appendChild(slip));
                 shelf.appendChild(rowDiv);
             }
+
+            // Fit after DOM paints
+            (window.requestAnimationFrame || setTimeout)(() => fitAllZekkenFronts(), 0);
         }
     } catch (e) {
         console.error('Failed to layout shelf:', e);
@@ -503,6 +548,7 @@ window.addEventListener('DOMContentLoaded', async () => {
         try {
             await buttonLogic.saveButtonLogic(selectedMember);
             await renderTable();  // ✅ WAIT for rendering to complete
+            closeModal();         // Close the form after successful save
         } catch (error) {
             console.error("❌ Failed to save or render table:", error);
             alert("Something went wrong. Please try again.");
