@@ -115,6 +115,28 @@ export class ServiceStack extends Stack {
       environment: { SUPABASE_SECRET_ID: props.supabaseSecret.secretName },
     });
 
+    const getSeminarRegistrationsLambda = new NodejsFunction(this, "GetSeminarRegistrationsLambda", {
+      entry: path.join(__dirname, "../../lambdas/events/getSeminarRegistrations/index.js"),
+      handler: "handler",
+      ...commonNodejs,
+      environment: { SUPABASE_SECRET_ID: props.supabaseSecret.secretName },
+    });
+
+    const getShinsaRegistrationsLambda = new NodejsFunction(this, "GetShinsaRegistrationsLambda", {
+      entry: path.join(__dirname, "../../lambdas/events/getShinsaRegistrations/index.js"),
+      handler: "handler",
+      ...commonNodejs,
+      environment: { SUPABASE_SECRET_ID: props.supabaseSecret.secretName },
+    });
+
+    const getTournamentRegistrationsLambda = new NodejsFunction(this, "GetTournamentRegistrationsLambda", {
+      entry: path.join(__dirname, "../../lambdas/events/getTournamentRegistrations/index.js"),
+      handler: "handler",
+      ...commonNodejs,
+      environment: { SUPABASE_SECRET_ID: props.supabaseSecret.secretName },
+    });
+
+
     const registerEventLambda = new NodejsFunction(this, "RegisterEventLambda", {
       entry: path.join(__dirname, "../../lambdas/events/registerEvent/index.js"),
       handler: "handler",
@@ -231,6 +253,9 @@ export class ServiceStack extends Stack {
     props.supabaseSecret.grantRead(registerEventLambda);
     props.supabaseSecret.grantRead(unregisterEventLambda);
     props.supabaseSecret.grantRead(configureEventLambda);
+    props.supabaseSecret.grantRead(getSeminarRegistrationsLambda);
+    props.supabaseSecret.grantRead(getShinsaRegistrationsLambda);
+    props.supabaseSecret.grantRead(getTournamentRegistrationsLambda);
 
     // ---- DynamoDB policies (same as your IamStack)
     const members = props.membersTableArn;
@@ -442,6 +467,21 @@ export class ServiceStack extends Stack {
       path: "/events",
       methods: [HttpMethod.GET],
       integration: new HttpLambdaIntegration("EventsGetInt", getEventLambda),
+    });
+    httpApi.addRoutes({
+      path: "/events/tournamentRegistrations",
+      methods: [HttpMethod.GET],
+      integration: new HttpLambdaIntegration("EventsGetTournamentRegistrationsInt", getTournamentRegistrationsLambda),
+    });
+    httpApi.addRoutes({
+      path: "/events/shinsaRegistrations",
+      methods: [HttpMethod.GET],
+      integration: new HttpLambdaIntegration("EventsGetShinsaRegistrationsInt", getShinsaRegistrationsLambda),
+    });
+    httpApi.addRoutes({
+      path: "/events/seminarRegistrations",
+      methods: [HttpMethod.GET],
+      integration: new HttpLambdaIntegration("EventsGetSeminarRegistrationsInt", getSeminarRegistrationsLambda),
     });
     httpApi.addRoutes({
       path: "/events",
