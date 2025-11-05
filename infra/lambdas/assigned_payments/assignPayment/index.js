@@ -41,8 +41,8 @@ exports.handler = async (event) => {
             }
             payload[field] = parameters[field];
         }
-        payload[ASSIGN_DATE_ATTR] = getCurrentTimeUTC();
-         
+        payload[ASSIGN_DATE_ATTR] = parameters[ASSIGN_DATE_ATTR] ? parameters[ASSIGN_DATE_ATTR] : getCurrentTimeUTC();
+
         const memberId = parseInt(payload[MEMBER_ID_ATTR]);
         const paymentId = parseInt(payload[PAYMENT_ID_ATTR]);
 
