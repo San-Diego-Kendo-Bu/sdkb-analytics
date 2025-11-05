@@ -50,12 +50,10 @@ exports.handler = async (event) => {
         
         // 1. Look up AssignedPayments w/ member ID + payment ID. If no entry is found, return
         // 2. Store: payment_id, assigned_on, status.
-        // 3. Delete entry from AssignedPayments
         const assignedPaymentResponse = 
             await supabase.from(ASSIGNED_PAYMENTS_TABLE)
-            .delete()
-            .match(ids)
-            .select();
+            .select()
+            .match(ids);
         if(assignedPaymentResponse.error){
             return {
                 statusCode: 500,
@@ -69,17 +67,25 @@ exports.handler = async (event) => {
         const assignedOn = assignedEntry.assigned_on;
         const status = assignedEntry.status;
 
-        // 4. Look up at Payments w/ payment_id.
+        // 3. Look up at Payments w/ payment_id.
         const paymentResponse = await supabase.from(PAYMENTS_TABLE).select().eq('payment_id', paymentId);
+        if(paymentResponse.error){
+            return{
+                statusCode: 500,
+                headers: { "Content-Type" : "application/json" },
+                body: JSON.stringify( {error:paymentResponse.error} )
+            };
+        }
+
         const paymentEntry = paymentResponse.data[0];
-        // 5. Store: payment_value, overdue_penalty.
+        // 4. Store: payment_value, overdue_penalty.
         const paymentValue = (paymentEntry["payment_value"]) ? parseFloat(paymentEntry["payment_value"]) : 0.00;
         const overdue = (status === "overdue");
         const overdueValue = (paymentEntry["overdue_penalty"] && overdue) ? parseFloat(paymentEntry["overdue_penalty"]) : 0.00;
         const totalPaid = paymentValue + overdueValue;
         const submittedOn = parameters["submitted_on"] ? parameters["submitted_on"] : getCurrentTimeUTC();
         
-        // 6. Create new Submission
+        // 5. Create new Submission
         const payload = {
             payment_id : paymentId, 
             member_id : memberId, 
@@ -90,13 +96,24 @@ exports.handler = async (event) => {
         }
 
         const response = await supabase.from(SUBMITTED_TABLE).insert(payload).select();
-        
         if(response.error){
             return {
                 statusCode: 500,
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ error: response.error })
             }; 
+        }
+        
+        // 6. Delete entry from assigned table only if submitTable insertion (and operations prior) was successful
+        const removeAssignedEntry = await supabase.from(ASSIGNED_PAYMENTS_TABLE)
+            .delete()
+            .match(ids);
+        if(removeAssignedEntry.error){
+            return{
+                statusCode: 500,
+                headers: {"Content-Type" : "application/json"},
+                body: JSON.stringify({error : removeAssignedEntry.error})
+            };
         }
 
         const data = response.data[0];
