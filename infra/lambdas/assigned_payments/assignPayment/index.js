@@ -2,8 +2,6 @@ const { getSupabase } = require("../../shared_utils/supabase");
 const { verifyMemberExists } = require("../../shared_utils/members");
 const { getCurrentTimeUTC } = require("../../shared_utils/dates");
 
-const ASSIGN_DATE_ATTR = "assigned_on";
-
 const PAYMENTS_TABLE = "Payments";
 const PAYMENT_ID_ATTR = "payment_id";
 const ASSIGNED_PAYMENTS_TABLE = "AssignedPayments";
@@ -41,7 +39,7 @@ exports.handler = async (event) => {
             }
             payload[field] = parameters[field];
         }
-        payload[ASSIGN_DATE_ATTR] = parameters[ASSIGN_DATE_ATTR] ? parameters[ASSIGN_DATE_ATTR] : getCurrentTimeUTC();
+        payload["assigned_on"] = parameters["assigned_on"] ? parameters["assigned_on"] : getCurrentTimeUTC();
 
         const memberId = parseInt(payload[MEMBER_ID_ATTR]);
         const paymentId = parseInt(payload[PAYMENT_ID_ATTR]);
