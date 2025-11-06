@@ -77,7 +77,7 @@ exports.handler = async (event) => {
         const overdue = (status === "overdue");
         const overdueValue = (paymentEntry["overdue_penalty"] && overdue) ? parseFloat(paymentEntry["overdue_penalty"]) : 0.00;
         const totalPaid = paymentValue + overdueValue;
-        const submittedOn = getCurrentTimeUTC();
+        const submittedOn = parameters["submitted_on"] ? parameters["submitted_on"] : getCurrentTimeUTC();
         
         // 6. Create new Submission
         const payload = {

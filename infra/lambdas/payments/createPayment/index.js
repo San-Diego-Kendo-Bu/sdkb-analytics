@@ -2,7 +2,7 @@ const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
 const {
   DynamoDBDocumentClient, UpdateCommand,
 } = require("@aws-sdk/lib-dynamodb");
-
+const { getCurrentTimeUTC } = require("../../shared_utils/dates");
 const { getSupabase } = require("../../shared_utils/supabase");
 
 const PAYMENTS_TABLE = "Payments";
@@ -40,7 +40,7 @@ exports.handler = async (event) => {
         const parameters = JSON.parse(event.body);
 
         const title = parameters.title;
-        const createdAt = parameters.created_at;
+        const createdAt = parameters.created_at ? parameters.created_at : getCurrentTimeUTC();
         const dueDate = parameters.due_date;
         const paymentValue = parameters.payment_value ? parseFloat(parameters.payment_value) : null;
         const overduePenalty = parameters.overdue_penalty ? parseFloat(parameters.overdue_penalty) : 0.0;
