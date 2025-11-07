@@ -14,4 +14,36 @@ async function getSupabase(supabaseSecretId, region_in){
     return supabase;
 }
 
-module.exports = { getSupabase };
+async function getFromTable(TABLE, FIELDS, parameters, supabase){
+    const payload = {};
+
+    for(const field of FIELDS){
+        if(field in parameters){
+            payload[field] = parameters[field];
+        }
+    }
+
+    const response = (Object.keys(payload).length === 0) ?
+        await supabase.from(TABLE).select('*') :
+        await supabase.from(TABLE).select('*').match(payload);
+    
+    if(response.error){
+        return {
+            statusCode: 500,
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ error: response.error })
+        }; 
+    }
+
+    return {
+        statusCode : 200,
+        headers : {"Content-Type" : "application/json"},
+        body : JSON.stringify({
+            message: 'Data retrieved successfully',
+            length : response.data.length,
+            data: response.data
+        })
+    };
+}
+
+module.exports = { getSupabase, getFromTable };
