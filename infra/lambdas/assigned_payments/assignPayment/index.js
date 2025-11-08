@@ -1,4 +1,4 @@
-const { getSupabase } = require("../../shared_utils/supabase");
+const { getSupabase, callPostgresFunction } = require("../../shared_utils/supabase");
 const { verifyMemberExists } = require("../../shared_utils/members");
 const { getCurrentTimeUTC } = require("../../shared_utils/dates");
 
@@ -42,35 +42,16 @@ exports.handler = async (event) => {
 
         payload["assigned_on"] = parameters["assigned_on"] ? parameters["assigned_on"] : getCurrentTimeUTC();
 
-        // Get Payment Id from Supabase
         const supabase = await getSupabase(SUPABASE_SECRET_ID, REGION);
-
-        const response = await supabase.rpc('assign_payment',{
+        const args = {
             p_member_id: payload.member_id,
             p_payment_id: payload.payment_id,
             p_assigned_on: payload.assigned_on,
             p_status: payload.status
-        });
-
-        if(response.error){
-            return {
-                statusCode: 500,
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ error: response.error })
-            }; 
         }
-
-        const data = response.data;
-        return{
-            statusCode : 200,
-            headers : {"Content-Type" : "application/json"},
-            body : JSON.stringify({
-                function: 'supabase',
-                payment_id: data.payment_id,
-                member_id: data.member_id,
-                data: data,
-            })
-        };
+        
+        const response = await callPostgresFunction('assign_payment', args, supabase);
+        return response;
 
     }catch(err){
         return{

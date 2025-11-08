@@ -46,4 +46,23 @@ async function getFromTable(TABLE, FIELDS, parameters, supabase){
     };
 }
 
-module.exports = { getSupabase, getFromTable };
+async function callPostgresFunction(functionName, args, supabase){
+    const response = await supabase.rpc(functionName, args);
+    if(response.error){
+        return{
+            statusCode: 500,
+            headers : {"Content-Type" : "application/json"},
+            body: JSON.stringify({error:response.error})
+        }
+    }
+    
+    return{
+        statusCode : 200,
+        headers : {"Content-Type" : "application/json"},
+        body : JSON.stringify({
+            data: response.data
+        })
+    };
+}
+
+module.exports = { getSupabase, getFromTable, callPostgresFunction };
