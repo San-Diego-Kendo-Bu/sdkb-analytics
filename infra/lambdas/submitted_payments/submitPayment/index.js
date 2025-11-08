@@ -21,7 +21,6 @@ exports.handler = async (event) => {
         return { statusCode: 403, body: "Forbidden" };
     
     try{
-        // Get Member Id from DynamoDB
         const parameters = JSON.parse(event.body);
         const ids = {};
 
@@ -50,6 +49,7 @@ exports.handler = async (event) => {
             p_payment_id : ids.payment_id,
             p_submitted_on : submittedOn
         }); 
+
         if(response.error){
             return{
                 statusCode: 500,
