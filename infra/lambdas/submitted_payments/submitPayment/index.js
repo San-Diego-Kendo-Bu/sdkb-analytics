@@ -1,13 +1,8 @@
 const { getCurrentTimeUTC } = require("../../shared_utils/dates");
 const { verifyMemberExists } = require("../../shared_utils/members.js");
-const { getSupabase } = require("../../shared_utils/supabase");
-
-const PAYMENTS_TABLE = "Payments";
-const ASSIGNED_PAYMENTS_TABLE = "AssignedPayments";
+const { getSupabase, callPostgresFunction } = require("../../shared_utils/supabase");
 
 const REQUIRED_FIELDS = ["member_id", "payment_id"];
-
-const SUBMITTED_TABLE = "SubmittedPayments";
 
 const SUPABASE_SECRET_ID = process.env.SUPABASE_SECRET_ID;
 const REGION = process.env.AWS_REGION;
@@ -26,9 +21,8 @@ exports.handler = async (event) => {
         return { statusCode: 403, body: "Forbidden" };
     
     try{
-        // Get Member Id from DynamoDB
         const parameters = JSON.parse(event.body);
-        const ids = {};
+        const payload = {};
 
         for(const field of REQUIRED_FIELDS){
             if(!parameters[field]){
@@ -37,78 +31,26 @@ exports.handler = async (event) => {
                     body: `${field} is missing from your request, please include it.` 
                 };
             }
-            ids[field] = parameters[field];
+            payload[field] = parameters[field];
         }
         
-        const memberId = parseInt(ids['member_id']);
+        const memberId = parseInt(payload['member_id']);
         const memberFound = await verifyMemberExists(memberId);
         if(!memberFound){
             return { statusCode: 400, body: "Invalid member ID." };
         }
 
+        payload['submitted_on'] = parameters['submitted_on'] ? parameters['submitted_on'] : getCurrentTimeUTC();
+
         const supabase = await getSupabase(SUPABASE_SECRET_ID, REGION);
-        
-        // 1. Look up AssignedPayments w/ member ID + payment ID. If no entry is found, return
-        // 2. Store: payment_id, assigned_on, status.
-        // 3. Delete entry from AssignedPayments
-        const assignedPaymentResponse = 
-            await supabase.from(ASSIGNED_PAYMENTS_TABLE)
-            .delete()
-            .match(ids)
-            .select();
-        if(assignedPaymentResponse.error){
-            return {
-                statusCode: 500,
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ error: response.error })
-            }; 
-        }
-
-        const assignedEntry = assignedPaymentResponse.data[0];
-        const paymentId = parseInt(assignedEntry.payment_id);
-        const assignedOn = assignedEntry.assigned_on;
-        const status = assignedEntry.status;
-
-        // 4. Look up at Payments w/ payment_id.
-        const paymentResponse = await supabase.from(PAYMENTS_TABLE).select().eq('payment_id', paymentId);
-        const paymentEntry = paymentResponse.data[0];
-        // 5. Store: payment_value, overdue_penalty.
-        const paymentValue = (paymentEntry["payment_value"]) ? parseFloat(paymentEntry["payment_value"]) : 0.00;
-        const overdue = (status === "overdue");
-        const overdueValue = (paymentEntry["overdue_penalty"] && overdue) ? parseFloat(paymentEntry["overdue_penalty"]) : 0.00;
-        const totalPaid = paymentValue + overdueValue;
-        const submittedOn = parameters["submitted_on"] ? parameters["submitted_on"] : getCurrentTimeUTC();
-        
-        // 6. Create new Submission
-        const payload = {
-            payment_id : paymentId, 
-            member_id : memberId, 
-            assigned_on : assignedOn,
-            submitted_on : submittedOn,
-            overdue : overdue,
-            total_paid : totalPaid
-        }
-
-        const response = await supabase.from(SUBMITTED_TABLE).insert(payload).select();
-        
-        if(response.error){
-            return {
-                statusCode: 500,
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ error: response.error })
-            }; 
-        }
-
-        const data = response.data[0];
-        return{
-            statusCode : 200,
-            headers : {"Content-Type" : "application/json"},
-            body : JSON.stringify({
-                payment_id: data.payment_id,
-                member_id: data.member_id,
-                data: data,
-            })
+        const args = {
+            p_member_id : payload.member_id, 
+            p_payment_id : payload.payment_id,
+            p_submitted_on : payload.submitted_on
         };
+
+        const response = await callPostgresFunction('submit_payment', args, supabase);
+        return response;
 
     }catch(err){
         return{

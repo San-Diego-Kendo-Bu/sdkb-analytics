@@ -1,9 +1,10 @@
-const { getSupabase } = require("../../shared_utils/supabase");
+const { getSupabase, getFromTable } = require("../../shared_utils/supabase");
 
 const PAYMENTS_TABLE = "Payments";
+const FIELDS = ['payment_id', 'title', 'created_at', 'due_date', 'payment_value', 'overdue_penalty'];
+
 const SUPABASE_SECRET_ID = process.env.SUPABASE_SECRET_ID;
 const REGION = process.env.AWS_REGION;
-const FIELDS = ['payment_id', 'title', 'created_at', 'due_date', 'payment_value', 'overdue_penalty'];
 
 function dummyRegisteredUsers(){
     return ['admin@gmail.com', 'user@gmail.com'];
@@ -21,40 +22,11 @@ exports.handler = async (event) => {
         return { statusCode: 403, body: "Forbidden" };
 
     try {
-        
         const parameters = event.headers;
-        const payload = {};
-
-        for(const field of FIELDS){
-            if(field in parameters){
-                payload[field] = parameters[field];
-            }
-        }
-
         const supabase = await getSupabase(SUPABASE_SECRET_ID, REGION);
-        const response = (Object.keys(payload).length === 0) ? 
-            await supabase.from(PAYMENTS_TABLE).select('*') :
-            await supabase.from(PAYMENTS_TABLE).select('*').match(payload);
+        const response = getFromTable(PAYMENTS_TABLE, FIELDS, parameters, supabase);
 
-        if(response.error){
-            return{
-                statusCode: 500,
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ error: response.error }),
-            };
-        }
-        
-        return{
-            statusCode : 200,
-            headers : {
-                "Content-Type": "application/json",
-                "Access-Control-Allow-Origin": "*"
-            },
-            body : JSON.stringify({
-                message: "Payment(s) retrieved successfully.",
-                data: response.data,
-            })
-        };
+        return response;
 
     } catch (err) {
         return {
