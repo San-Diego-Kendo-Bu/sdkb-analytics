@@ -215,14 +215,23 @@ export class ServiceStack extends Stack {
       ...commonNodejs,
       environment: { SUPABASE_SECRET_ID: props.supabaseSecret.secretName },
     });
+
     const updateEventLambda = new NodejsFunction(this, "UpdateEventLambda", {
       entry: path.join(__dirname, "../../lambdas/events/updateEvent/index.js"),
       handler: "handler",
       ...commonNodejs,
       environment: { SUPABASE_SECRET_ID: props.supabaseSecret.secretName },
     });
+
     const removeEventLambda = new NodejsFunction(this, "RemoveEventLambda", {
       entry: path.join(__dirname, "../../lambdas/events/removeEvent/index.js"),
+      handler: "handler",
+      ...commonNodejs,
+      environment: { SUPABASE_SECRET_ID: props.supabaseSecret.secretName },
+    });
+
+    const broadcastPaymentLambda = new NodejsFunction(this, "BroadcastPaymentLambda", {
+      entry: path.join(__dirname, "../../lambdas/broadcast_payments/broadcast_payment/index.js"),
       handler: "handler",
       ...commonNodejs,
       environment: { SUPABASE_SECRET_ID: props.supabaseSecret.secretName },
@@ -256,6 +265,8 @@ export class ServiceStack extends Stack {
     props.supabaseSecret.grantRead(getSeminarRegistrationsLambda);
     props.supabaseSecret.grantRead(getShinsaRegistrationsLambda);
     props.supabaseSecret.grantRead(getTournamentRegistrationsLambda);
+
+    props.supabaseSecret.grantRead(broadcastPaymentLambda);
 
     // ---- DynamoDB policies (same as your IamStack)
     const members = props.membersTableArn;
@@ -331,6 +342,11 @@ export class ServiceStack extends Stack {
       resources: [members],
     }));
 
+    broadcastPaymentLambda.role?.addToPrincipalPolicy(new iam.PolicyStatement({
+      actions: ["dynamodb:Query"],
+      resources: [members],
+    }));
+
     // ---- HTTP API + routes
     const httpApi = new HttpApi(this, "ServiceApi", {
       apiName: "MembersApi",
@@ -386,6 +402,11 @@ export class ServiceStack extends Stack {
       path: "/payments",
       methods: [HttpMethod.POST],
       integration: new HttpLambdaIntegration("PaymentsPostInt", createPaymentLambda),
+    });
+    httpApi.addRoutes({
+      path: "/payments/broadcast",
+      methods: [HttpMethod.POST],
+      integration: new HttpLambdaIntegration("BroadcastPaymentsPostInt", broadcastPaymentLambda),
     });
     httpApi.addRoutes({
       path: "/payments",
