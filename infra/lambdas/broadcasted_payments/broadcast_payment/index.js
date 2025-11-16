@@ -83,7 +83,7 @@ exports.handler = async (event) => {
                     })
                 };
             }
-
+            
             const response = await supabase.from(PAYMENTS_TABLE).insert({
                 payment_id: newPaymentId,
                 title: title,
@@ -98,7 +98,7 @@ exports.handler = async (event) => {
                     statusCode: 500,
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ error: response.error })
-                }; 
+                };
             }
 
             // Get member_ids to assign payment to
@@ -113,21 +113,33 @@ exports.handler = async (event) => {
             // Assign payment to every member applicable
             for (const memberId of memberIds){
                 const args = {
-                    member_id: memberId,
-                    payment_id: newPaymentId,
-                    assigned_on: getCurrentTimeUTC(),
-                    status: "due"
+                    p_member_id: memberId,
+                    p_payment_id: newPaymentId,
+                    p_assigned_on: getCurrentTimeUTC(),
+                    p_status: "due"
                 };
-            
-                response = await callPostgresFunction('assign_payment', args, supabase);
-                if (response.error) {   
+                console.log(`Assigning payment ${newPaymentId} to member ${memberId}`);
+                
+                const resp = await callPostgresFunction('assign_payment', args, supabase);
+                console.log(`Response for member ${memberId}:`, resp);
+                if (resp.error) {   
                     return {
                         statusCode: 500,
                         headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ error: response.error })
+                        body: JSON.stringify({ error: resp.error })
                     };
                 }
             }
+
+        return {
+            statusCode: 200,
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                message: "Payment created and assigned successfully.",
+                payment_id: newPaymentId,
+                assigned_member_count: memberIds.length,
+            }),
+        };
     
         } catch(err){
             return{
