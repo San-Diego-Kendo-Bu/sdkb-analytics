@@ -231,7 +231,7 @@ export class ServiceStack extends Stack {
     });
 
     const broadcastPaymentLambda = new NodejsFunction(this, "BroadcastPaymentLambda", {
-      entry: path.join(__dirname, "../../lambdas/broadcast_payments/broadcast_payment/index.js"),
+      entry: path.join(__dirname, "../../lambdas/broadcasted_payments/broadcast_payment/index.js"),
       handler: "handler",
       ...commonNodejs,
       environment: { SUPABASE_SECRET_ID: props.supabaseSecret.secretName },
@@ -343,8 +343,13 @@ export class ServiceStack extends Stack {
     }));
 
     broadcastPaymentLambda.role?.addToPrincipalPolicy(new iam.PolicyStatement({
-      actions: ["dynamodb:Query"],
+      actions: ["dynamodb:Scan"],
       resources: [members],
+    }));
+
+    broadcastPaymentLambda.role?.addToPrincipalPolicy(new iam.PolicyStatement({
+      actions: ["dynamodb:UpdateItem"],
+      resources: [config],
     }));
 
     // ---- HTTP API + routes
