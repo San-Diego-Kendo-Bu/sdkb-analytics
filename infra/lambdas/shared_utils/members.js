@@ -1,6 +1,7 @@
 const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
 const {
     QueryCommand,
+    ScanCommand,
     DynamoDBDocumentClient
 } = require("@aws-sdk/lib-dynamodb");
 const { get } = require("http");
@@ -68,8 +69,8 @@ async function verifyMemberExists(memberId) {
 }
 
 async function getAllMembers() {
-    const response = await ddb.send(new QueryCommand({
-        TableName: MEMBERS_TABLE,
+    const response = await ddb.send(new ScanCommand({
+      TableName: MEMBERS_TABLE,
     }));
     return response.Items || [];
 }
