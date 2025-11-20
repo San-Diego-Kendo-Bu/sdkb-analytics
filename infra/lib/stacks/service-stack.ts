@@ -301,11 +301,6 @@ export class ServiceStack extends Stack {
       resources: [members, `${members}/index/dedup_key-index`],
     }));
 
-    createPaymentLambda.role?.addToPrincipalPolicy(new iam.PolicyStatement({
-      actions: ["dynamodb:UpdateItem"],
-      resources: [config],
-    }));
-
     assignPaymentLambda.role?.addToPrincipalPolicy(new iam.PolicyStatement({
       actions: ["dynamodb:Query"],
       resources: [members],
