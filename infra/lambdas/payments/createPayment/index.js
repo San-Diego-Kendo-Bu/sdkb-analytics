@@ -1,14 +1,8 @@
-const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
-const {
-  DynamoDBDocumentClient, UpdateCommand,
-} = require("@aws-sdk/lib-dynamodb");
 const { getCurrentTimeUTC } = require("../../shared_utils/dates");
 const { getSupabase, callPostgresFunction } = require("../../shared_utils/supabase");
 
-const PAYMENTS_TABLE = "Payments";
 const SUPABASE_SECRET_ID = process.env.SUPABASE_SECRET_ID;
 const REGION = process.env.AWS_REGION;
-const ddb = DynamoDBDocumentClient.from(new DynamoDBClient({ region: REGION }));
 
 function dummyCognito(){
     return ['admin@gmail.com'];
@@ -26,8 +20,6 @@ exports.handler = async (event) => {
         return { statusCode: 403, body: "Forbidden" };
 
     try {
-
-
         const parameters = JSON.parse(event.body);
 
         const title = parameters.title;
