@@ -347,11 +347,6 @@ export class ServiceStack extends Stack {
       resources: [members],
     }));
 
-    broadcastPaymentLambda.role?.addToPrincipalPolicy(new iam.PolicyStatement({
-      actions: ["dynamodb:UpdateItem"],
-      resources: [config],
-    }));
-
     // ---- HTTP API + routes
     const httpApi = new HttpApi(this, "ServiceApi", {
       apiName: "MembersApi",

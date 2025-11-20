@@ -4,12 +4,9 @@ const { getCurrentTimeUTC } = require("../../shared_utils/dates");
 
 const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
 const {
-  DynamoDBDocumentClient, UpdateCommand,
+  DynamoDBDocumentClient
 } = require("@aws-sdk/lib-dynamodb");
 
-const ddb = DynamoDBDocumentClient.from(new DynamoDBClient({ region: REGION }));
-
-const PAYMENTS_TABLE = "Payments";
 const SUPABASE_SECRET_ID = process.env.SUPABASE_SECRET_ID;
 const REGION = process.env.AWS_REGION;
 
@@ -30,16 +27,6 @@ exports.handler = async (event) => {
             const parameters = JSON.parse(event.body);
             const supabase = await getSupabase(SUPABASE_SECRET_ID, REGION);
     
-            const updateParams = {
-                TableName: "appConfigs",
-                Key: { type: "paymentIdCounter" },
-                UpdateExpression: "ADD #counter :val",
-                ExpressionAttributeNames: { "#counter": "idCounter" },
-                ExpressionAttributeValues: { ":val": 1 },
-                ReturnValues: "ALL_NEW",
-            };
-            const updateResult = await ddb.send(new UpdateCommand(updateParams));
-            const newPaymentId = updateResult.Attributes.idCounter;
 
             // Create the payment 
             const title = parameters.title;
@@ -84,22 +71,28 @@ exports.handler = async (event) => {
                 };
             }
             
-            const response = await supabase.from(PAYMENTS_TABLE).insert({
-                payment_id: newPaymentId,
-                title: title,
-                created_at: createdAt,
-                due_date: dueDate,
-                payment_value: paymentValue,
-                overdue_penalty: overduePenalty,
-            }).select();
-            
+            const args = {
+                p_title : title, 
+                p_created_at : createdAt,
+                p_due_date : dueDate,
+                p_payment_value : paymentValue,
+                p_overdue_penalty : overduePenalty
+            };
+
+            const response =  await callPostgresFunction('create_payment', args, supabase);
+
             if(response.error){
                 return {
                     statusCode: 500,
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ error: response.error })
-                };
+                }; 
             }
+
+            console.log("Payment created:", response);
+            const resp_payload = JSON.parse(response.body);   // now it's an object
+
+            const newPaymentId = resp_payload.data.payment_id;
 
             // Get member_ids to assign payment to
             let memberIds = [];
@@ -131,15 +124,15 @@ exports.handler = async (event) => {
                 }
             }
 
-        return {
-            statusCode: 200,
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                message: "Payment created and assigned successfully.",
-                payment_id: newPaymentId,
-                assigned_member_count: memberIds.length,
-            }),
-        };
+            return {
+                statusCode: 200,
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    message: "Payment created and assigned successfully.",
+                    payment_id: newPaymentId,
+                    assigned_member_count: memberIds.length,
+                }),
+            };
     
         } catch(err){
             return{
