@@ -1,6 +1,5 @@
-const { getSupabase } = require("../../shared_utils/supabase");
+const { getSupabase, callPostgresFunction } = require("../../shared_utils/supabase");
 
-const PAYMENTS_TABLE = "Payments";
 const SUPABASE_SECRET_ID = process.env.SUPABASE_SECRET_ID;
 const REGION = process.env.AWS_REGION;
 
@@ -24,9 +23,8 @@ exports.handler = async (event) => {
     try {
         
         const parameters = JSON.parse(event.body);
-        const paymentId = parameters.payment_id;
 
-        if(!paymentId){
+        if(!parameters.payment_id){
             return{
                 status: 400,
                 message: "Please specify a payment id"
@@ -35,9 +33,7 @@ exports.handler = async (event) => {
         
         const payload = {};
         for(const field of FIELDS){
-            if(field in parameters){
-                payload[field] = parameters[field];
-            }
+            payload[field] = (field in parameters) ? parameters[field] : null;
         }
         
         if(payload.payment_value && parseFloat(payload.payment_value) < 1.0){
@@ -63,32 +59,16 @@ exports.handler = async (event) => {
         }
 
         const supabase = await getSupabase(SUPABASE_SECRET_ID, REGION);
-        const response = await supabase.from(PAYMENTS_TABLE)
-            .update(payload)
-            .eq('payment_id', paymentId)
-            .select();
-
-        if(response.error){
-            return{
-                statusCode: 500,
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ error: response.error }),
-            };
-        }
-        
-        const data = response.data[0];
-        return{
-            statusCode : 200,
-            headers : {
-                "Content-Type": "application/json",
-                "Access-Control-Allow-Origin": "*"
-            },
-            body : JSON.stringify({
-                message: "Updated Payment Successfully",
-                id: data.payment_id,
-                data: data,
-            })
+        const args = {
+            p_payment_id : payload.payment_id,
+            p_title : payload.title, 
+            p_created_at : payload.created_at,
+            p_due_date : payload.due_date,
+            p_payment_value : payload.payment_value,
+            p_overdue_penalty : payload.overdue_penalty
         };
+        const response = await callPostgresFunction('update_payment', args, supabase);
+        return response;
 
     } catch (err) {
         return {

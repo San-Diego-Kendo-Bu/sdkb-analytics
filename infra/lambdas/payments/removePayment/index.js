@@ -1,7 +1,5 @@
-const { getSupabase, entryExistsByField, deleteByField} = require("../../shared_utils/supabase");
+const { getSupabase, callPostgresFunction } = require("../../shared_utils/supabase");
 
-const PAYMENTS_TABLE = "Payments";
-const ASSIGNED_PAYMENTS_TABLE = "AssignedPayments";
 const SUPABASE_SECRET_ID = process.env.SUPABASE_SECRET_ID;
 const REGION = process.env.AWS_REGION;
 
@@ -33,38 +31,10 @@ exports.handler = async (event) => {
         }
 
         const supabase = await getSupabase(SUPABASE_SECRET_ID, REGION);
-        const exists = await entryExistsByField(ASSIGNED_PAYMENTS_TABLE, "payment_id", paymentId, supabase);
+        const args = { p_payment_id : paymentId };
+        const response = callPostgresFunction('remove_payment', args, supabase);
         
-        if(exists){
-            const deleted = await deleteByField(ASSIGNED_PAYMENTS_TABLE, "payment_id", paymentId, supabase);
-            console.log(`Deleted ${deleted.length} rows for payment ${paymentId}`);
-        } else {
-            console.log(`No assigned payments found for payment_id: ${paymentId}`);
-        }
-
-        const response = await supabase.from(PAYMENTS_TABLE).delete().eq('payment_id', paymentId).select();
-
-        if(response.error){
-            return{
-                statusCode: 500,
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ error: response.error })
-            };
-        }
-
-        const data = response.data[0];
-        return{
-            statusCode : 200,
-            headers : {
-                "Content-Type": "application/json",
-                "Access-Control-Allow-Origin": "*"
-            },
-            body : JSON.stringify({
-                message: "Deleted Payment Successfully",
-                id: data.payment_id,
-                data: data,
-            })
-        };
+        return response;
 
     } catch (err) {
         return {
