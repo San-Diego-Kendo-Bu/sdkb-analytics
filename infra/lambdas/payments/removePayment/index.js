@@ -1,6 +1,7 @@
-const { getSupabase } = require("../../shared_utils/supabase");
+const { getSupabase, entryExistsByField, deleteByField} = require("../../shared_utils/supabase");
 
 const PAYMENTS_TABLE = "Payments";
+const ASSIGNED_PAYMENTS_TABLE = "AssignedPayments";
 const SUPABASE_SECRET_ID = process.env.SUPABASE_SECRET_ID;
 const REGION = process.env.AWS_REGION;
 
@@ -32,6 +33,15 @@ exports.handler = async (event) => {
         }
 
         const supabase = await getSupabase(SUPABASE_SECRET_ID, REGION);
+        const exists = await entryExistsByField(ASSIGNED_PAYMENTS_TABLE, "payment_id", paymentId, supabase);
+        
+        if(exists){
+            const deleted = await deleteByField(ASSIGNED_PAYMENTS_TABLE, "payment_id", paymentId, supabase);
+            console.log(`Deleted ${deleted.length} rows for payment ${paymentId}`);
+        } else {
+            console.log(`No assigned payments found for payment_id: ${paymentId}`);
+        }
+
         const response = await supabase.from(PAYMENTS_TABLE).delete().eq('payment_id', paymentId).select();
 
         if(response.error){
@@ -41,7 +51,7 @@ exports.handler = async (event) => {
                 body: JSON.stringify({ error: response.error })
             };
         }
-        
+
         const data = response.data[0];
         return{
             statusCode : 200,

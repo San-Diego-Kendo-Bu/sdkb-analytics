@@ -46,6 +46,37 @@ async function getFromTable(TABLE, FIELDS, parameters, supabase){
     };
 }
 
+async function entryExistsByField(table, field, value, supabase) {
+  const { data, error } = await supabase
+    .from(table)
+    .select(field)
+    .eq(field, value)
+    .limit(1); // only need one row
+
+  if (error) {
+    console.error("Supabase error:", error);
+    throw error;
+  }
+
+  // If data.length > 0, an entry exists
+  return data && data.length > 0;
+}
+
+async function deleteByField(table, field, value, supabase) {
+  const { data, error } = await supabase
+    .from(table)
+    .delete()
+    .eq(field, value);
+
+  if (error) {
+    console.error("Supabase delete error:", error);
+    throw error;
+  }
+
+  // data will contain the deleted rows unless you change the 'returning' option
+  return data || [];
+}
+
 async function callPostgresFunction(functionName, args, supabase){
     const response = await supabase.rpc(functionName, args);
     if(response.error){
@@ -65,4 +96,4 @@ async function callPostgresFunction(functionName, args, supabase){
     };
 }
 
-module.exports = { getSupabase, getFromTable, callPostgresFunction };
+module.exports = { getSupabase, getFromTable, callPostgresFunction, entryExistsByField, deleteByField };
