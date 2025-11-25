@@ -2,7 +2,7 @@ const { getSupabase, callPostgresFunction } = require("../../shared_utils/supaba
 const { verifyMemberExists } = require("../../shared_utils/members");
 const { getCurrentTimeUTC } = require("../../shared_utils/dates");
 
-const REQUIRED_FIELDS = ["member_id", "payment_id", "status"];
+const REQUIRED_FIELDS = ["member_id", "payment_id"];
 
 const SUPABASE_SECRET_ID = process.env.SUPABASE_SECRET_ID;
 const REGION = process.env.AWS_REGION;
@@ -47,7 +47,7 @@ exports.handler = async (event) => {
             p_member_id: payload.member_id,
             p_payment_id: payload.payment_id,
             p_assigned_on: payload.assigned_on,
-            p_status: payload.status
+            p_status: "due"
         }
         
         const response = await callPostgresFunction('assign_payment', args, supabase);
