@@ -1,8 +1,10 @@
 const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
 const {
     QueryCommand,
+    ScanCommand,
     DynamoDBDocumentClient
 } = require("@aws-sdk/lib-dynamodb");
+const { get } = require("http");
 
 const REGION = process.env.AWS_REGION;
 const ddb = DynamoDBDocumentClient.from(new DynamoDBClient({ region : REGION }));
@@ -66,4 +68,33 @@ async function verifyMemberExists(memberId) {
   return true;
 }
 
-module.exports = { getMemberById, getMembersByEmail, verifyMemberExists };
+async function getAllMembers() {
+    const response = await ddb.send(new ScanCommand({
+      TableName: MEMBERS_TABLE,
+    }));
+    return response.Items || [];
+}
+
+async function getAllMemberIds(onlyActiveNoExempt, noGuests, onlySenseis) {
+    const allMembers = await getAllMembers();
+    // Status types: exempt, inactive, guest 
+    // if onlyActiveNoExempt, filter out exempt and inactive
+    // if noGuests, filter out guest
+    // if onlySenseis, only include senseis (exempt status members)
+
+    // Apply filters
+    let filteredMembers = allMembers;
+    if(onlyActiveNoExempt){
+        filteredMembers = filteredMembers.filter(member => member.status !== "exempt" && member.status === "active");
+    }
+    if(noGuests){
+        filteredMembers = filteredMembers.filter(member => member.status !== "guest");
+    }
+    if(onlySenseis){
+        filteredMembers = filteredMembers.filter(member => member.status === "exempt");
+    }
+
+    return filteredMembers.map(member => member.member_id);
+}
+
+module.exports = { getMemberById, getMembersByEmail, verifyMemberExists , getAllMemberIds };
