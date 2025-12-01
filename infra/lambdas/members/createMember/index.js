@@ -3,10 +3,18 @@ const {
   DynamoDBDocumentClient, QueryCommand, PutCommand, UpdateCommand,
 } = require("@aws-sdk/lib-dynamodb");
 const { SecretsManagerClient, GetSecretValueCommand } = require("@aws-sdk/client-secrets-manager");
+const {
+  CognitoIdentityProviderClient,
+  AdminCreateUserCommand,
+} = require("@aws-sdk/client-cognito-identity-provider");
+
 const Stripe = require("stripe");
+const cognito = new CognitoIdentityProviderClient({ region: "us-east-2" });
+const USER_POOL_ID = "us-east-2_pOKlRyKnT"
 
 const REGION = process.env.AWS_REGION;
 const SECRET_ID = process.env.SECRET_ID;
+const MEMBERS_TABLE = "appConfigs";
 
 const ddb = DynamoDBDocumentClient.from(new DynamoDBClient({ region: REGION }));
 const secrets_client = new SecretsManagerClient({ region: REGION });
@@ -23,7 +31,7 @@ function normalizeGroups(raw) {
 async function getStripe() {
   const r = await secrets_client.send(new GetSecretValueCommand({ SecretId: SECRET_ID }));
   const raw = r.SecretString ?? Buffer.from(r.SecretBinary || "", "base64").toString("utf8");
-  const obj = JSON.parse(raw); 
+  const obj = JSON.parse(raw);
   const api_key = obj.STRIPE_TEST_SECRET_KEY;
   return new Stripe(api_key); // optionally add { apiVersion: '2024-06-20' }
 }
@@ -49,7 +57,7 @@ exports.handler = async (event) => {
   try {
     // Increment the idCounter in the appConfigs table
     const updateParams = {
-      TableName: "appConfigs",
+      TableName: MEMBERS_TABLE,
       Key: { type: "idCounter" },
       UpdateExpression: "ADD #counter :val",
       ExpressionAttributeNames: { "#counter": "idCounter" },
@@ -88,13 +96,32 @@ exports.handler = async (event) => {
       };
     }
 
+    // create username 
+    let username = lc(data.first_name).slice(0, 3) + newMemberId;
+
+    // TODO: create cognito user with username 
+    const cmd = new AdminCreateUserCommand({
+      UserPoolId: USER_POOL_ID,
+      Username: username,            // 👈 your generated username
+      TemporaryPassword: "321Changemenow!", // must meet password policy
+      UserAttributes: [
+        { Name: "email", Value: lc(data.email) },
+        { Name: "email_verified", Value: "true" }, // optional
+        // optional, but nice to store:
+        { Name: "preferred_username", Value: username },
+      ],
+    });
+
+    const res = await cognito.send(cmd);
+    console.log("Cognito user created:", res);
+
     // status + stripe
     const defaultStatus =
       String(data.is_guest ?? "").toLowerCase() === "yes"
         ? "guest"
         : data.rank_type === "dan" && Number(data.rank_number) >= 4
-        ? "exempt"
-        : "active";
+          ? "exempt"
+          : "active";
 
     const stripe = await getStripe();
     const customer_id = await createCustomer(
@@ -104,6 +131,7 @@ exports.handler = async (event) => {
       newMemberId
     );
 
+    console.log("create username:", username);
     // write member
     const params = {
       TableName: "members",
@@ -118,6 +146,7 @@ exports.handler = async (event) => {
         birthday: data.birthday ?? null,
         status: defaultStatus,
         customer_id, // fixed typo
+        username,
         dedup_key: dedupKey,
       },
     };
