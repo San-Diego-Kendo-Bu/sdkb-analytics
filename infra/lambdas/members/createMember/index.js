@@ -99,7 +99,6 @@ exports.handler = async (event) => {
     // create username 
     let username = lc(data.first_name).slice(0, 3) + newMemberId;
 
-    // TODO: create cognito user with username 
     const cmd = new AdminCreateUserCommand({
       UserPoolId: USER_POOL_ID,
       Username: username,            // 👈 your generated username
