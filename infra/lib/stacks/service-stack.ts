@@ -300,8 +300,14 @@ export class ServiceStack extends Stack {
       actions: ["dynamodb:DeleteItem"],
       resources: [members],
     }));
+
     removeMemberLambda.role?.addToPrincipalPolicy(new iam.PolicyStatement({
       actions: ["dynamodb:Query"],
+      resources: [members],
+    }));
+
+    removeMemberLambda.role?.addToPrincipalPolicy(new iam.PolicyStatement({
+      actions: ["dynamodb:GetItem"],
       resources: [members],
     }));
 
@@ -518,6 +524,11 @@ export class ServiceStack extends Stack {
     // Cognito permissions
     createMemberLambda.role?.addToPrincipalPolicy(new iam.PolicyStatement({
       actions: ['cognito-idp:AdminCreateUser'],
+      resources: [userPool.userPoolArn],
+    }),);
+
+    removeMemberLambda.role?.addToPrincipalPolicy(new iam.PolicyStatement({
+      actions: ['cognito-idp:AdminDeleteUser'],
       resources: [userPool.userPoolArn],
     }),);
 

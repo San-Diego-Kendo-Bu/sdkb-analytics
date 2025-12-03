@@ -2,11 +2,19 @@ const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
 const {
   DynamoDBDocumentClient,
   DeleteCommand,
-  QueryCommand
+  GetCommand,
+  QueryCommand,
 } = require("@aws-sdk/lib-dynamodb");
 
 const { SecretsManagerClient, GetSecretValueCommand } = require("@aws-sdk/client-secrets-manager");
+const {
+  CognitoIdentityProviderClient,
+  AdminDeleteUserCommand,
+} = require("@aws-sdk/client-cognito-identity-provider");
+
 const Stripe = require("stripe");
+const cognito = new CognitoIdentityProviderClient({ region: "us-east-2" });
+const USER_POOL_ID = "us-east-2_pOKlRyKnT"
 
 const MEMBERS_TABLE = "members";
 const REGION = process.env.AWS_REGION;
@@ -36,7 +44,7 @@ function normalizeGroups(raw) {
 async function getStripe() {
   const r = await secrets_client.send(new GetSecretValueCommand({ SecretId: SECRET_ID }));
   const raw = r.SecretString ?? Buffer.from(r.SecretBinary || "", "base64").toString("utf8");
-  const obj = JSON.parse(raw); 
+  const obj = JSON.parse(raw);
   const api_key = obj.STRIPE_TEST_SECRET_KEY;
   return new Stripe(api_key);
 }
@@ -58,7 +66,7 @@ async function deleteCustomer(stripeClient, customerId) {
       await stripeClient.paymentMethods.detach(pm.id);
     }
 
-    const deleted = await stripeClient.customers.del(customerId); 
+    const deleted = await stripeClient.customers.del(customerId);
     console.log("Deleted customer:", deleted);
     return deleted;
 
@@ -92,7 +100,7 @@ exports.handler = async (event) => {
   if (!isAdmin) {
     return { statusCode: 403, body: 'Forbidden' };
   }
-  
+
   try {
     const data = JSON.parse(event.body);
 
@@ -110,7 +118,7 @@ exports.handler = async (event) => {
       const response = await ddb.send(new QueryCommand({
         TableName: MEMBERS_TABLE,
         KeyConditionExpression: "#e = :e",
-        ExpressionAttributeNames:  { "#e": MEMBER_ID_ATTR },
+        ExpressionAttributeNames: { "#e": MEMBER_ID_ATTR },
         ExpressionAttributeValues: { ":e": data.member_id },
         ExclusiveStartKey: lastKey,
       }));
@@ -120,6 +128,21 @@ exports.handler = async (event) => {
 
     const customer_id = responseItems[0]["customer_id"];
     await deleteCustomer(stripe, customer_id);
+
+    const member = await ddb.send(
+      new GetCommand(params)
+    );
+
+    const username = member.Item.username;
+
+    // remove username 
+    const cmd = new AdminDeleteUserCommand({
+      UserPoolId: USER_POOL_ID,
+      Username: username
+    });
+
+    const res = await cognito.send(cmd);
+    console.log("Cognito user removed:", res);
 
     await ddb.send(new DeleteCommand(params));
 
