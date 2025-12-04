@@ -20,6 +20,7 @@ import { NodejsFunction, LogLevel, OutputFormat } from "aws-cdk-lib/aws-lambda-n
 import * as logs from "aws-cdk-lib/aws-logs";
 import * as iam from "aws-cdk-lib/aws-iam";
 import { ISecret } from "aws-cdk-lib/aws-secretsmanager";
+import { IUserPool } from "aws-cdk-lib/aws-cognito";
 
 export interface ServiceStackProps extends StackProps {
   membersAuthorizer?: IHttpRouteAuthorizer;   // attach to protected routes if provided
@@ -27,6 +28,7 @@ export interface ServiceStackProps extends StackProps {
   supabaseSecret: ISecret;
   membersTableArn: string;
   configTableArn: string;
+  userPool: IUserPool;
 }
 
 export class ServiceStack extends Stack {
@@ -149,7 +151,7 @@ export class ServiceStack extends Stack {
       ...commonNodejs,
       environment: { SUPABASE_SECRET_ID: props.supabaseSecret.secretName },
     });
-    
+
     const assignPaymentLambda = new NodejsFunction(this, "AssignPaymentLambda", {
       entry: path.join(__dirname, "../../lambdas/assigned_payments/assignPayment/index.js"),
       handler: "handler",
@@ -270,7 +272,7 @@ export class ServiceStack extends Stack {
 
     // ---- DynamoDB policies (same as your IamStack)
     const members = props.membersTableArn;
-    const config  = props.configTableArn;
+    const config = props.configTableArn;
 
     getMembersLambda.role?.addToPrincipalPolicy(new iam.PolicyStatement({
       actions: ["dynamodb:Scan"],
@@ -298,8 +300,14 @@ export class ServiceStack extends Stack {
       actions: ["dynamodb:DeleteItem"],
       resources: [members],
     }));
+
     removeMemberLambda.role?.addToPrincipalPolicy(new iam.PolicyStatement({
       actions: ["dynamodb:Query"],
+      resources: [members],
+    }));
+
+    removeMemberLambda.role?.addToPrincipalPolicy(new iam.PolicyStatement({
+      actions: ["dynamodb:GetItem"],
       resources: [members],
     }));
 
@@ -316,7 +324,7 @@ export class ServiceStack extends Stack {
       actions: ["dynamodb:Query"],
       resources: [members],
     }));
-    
+
     submitPaymentLambda.role?.addToPrincipalPolicy(new iam.PolicyStatement({
       actions: ["dynamodb:Query"],
       resources: [members],
@@ -365,6 +373,7 @@ export class ServiceStack extends Stack {
       path: "/admins",
       methods: [HttpMethod.GET],
       integration: new HttpLambdaIntegration("AdminsGetInt", getAdminLambda),
+      ...(auth ? { authorizer: auth } : {}),
     });
 
     // Members
@@ -418,7 +427,7 @@ export class ServiceStack extends Stack {
       methods: [HttpMethod.GET],
       integration: new HttpLambdaIntegration("PaymentsGetInt", getPaymentLambda),
     });
-    
+
     // Assigned Payments
     httpApi.addRoutes({
       path: "/assignedpayments",
@@ -509,6 +518,19 @@ export class ServiceStack extends Stack {
       methods: [HttpMethod.DELETE],
       integration: new HttpLambdaIntegration("EventsDeleteInt", removeEventLambda),
     });
+
+    const { userPool } = props;
+
+    // Cognito permissions
+    createMemberLambda.role?.addToPrincipalPolicy(new iam.PolicyStatement({
+      actions: ['cognito-idp:AdminCreateUser'],
+      resources: [userPool.userPoolArn],
+    }),);
+
+    removeMemberLambda.role?.addToPrincipalPolicy(new iam.PolicyStatement({
+      actions: ['cognito-idp:AdminDeleteUser'],
+      resources: [userPool.userPoolArn],
+    }),);
 
     this.httpApiUrl = httpApi.apiEndpoint;
   }

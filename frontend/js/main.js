@@ -9,7 +9,7 @@ let renderedSlips = [];
 
 async function renderTable() {
     try {
-        const response = await fetch('https://j5z43ef3j0.execute-api.us-east-2.amazonaws.com/members');
+        const response = await fetch('https://jlsml5sfaj.execute-api.us-east-2.amazonaws.com/members');
         if (!response.ok) throw new Error(`HTTP error ${response.status}`);
 
         const data = await response.json();
@@ -62,8 +62,8 @@ function createEmptySlip() {
 }
 
 // Reduce spacing first, then scale down the zekken front to fit within available space
-function fitZekkenFront(frontEl){
-    if(!frontEl) return;
+function fitZekkenFront(frontEl) {
+    if (!frontEl) return;
 
     // Reset any styles to measure
     frontEl.style.transform = '';
@@ -77,15 +77,15 @@ function fitZekkenFront(frontEl){
 
     const available = frontEl.clientHeight;
     let content = frontEl.scrollHeight;
-    if(content <= available) return;
+    if (content <= available) return;
 
     // reduce line-gap first
     const lineHeights = [1.0, 0.95, 0.9, 0.85, 0.8, 0.75];
-    for(const lh of lineHeights){
+    for (const lh of lineHeights) {
         spans.forEach(s => { s.style.lineHeight = String(lh); });
         frontEl.offsetHeight; // reflow
         content = frontEl.scrollHeight;
-        if(content <= available) return;
+        if (content <= available) return;
     }
 
     // scale down to fit
@@ -93,9 +93,9 @@ function fitZekkenFront(frontEl){
     frontEl.style.transform = `translateZ(0.001px) scale(${scale})`;
 }
 
-function fitAllZekkenFronts(){
+function fitAllZekkenFronts() {
     const shelf = document.getElementById('shelf');
-    if(!shelf) return;
+    if (!shelf) return;
     const fronts = shelf.querySelectorAll('.slip .front');
     fronts.forEach(fitZekkenFront);
 }
@@ -110,15 +110,15 @@ async function generateSlip(frontText, backText, memberId) {
     nafuda.className = 'nafuda';
 
     const slip = document.createElement('div');
-    if(memberId < 0) slip.className = 'slip rank';
+    if (memberId < 0) slip.className = 'slip rank';
     else slip.className = 'slip';
 
     const front = document.createElement('div');
     front.className = 'front';
 
     var kanjiSize;
-    if(frontText.length <= 4) kanjiSize = 'kanjiLarge';
-    else if(frontText.length <= 12) kanjiSize = 'kanjiMed';
+    if (frontText.length <= 4) kanjiSize = 'kanjiLarge';
+    else if (frontText.length <= 12) kanjiSize = 'kanjiMed';
     else kanjiSize = 'kanjiSmall';
 
     for (const char of frontText) {
@@ -149,11 +149,11 @@ async function generateSlip(frontText, backText, memberId) {
     nafuda.addEventListener('mouseleave', () => {
         setTimeout(() => slip.classList.remove('flipped'), 150);
     });
-    
+
     let isAdmin;
-    if(user){
+    if (user) {
         try {
-            const response = await fetch('https://j5z43ef3j0.execute-api.us-east-2.amazonaws.com/admins',{
+            const response = await fetch('https://jlsml5sfaj.execute-api.us-east-2.amazonaws.com/admins', {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
@@ -164,13 +164,13 @@ async function generateSlip(frontText, backText, memberId) {
 
             const data = await response.json();
             isAdmin = data.isAdmin;
-            
+
         } catch (error) {
             console.error(error);
         }
     }
 
-    if(memberId >= 0 && isAdmin) {
+    if (memberId >= 0 && isAdmin) {
         nafuda.addEventListener('click', () => {
 
             openModal(memberId);
@@ -184,9 +184,9 @@ async function generateSlip(frontText, backText, memberId) {
 function displayRemoveResults(matchingMembers) {
     const resultsDiv = document.getElementById('removeResults');
     const resultsList = document.getElementById('removeResultsList');
-    
+
     resultsList.innerHTML = '';
-    
+
     matchingMembers.forEach(member => {
         const memberDiv = document.createElement('div');
         memberDiv.style.cssText = `
@@ -196,7 +196,7 @@ function displayRemoveResults(matchingMembers) {
             border-radius: 5px;
             background-color: #f9f9f9;
         `;
-        
+
         const memberInfo = document.createElement('div');
         memberInfo.innerHTML = `
             <strong>${member.first_name} ${member.last_name}</strong><br>
@@ -204,7 +204,7 @@ function displayRemoveResults(matchingMembers) {
             Email: ${member.email || 'N/A'}<br>
             Zekken: ${member.zekken_text || 'N/A'}
         `;
-        
+
         const removeButton = document.createElement('button');
         removeButton.textContent = 'Remove This Member';
         removeButton.style.cssText = `
@@ -216,25 +216,25 @@ function displayRemoveResults(matchingMembers) {
             cursor: pointer;
             margin-top: 5px;
         `;
-        
+
         removeButton.addEventListener('click', async () => {
             await removeMember(member.member_id);
         });
-        
+
         memberDiv.appendChild(memberInfo);
         memberDiv.appendChild(removeButton);
         resultsList.appendChild(memberDiv);
     });
-    
+
     resultsDiv.style.display = 'block';
 }
 
 function displaySearchResults(matchingMembers) {
     const resultsDiv = document.getElementById('searchResults');
     const resultsList = document.getElementById('searchResultsList');
-    
+
     resultsList.innerHTML = '';
-    
+
     matchingMembers.forEach(member => {
         const memberDiv = document.createElement('div');
         memberDiv.style.cssText = `
@@ -245,7 +245,7 @@ function displaySearchResults(matchingMembers) {
             background-color: #f9f9f9;
             cursor: pointer;
         `;
-        
+
         const memberInfo = document.createElement('div');
         memberInfo.innerHTML = `
             <strong>${member.first_name} ${member.last_name}</strong><br>
@@ -253,9 +253,9 @@ function displaySearchResults(matchingMembers) {
             Email: ${member.email || 'N/A'}<br>
             Zekken: ${member.zekken_text || 'N/A'}
         `;
-        
+
         memberDiv.appendChild(memberInfo);
-        
+
         // Add click handler to open edit form
         memberDiv.addEventListener('click', () => {
             openModal(member.member_id);
@@ -264,10 +264,10 @@ function displaySearchResults(matchingMembers) {
             document.getElementById('searchResults').style.display = 'none';
             document.getElementById('searchForm').reset();
         });
-        
+
         resultsList.appendChild(memberDiv);
     });
-    
+
     resultsDiv.style.display = 'block';
 }
 
@@ -279,7 +279,7 @@ async function removeMember(memberId) {
             return;
         }
 
-        const response = await fetch('https://j5z43ef3j0.execute-api.us-east-2.amazonaws.com/members', {
+        const response = await fetch('https://jlsml5sfaj.execute-api.us-east-2.amazonaws.com/members', {
             method: 'DELETE',
             headers: {
                 'Content-Type': 'application/json',
@@ -298,7 +298,7 @@ async function removeMember(memberId) {
         document.getElementById('removeForm').style.display = 'none';
         document.getElementById('removeResults').style.display = 'none';
         document.getElementById('removeForm').reset();
-        
+
         document.getElementById('shelf').innerHTML = '';
         await renderTable();
 
@@ -318,10 +318,10 @@ function layoutShelf() {
         if (!shelf) return;
 
         const shelfWidth = shelf.clientWidth;
-        
+
         // check if mobile
         const isMobile = shelfWidth <= 600;
-        
+
         if (isMobile) {
             // mobile
             shelf.innerHTML = '';
@@ -379,7 +379,7 @@ function layoutShelf() {
 
 function openModal(memberId) {
     for (let i = 0; i < members.length; i++) {
-        if(members[i]['member_id'] === memberId) {
+        if (members[i]['member_id'] === memberId) {
             selectedMember = members[i];
             break;
         }
@@ -411,19 +411,19 @@ function closeModal() {
     selectedMember = null;
 }
 
-document.addEventListener('click', function(event){
+document.addEventListener('click', function (event) {
     /**
      * Check if user has clicked away from the add member dropdown. If they did, then close it if it's open.
      */
     const addDropdownButton = document.getElementById('addDropdownButton');
     const addMember = document.getElementById('add-member');
     const csvInput = document.getElementById('groupCsvInput');
-    if(
+    if (
         event.target !== addMember && !addMember.contains(event.target) &&
         event.target !== addDropdownButton && !addDropdownButton.contains(event.target) &&
-        event.target !==  csvInput && !csvInput.contains(event.target)
-    ){
-        if(addMember.style.display == 'flex') addMember.style.display = 'none';
+        event.target !== csvInput && !csvInput.contains(event.target)
+    ) {
+        if (addMember.style.display == 'flex') addMember.style.display = 'none';
     }
 
     /**
@@ -433,52 +433,52 @@ document.addEventListener('click', function(event){
     const addForm = document.getElementById('addForm');
     const openAddButton = document.getElementById('openAddButton');
     const addMemberContainer = document.getElementById('add-member');
-    if(
+    if (
         event.target !== addForm && !addForm.contains(event.target) &&
         event.target !== openAddButton && !addMemberContainer.contains(event.target)
-    ){
-        if(addForm.style.display == 'flex') {
+    ) {
+        if (addForm.style.display == 'flex') {
             addForm.style.display = 'none';
             addForm.reset();
         }
     }
-    
+
     /**
      * Check if user has clicked away from the remove member dropdown. If they did, then close it if it's open.
      */
     const removeDropdownButton = document.getElementById('removeDropdownButton');
     const removeMember = document.getElementById('remove-member');
-    if(
+    if (
         event.target !== removeMember && !removeMember.contains(event.target) &&
         event.target !== removeDropdownButton && !removeDropdownButton.contains(event.target)
-    ){
-        if(removeMember.style.display == 'flex') removeMember.style.display = 'none';
+    ) {
+        if (removeMember.style.display == 'flex') removeMember.style.display = 'none';
     }
-    
+
     /**
      * Check if user has clicked away from the search member dropdown. If they did, then close it if it's open.
      */
     const searchDropdownButton = document.getElementById('searchDropdownButton');
     const searchMember = document.getElementById('search-member');
-    if(
+    if (
         event.target !== searchMember && !searchMember.contains(event.target) &&
         event.target !== searchDropdownButton && !searchDropdownButton.contains(event.target)
-    ){
-        if(searchMember.style.display == 'flex') searchMember.style.display = 'none';
+    ) {
+        if (searchMember.style.display == 'flex') searchMember.style.display = 'none';
     }
-    
+
     /**
      * Check if user has clicked away from the download member dropdown. If they did, then close it if it's open.
      */
     const downloadDropdownButton = document.getElementById('downloadDropdownButton');
     const downloadMember = document.getElementById('download-member');
-    if(
+    if (
         event.target !== downloadMember && !downloadMember.contains(event.target) &&
         event.target !== downloadDropdownButton && !downloadDropdownButton.contains(event.target)
-    ){
-        if(downloadMember && downloadMember.style.display == 'flex') downloadMember.style.display = 'none';
+    ) {
+        if (downloadMember && downloadMember.style.display == 'flex') downloadMember.style.display = 'none';
     }
-    
+
     /**
      * Check if user has clicked away from the remove form. If they did, then close it if it's open.
      * Do not close when clicking the REMOVE MEMBER button or within the remove-member container.
@@ -486,17 +486,17 @@ document.addEventListener('click', function(event){
     const removeForm = document.getElementById('removeForm');
     const openRemoveButton = document.getElementById('openRemoveButton');
     const removeMemberContainer = document.getElementById('remove-member');
-    if(
+    if (
         event.target !== removeForm && !removeForm.contains(event.target) &&
         event.target !== openRemoveButton && !removeMemberContainer.contains(event.target)
-    ){
-        if(removeForm.style.display == 'flex') {
+    ) {
+        if (removeForm.style.display == 'flex') {
             removeForm.style.display = 'none';
             document.getElementById('removeResults').style.display = 'none';
             removeForm.reset();
         }
     }
-    
+
     /**
      * Check if user has clicked away from the search form. If they did, then close it if it's open.
      * Do not close when clicking the SEARCH MEMBER button or within the search-member container.
@@ -504,11 +504,11 @@ document.addEventListener('click', function(event){
     const searchForm = document.getElementById('searchForm');
     const openSearchButton = document.getElementById('openSearchButton');
     const searchMemberContainer = document.getElementById('search-member');
-    if(
+    if (
         event.target !== searchForm && !searchForm.contains(event.target) &&
         event.target !== openSearchButton && !searchMemberContainer.contains(event.target)
-    ){
-        if(searchForm.style.display == 'flex') {
+    ) {
+        if (searchForm.style.display == 'flex') {
             searchForm.style.display = 'none';
             document.getElementById('searchResults').style.display = 'none';
             searchForm.reset();
@@ -519,7 +519,7 @@ document.addEventListener('click', function(event){
 window.addEventListener('DOMContentLoaded', async () => {
     try {
         await renderTable();  // ✅ Properly waits for table to render
-        
+
         console.log("✅ Table rendered successfully on load.");
     } catch (err) {
         console.error("❌ Failed to render table on load:", err);
@@ -535,7 +535,7 @@ window.addEventListener('DOMContentLoaded', async () => {
     });
 
     await buttonLogic.setButtonsDisplay();
-    
+
     document.getElementById("signIn").addEventListener("click", buttonLogic.signInLogic);
 
     document.getElementById("signOut").addEventListener("click", buttonLogic.signOutLogic);
@@ -555,7 +555,7 @@ window.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
-    document.getElementById('addForm').addEventListener('submit', async function(event) {
+    document.getElementById('addForm').addEventListener('submit', async function (event) {
         try {
             await buttonLogic.addFormSubmitLogic(event);
             await renderTable(); // ✅ Wait for table refresh
@@ -579,51 +579,51 @@ window.addEventListener('DOMContentLoaded', async () => {
     /**
      * Dropdown buttons
      */
-    document.getElementById('addDropdownButton').addEventListener('click', ()=>{ buttonLogic.dropdownButtonLogic('add-member'); });
-    
-    document.getElementById('removeDropdownButton').addEventListener('click', ()=>{ buttonLogic.dropdownButtonLogic('remove-member'); });
-    
-    document.getElementById('searchDropdownButton').addEventListener('click', ()=>{ buttonLogic.dropdownButtonLogic('search-member'); });
-    
-    document.getElementById('downloadDropdownButton').addEventListener('click', ()=>{ buttonLogic.dropdownButtonLogic('download-member'); });
-    
+    document.getElementById('addDropdownButton').addEventListener('click', () => { buttonLogic.dropdownButtonLogic('add-member'); });
+
+    document.getElementById('removeDropdownButton').addEventListener('click', () => { buttonLogic.dropdownButtonLogic('remove-member'); });
+
+    document.getElementById('searchDropdownButton').addEventListener('click', () => { buttonLogic.dropdownButtonLogic('search-member'); });
+
+    document.getElementById('downloadDropdownButton').addEventListener('click', () => { buttonLogic.dropdownButtonLogic('download-member'); });
+
     /**
      * Open form buttons
      */
-    document.getElementById('openAddButton').addEventListener('click', ()=> { buttonLogic.openFormLogic('addForm'); });
+    document.getElementById('openAddButton').addEventListener('click', () => { buttonLogic.openFormLogic('addForm'); });
 
-    document.getElementById('openRemoveButton').addEventListener('click', ()=> { buttonLogic.openFormLogic('removeForm'); });
-    
-    document.getElementById('openSearchButton').addEventListener('click', ()=> { buttonLogic.openFormLogic('searchForm'); });
-    
-    document.getElementById('openDownloadButton').addEventListener('click', ()=> { buttonLogic.exportCsv(members); });
-    
+    document.getElementById('openRemoveButton').addEventListener('click', () => { buttonLogic.openFormLogic('removeForm'); });
+
+    document.getElementById('openSearchButton').addEventListener('click', () => { buttonLogic.openFormLogic('searchForm'); });
+
+    document.getElementById('openDownloadButton').addEventListener('click', () => { buttonLogic.exportCsv(members); });
+
     /**
      * Cancel dropdown buttons
      */
-    document.getElementById('cancelAddButton').addEventListener('click', ()=> {
+    document.getElementById('cancelAddButton').addEventListener('click', () => {
         buttonLogic.cancelDropdownLogic('addForm');
     });
 
-    document.getElementById('cancelRemoveButton').addEventListener('click', ()=> {
+    document.getElementById('cancelRemoveButton').addEventListener('click', () => {
         buttonLogic.cancelDropdownLogic('removeForm', 'removeResults');
     });
-    
-    document.getElementById('cancelSearchButton').addEventListener('click', ()=> {
+
+    document.getElementById('cancelSearchButton').addEventListener('click', () => {
         buttonLogic.cancelDropdownLogic('searchForm', 'searchResults');
     });
 
     /**
      * Search buttons
      */
-    document.getElementById('searchRemoveButton').addEventListener('click', async ()=> {
+    document.getElementById('searchRemoveButton').addEventListener('click', async () => {
         const matchingMembers = buttonLogic.findMatchingMembers(members, 'removeFirstName', 'removeLastName');
-        if(matchingMembers && matchingMembers.length > 0) { displayRemoveResults(matchingMembers); }
+        if (matchingMembers && matchingMembers.length > 0) { displayRemoveResults(matchingMembers); }
     });
-    
-    document.getElementById('searchMemberButton').addEventListener('click', async ()=> {
+
+    document.getElementById('searchMemberButton').addEventListener('click', async () => {
         const matchingMembers = buttonLogic.findMatchingMembers(members, 'searchFirstName', 'searchLastName');
-        if(matchingMembers && matchingMembers.length > 0) { displaySearchResults(matchingMembers); }
+        if (matchingMembers && matchingMembers.length > 0) { displaySearchResults(matchingMembers); }
     });
 
     /**
@@ -649,7 +649,7 @@ window.addEventListener('DOMContentLoaded', async () => {
             rankNumberInput.disabled = false;
         }
     });
-    
+
     let resizeReflowTimeout = null;
     window.addEventListener('resize', () => {
         if (resizeReflowTimeout) clearTimeout(resizeReflowTimeout);

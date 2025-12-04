@@ -1,7 +1,7 @@
 import { Stack, StackProps } from "aws-cdk-lib";
 import { IHttpRouteAuthorizer } from "aws-cdk-lib/aws-apigatewayv2";
 import { HttpUserPoolAuthorizer } from "aws-cdk-lib/aws-apigatewayv2-authorizers";
-import { UserPool, UserPoolClient } from "aws-cdk-lib/aws-cognito";
+import { UserPool, UserPoolClient, IUserPool } from "aws-cdk-lib/aws-cognito";
 import { Construct } from "constructs";
 
 export interface IdentityStackProps extends StackProps {
@@ -13,6 +13,7 @@ export interface IdentityStackProps extends StackProps {
 export class IdentityStack extends Stack {
 
   public readonly membersAuthorizer: IHttpRouteAuthorizer;
+  public readonly userPool: IUserPool;
 
   constructor(scope: Construct, id: string, props: IdentityStackProps) {
     super(scope, id, props);
@@ -20,6 +21,8 @@ export class IdentityStack extends Stack {
     // Import existing user pool and app client
     const userPool = UserPool.fromUserPoolId(this, `UserPool-${props.stageName}`, props.userPoolId);
     const userPoolClient = UserPoolClient.fromUserPoolClientId(this, `UserPoolClient-${props.stageName}`, props.userPoolClientId);
+
+    this.userPool = userPool;
 
     this.membersAuthorizer = new HttpUserPoolAuthorizer('MembersAuthorizer', userPool, {
       userPoolClients: [userPoolClient],
