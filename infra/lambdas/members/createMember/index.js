@@ -14,7 +14,8 @@ const USER_POOL_ID = "us-east-2_pOKlRyKnT"
 
 const REGION = process.env.AWS_REGION;
 const SECRET_ID = process.env.SECRET_ID;
-const MEMBERS_TABLE = "appConfigs";
+const MEMBERS_TABLE = "members";
+const APPCONFIGS_TABLE = "appConfigs";
 
 const ddb = DynamoDBDocumentClient.from(new DynamoDBClient({ region: REGION }));
 const secrets_client = new SecretsManagerClient({ region: REGION });
@@ -57,7 +58,7 @@ exports.handler = async (event) => {
   try {
     // Increment the idCounter in the appConfigs table
     const updateParams = {
-      TableName: MEMBERS_TABLE,
+      TableName: APPCONFIGS_TABLE,
       Key: { type: "idCounter" },
       UpdateExpression: "ADD #counter :val",
       ExpressionAttributeNames: { "#counter": "idCounter" },
@@ -80,7 +81,7 @@ exports.handler = async (event) => {
 
     // dedupe
     const query = new QueryCommand({
-      TableName: "members",
+      TableName: MEMBERS_TABLE,
       IndexName: "dedup_key-index",
       KeyConditionExpression: "dedup_key = :dedupKey",
       ExpressionAttributeValues: { ":dedupKey": dedupKey },
@@ -131,9 +132,10 @@ exports.handler = async (event) => {
     );
 
     console.log("create username:", username);
+
     // write member
     const params = {
-      TableName: "members",
+      TableName: MEMBERS_TABLE,
       Item: {
         member_id: newMemberId,
         first_name: data.first_name,
