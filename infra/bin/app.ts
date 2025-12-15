@@ -16,6 +16,7 @@ STAGES.forEach((stage) => {
   const identityStack = new IdentityStack(app, `IdentityStack-${stage.name}-${stage.env.region}`, {
     env: stage.env,
     userPoolId: stage.userPoolId,
+
     userPoolClientId: stage.userPoolClientId,
     stageName: stage.name,
   });
@@ -27,6 +28,7 @@ STAGES.forEach((stage) => {
   const serviceStack = new ServiceStack(app, `ServiceStack-${stage.name}-${stage.env.region}`, {
     env: stage.env,
     membersAuthorizer: identityStack.membersAuthorizer, // if you have one
+    userPool: identityStack.userPool,
     stripeSecret: secretsStack.stripeSecret,
     supabaseSecret: secretsStack.supabaseSecret,
     membersTableArn: stage.membersTableArn,

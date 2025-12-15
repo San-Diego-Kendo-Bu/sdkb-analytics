@@ -6,19 +6,19 @@
 import { userManager } from "./cognitoManager.js";
 
 export async function setButtonsDisplay() {
-    
+
     const user = await userManager.getUser();
-    
+
     const signOut = document.getElementById("signOut");
     const signIn = document.getElementById("signIn");
 
     signOut.style.display = (user && !user.expired) ? "inline" : "none";
     signIn.style.display = (user && !user.expired) ? "none" : "inline";
-    
-    if(!user || user.expired) return;
+
+    if (!user || user.expired) return;
 
     try {
-        const response = await fetch('https://j5z43ef3j0.execute-api.us-east-2.amazonaws.com/admins',{
+        const response = await fetch('https://jlsml5sfaj.execute-api.us-east-2.amazonaws.com/admins', {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
@@ -29,9 +29,9 @@ export async function setButtonsDisplay() {
 
         const data = await response.json();
         //console.log(data);
-        
-        if(!data.isAdmin) return;
-        
+
+        if (!data.isAdmin) return;
+
         const addDropdownButton = document.getElementById('addDropdownButton');
         const removeDropdownButton = document.getElementById('removeDropdownButton');
         const searchDropdownButton = document.getElementById('searchDropdownButton');
@@ -40,14 +40,14 @@ export async function setButtonsDisplay() {
         addDropdownButton.style.display = "inline";
         removeDropdownButton.style.display = "inline";
         searchDropdownButton.style.display = "inline";
-        if(downloadDropdownButton) downloadDropdownButton.style.display = "inline";
-        
+        if (downloadDropdownButton) downloadDropdownButton.style.display = "inline";
+
     } catch (error) {
         console.error(error);
     }
 }
 
-export async function signInLogic(){
+export async function signInLogic() {
     await userManager.signinRedirect({
         extraQueryParams: {
             identity_provider: "Google",
@@ -56,7 +56,7 @@ export async function signInLogic(){
     });
 }
 
-export async function signOutLogic(){
+export async function signOutLogic() {
     const user = await userManager.getUser();
     if (user) {
         console.log("Logging out user:", user);
@@ -68,18 +68,18 @@ export async function signOutLogic(){
     window.location.reload();
 }
 
-export function cancelEditLogic(){
+export function cancelEditLogic() {
     document.getElementById('modalOverlay').style.display = 'none';
 }
 
-export async function saveButtonLogic(selectedMember){
+export async function saveButtonLogic(selectedMember) {
     try {
         const user = await userManager.getUser();
         if (!user || user.expired) {
             alert("You must be signed in to save changes.");
             return;
         }
-        
+
         const newFirstName = document.getElementById('editFirstName').value;
         const newLastName = document.getElementById('editLastName').value;
         const newZekkenText = document.getElementById('editZekken').value;
@@ -89,7 +89,7 @@ export async function saveButtonLogic(selectedMember){
         const newBirthday = document.getElementById('editBirthday').value;
         const newStatus = document.getElementById('editStatus').value;
 
-        const response = await fetch('https://j5z43ef3j0.execute-api.us-east-2.amazonaws.com/members', {
+        const response = await fetch('https://jlsml5sfaj.execute-api.us-east-2.amazonaws.com/members', {
             method: 'PATCH',
             headers: {
                 'Content-Type': 'application/json',
@@ -112,7 +112,7 @@ export async function saveButtonLogic(selectedMember){
             throw new Error(`Server returned ${response.status}`);
         }
 
-        document.getElementById('shelf').innerHTML = '';        
+        document.getElementById('shelf').innerHTML = '';
         const data = await response.json();
         console.log("✅ Member updated:", data);
     } catch (error) {
@@ -121,7 +121,7 @@ export async function saveButtonLogic(selectedMember){
     }
 }
 
-export async function removeButtonLogic(selectedMember){
+export async function removeButtonLogic(selectedMember) {
     try {
         const user = await userManager.getUser();
         if (!user || user.expired) {
@@ -129,7 +129,7 @@ export async function removeButtonLogic(selectedMember){
             return;
         }
 
-        const response = await fetch('https://j5z43ef3j0.execute-api.us-east-2.amazonaws.com/members', {
+        const response = await fetch('https://jlsml5sfaj.execute-api.us-east-2.amazonaws.com/members', {
             method: 'DELETE',
             headers: {
                 'Content-Type': 'application/json',
@@ -152,7 +152,7 @@ export async function removeButtonLogic(selectedMember){
     }
 }
 
-export async function addFormSubmitLogic(event){
+export async function addFormSubmitLogic(event) {
 
     event.preventDefault();
     const addForm = event.target;
@@ -171,10 +171,10 @@ export async function addFormSubmitLogic(event){
         const newRankNumber = parseInt(document.getElementById('addRankNumber').value, 10);
         const newEmail = document.getElementById('addEmail').value;
         const newBirthday = document.getElementById('addBirthday').value;
-        
-        const isGuest = document.getElementById('isGuest').checked ? 'yes':'no';
 
-        const response = await fetch('https://j5z43ef3j0.execute-api.us-east-2.amazonaws.com/members', {
+        const isGuest = document.getElementById('isGuest').checked ? 'yes' : 'no';
+
+        const response = await fetch('https://jlsml5sfaj.execute-api.us-east-2.amazonaws.com/members', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -211,27 +211,27 @@ export async function addFormSubmitLogic(event){
     }
 }
 
-export function dropdownButtonLogic(dropdownElementId){
+export function dropdownButtonLogic(dropdownElementId) {
     const dropdownElement = document.getElementById(dropdownElementId);
     dropdownElement.style.display = (dropdownElement.style.display == 'flex') ? 'none' : 'flex';
 }
 
-export function openFormLogic(formId){
+export function openFormLogic(formId) {
 
     document.getElementById(formId).style.display = 'flex';
 
     const removeMemberPanel = document.getElementById('remove-member'); // target
     if (removeMemberPanel && removeMemberPanel.style.display === 'flex') removeMemberPanel.style.display = 'none';
-    
+
     const addMemberPanel = document.getElementById('add-member');
     if (addMemberPanel && addMemberPanel.style.display === 'flex') addMemberPanel.style.display = 'none';
-    
+
     const searchMemberPanel = document.getElementById('search-member');
     if (searchMemberPanel && searchMemberPanel.style.display === 'flex') searchMemberPanel.style.display = 'none';
 
 }
 
-export function findMatchingMembers(members, firstNameId, lastNameId){
+export function findMatchingMembers(members, firstNameId, lastNameId) {
 
     const firstName = document.getElementById(firstNameId).value.trim();
     const lastName = document.getElementById(lastNameId).value.trim();
@@ -240,13 +240,13 @@ export function findMatchingMembers(members, firstNameId, lastNameId){
         alert("Please enter both first name and last name.");
         return;
     }
-    
+
     // Search for matching members
-    const matchingMembers = members.filter(member => 
-        member.first_name.toLowerCase().includes(firstName.toLowerCase()) && 
+    const matchingMembers = members.filter(member =>
+        member.first_name.toLowerCase().includes(firstName.toLowerCase()) &&
         member.last_name.toLowerCase().includes(lastName.toLowerCase())
     );
-    
+
     if (matchingMembers.length === 0) {
         alert(`No members found matching "${firstName} ${lastName}".`);
         return;
@@ -255,31 +255,31 @@ export function findMatchingMembers(members, firstNameId, lastNameId){
     return matchingMembers;
 }
 
-export function cancelDropdownLogic(formId, resultId){
+export function cancelDropdownLogic(formId, resultId) {
     const form = document.getElementById(formId);
     form.style.display = 'none';
     form.reset();
-    
-    if(resultId)
+
+    if (resultId)
         document.getElementById(resultId).style.display = 'none';
 }
 
-export function exportCsv(members){
+export function exportCsv(members) {
     try {
-        if(!Array.isArray(members) || members.length === 0){
+        if (!Array.isArray(members) || members.length === 0) {
             alert('No members to export.');
             return;
         }
-        const header = ['first_name','last_name','zekken_text','rank_type','rank_number','email','birthday','is_guest'];
+        const header = ['first_name', 'last_name', 'zekken_text', 'rank_type', 'rank_number', 'email', 'birthday', 'is_guest'];
         const escapeCsv = (value) => {
             const str = (value ?? '').toString();
-            if(/[",\n]/.test(str)){
+            if (/[",\n]/.test(str)) {
                 return '"' + str.replace(/"/g, '""') + '"';
             }
             return str;
         };
         const rows = [header.join(',')];
-        for(const m of members){
+        for (const m of members) {
             const row = [
                 escapeCsv(m.first_name),
                 escapeCsv(m.last_name),
@@ -308,7 +308,7 @@ export function exportCsv(members){
     }
 }
 
-export async function csvAddLogic(event){
+export async function csvAddLogic(event) {
     try {
         console.log("CSV ADD");
         const user = await userManager.getUser();
@@ -331,7 +331,7 @@ export async function csvAddLogic(event){
             // Example: Read the CSV file as text
             const reader = new FileReader();
 
-            reader.onload = async function(e) {
+            reader.onload = async function (e) {
                 const csvText = e.target.result;
                 // Split into rows
                 const rows = csvText.trim().split('\n');
@@ -343,14 +343,14 @@ export async function csvAddLogic(event){
                         alert(`Error: Row ${i + 1} is missing fields. Each row must have ${COLS_NUM} columns.`);
                         throw new Error(`CSV row ${i + 1} is missing fields`);
                     }
-                    
+
                     for (let j = 0; j < cols.length; j++) {
                         const col = cols[j].trim();
                         const idx = j;
 
                         console.log(`Row: ${i} | Col ${idx}: ${col}`);
-                        
-                        switch(idx){
+
+                        switch (idx) {
                             case 0:
                                 newFirstName = col;
                                 break;
@@ -370,7 +370,7 @@ export async function csvAddLogic(event){
                             case 4:
                                 newRankNumber = parseInt(col.trim(), 10);
 
-                                if (isNaN(newRankNumber) || newRankNumber < 0 || (newRankType === 'dan' && (newRankNumber <= 0 || newRankNumber > 8)) 
+                                if (isNaN(newRankNumber) || newRankNumber < 0 || (newRankType === 'dan' && (newRankNumber <= 0 || newRankNumber > 8))
                                     || (newRankType === 'kyu' && (newRankNumber < 0 || newRankNumber > 6))) {
                                     alert(`Error: Invalid rank number "${newRankNumber}" in row ${i + 1}`);
                                     throw new Error(`Invalid rank number "${newRankNumber}" in row ${i + 1}`);
@@ -388,7 +388,7 @@ export async function csvAddLogic(event){
                         }
                     }
 
-                    const response = await fetch('https://j5z43ef3j0.execute-api.us-east-2.amazonaws.com/members', {
+                    const response = await fetch('https://jlsml5sfaj.execute-api.us-east-2.amazonaws.com/members', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -410,13 +410,13 @@ export async function csvAddLogic(event){
                     if (!response.ok) {
                         throw new Error(`Server returned ${response.status}`);
                     }
-                
+
                 }
                 window.location.reload();
             };
-            
+
             reader.readAsText(file);
-        } 
+        }
     } catch (err) {
         console.error("❌ Error adding group:", JSON.stringify(err, Object.getOwnPropertyNames(err), 2));
         alert("Failed to add group. Please resubmit .csv file and try again.");

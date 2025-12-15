@@ -20,6 +20,7 @@
     "typescript": "~5.6.3"
   },
   "dependencies": {
+    "@aws-sdk/client-cognito-identity-provider": "^3.940.0",
     "@aws-sdk/client-dynamodb": "^3.888.0",
     "@aws-sdk/client-secrets-manager": "^3.888.0",
     "@aws-sdk/credential-providers": "^3.888.0",
