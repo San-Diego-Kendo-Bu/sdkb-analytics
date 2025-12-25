@@ -117,6 +117,14 @@ export class ServiceStack extends Stack {
       environment: { SUPABASE_SECRET_ID: props.supabaseSecret.secretName },
     });
 
+    const clearOvrPaymentsLambda = new NodejsFunction(this, "ClearOvrPaymentsLambda", {
+      entry: path.join(__dirname, "../../lambdas/payments/clearOverduePayments/index.js"),
+      handler: "handler",
+      ...commonNodejs,
+      environment: { SUPABASE_SECRET_ID: props.supabaseSecret.secretName },
+    });
+
+
     const getSeminarRegistrationsLambda = new NodejsFunction(this, "GetSeminarRegistrationsLambda", {
       entry: path.join(__dirname, "../../lambdas/events/getSeminarRegistrations/index.js"),
       handler: "handler",
@@ -247,6 +255,7 @@ export class ServiceStack extends Stack {
     props.supabaseSecret.grantRead(removePaymentLambda);
     props.supabaseSecret.grantRead(updatePaymentLambda);
     props.supabaseSecret.grantRead(getPaymentLambda);
+    props.supabaseSecret.grantRead(clearOvrPaymentsLambda);
 
     props.supabaseSecret.grantRead(assignPaymentLambda);
     props.supabaseSecret.grantRead(unassignPaymentLambda);
