@@ -1,6 +1,5 @@
 const { getSupabase } = require("../../shared_utils/supabase");
 const { verifyMemberExists } = require("../../shared_utils/members");
-const { normalizeGroups } = require("../../shared_utils/normalize_claim");
 
 const SUPABASE_SECRET_ID = process.env.SUPABASE_SECRET_ID;
 const TOURNAMENT_REGISTRATION_TABLE = "Registrations";
@@ -8,16 +7,7 @@ const SHINSA_REGISTRATION_TABLE = "ShinsaRegistrations";
 const SEMINAR_REGISTRATION_TABLE = "SeminarRegistrations";
 const REGION = process.env.AWS_REGION;
 
-
 exports.handler = async (event) => {
-
-    const claims =
-        event.requestContext?.authorizer?.jwt?.claims ??
-        event.requestContext?.authorizer?.claims ?? {};
-
-    const groups = normalizeGroups(claims["cognito:groups"]);
-    const isAdmin = groups.some((g) => g === "admins" || g.endsWith(" admins"));
-    if (!isAdmin) return { statusCode: 403, body: "Forbidden" };
 
     try {
         const parameters = JSON.parse(event.body);

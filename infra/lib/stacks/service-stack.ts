@@ -136,7 +136,6 @@ export class ServiceStack extends Stack {
       environment: { SUPABASE_SECRET_ID: props.supabaseSecret.secretName },
     });
 
-
     const registerEventLambda = new NodejsFunction(this, "RegisterEventLambda", {
       entry: path.join(__dirname, "../../lambdas/events/registerEvent/index.js"),
       handler: "handler",
@@ -399,21 +398,25 @@ export class ServiceStack extends Stack {
       path: "/payments",
       methods: [HttpMethod.POST],
       integration: new HttpLambdaIntegration("PaymentsPostInt", createPaymentLambda),
+      ...(auth ? { authorizer: auth } : {}),
     });
     httpApi.addRoutes({
       path: "/payments/broadcast",
       methods: [HttpMethod.POST],
       integration: new HttpLambdaIntegration("BroadcastPaymentsPostInt", broadcastPaymentLambda),
+      ...(auth ? { authorizer: auth } : {}),
     });
     httpApi.addRoutes({
       path: "/payments",
       methods: [HttpMethod.DELETE],
       integration: new HttpLambdaIntegration("PaymentsDeleteInt", removePaymentLambda),
+      ...(auth ? { authorizer: auth } : {}),
     });
     httpApi.addRoutes({
       path: "/payments",
       methods: [HttpMethod.PATCH],
       integration: new HttpLambdaIntegration("PaymentsPatchInt", updatePaymentLambda),
+      ...(auth ? { authorizer: auth } : {}),
     });
     httpApi.addRoutes({
       path: "/payments",
@@ -426,16 +429,19 @@ export class ServiceStack extends Stack {
       path: "/assignedpayments",
       methods: [HttpMethod.POST],
       integration: new HttpLambdaIntegration("AssignedPaymentsPostInt", assignPaymentLambda),
+      ...(auth ? { authorizer: auth } : {}),
     });
     httpApi.addRoutes({
       path: "/assignedpayments",
       methods: [HttpMethod.DELETE],
       integration: new HttpLambdaIntegration("AssignedPaymentsDeleteInt", unassignPaymentLambda),
+      ...(auth ? { authorizer: auth } : {}),
     });
     httpApi.addRoutes({
       path: "/assignedpayments",
       methods: [HttpMethod.PATCH],
       integration: new HttpLambdaIntegration("AssignedPaymentsPatchInt", updateAsgnPaymentLambda),
+      ...(auth ? { authorizer: auth } : {}),
     });
     httpApi.addRoutes({
       path: "/assignedpayments",
@@ -453,6 +459,7 @@ export class ServiceStack extends Stack {
       path: "/submittedpayments",
       methods: [HttpMethod.DELETE],
       integration: new HttpLambdaIntegration("SubmittedPaymentsDeleteInt", removeSbmtPaymentLambda),
+      ...(auth ? { authorizer: auth } : {}),
     });
     httpApi.addRoutes({
       path: "/submittedpayments",
@@ -465,6 +472,7 @@ export class ServiceStack extends Stack {
       path: "/events",
       methods: [HttpMethod.POST],
       integration: new HttpLambdaIntegration("EventsPostInt", createEventLambda),
+      ...(auth ? { authorizer: auth } : {}),
     });
     httpApi.addRoutes({
       path: "/events/register",
@@ -480,6 +488,7 @@ export class ServiceStack extends Stack {
       path: "/events/configure",
       methods: [HttpMethod.POST],
       integration: new HttpLambdaIntegration("EventsConfigureInt", configureEventLambda),
+      ...(auth ? { authorizer: auth } : {}),
     });
     httpApi.addRoutes({
       path: "/events",
@@ -505,11 +514,13 @@ export class ServiceStack extends Stack {
       path: "/events",
       methods: [HttpMethod.PATCH],
       integration: new HttpLambdaIntegration("EventsPatchInt", updateEventLambda),
+      ...(auth ? { authorizer: auth } : {}),
     });
     httpApi.addRoutes({
       path: "/events",
       methods: [HttpMethod.DELETE],
       integration: new HttpLambdaIntegration("EventsDeleteInt", removeEventLambda),
+      ...(auth ? { authorizer: auth } : {}),
     });
 
     const { userPool } = props;

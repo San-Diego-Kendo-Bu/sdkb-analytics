@@ -1,26 +1,13 @@
 const { getCurrentTimeUTC } = require("../../shared_utils/dates");
 const { verifyMemberExists } = require("../../shared_utils/members");
 const { getSupabase, callPostgresFunction } = require("../../shared_utils/supabase");
-const { normalizeGroups } = require("../../shared_utils/normalize_claim");
 
 const REQUIRED_FIELDS = ["member_id", "payment_id"];
 
 const SUPABASE_SECRET_ID = process.env.SUPABASE_SECRET_ID;
 const REGION = process.env.AWS_REGION;
 
-
 exports.handler = async (event) => {
-    const claims =
-        event.requestContext?.authorizer?.jwt?.claims ??
-        event.requestContext?.authorizer?.claims ??
-        {};
-
-    const groups = normalizeGroups(claims['cognito:groups']);
-    const isAdmin = groups.some(g => g === 'admins' || g.endsWith(' admins'));
-
-    if (!isAdmin) {
-        return { statusCode: 403, body: 'Forbidden' };
-    }
 
     try {
         const parameters = JSON.parse(event.body);

@@ -1,5 +1,4 @@
 const { getSupabase, getFromTable } = require("../../shared_utils/supabase");
-const { normalizeGroups } = require("../../shared_utils/normalize_claim");
 
 const SUBMITTED_PAYMENTS_TABLE = "SubmittedPayments";
 const FIELDS = ["member_id", "payment_id", "assigned_on", "submitted_on", "overdue", "total_paid"];
@@ -9,13 +8,6 @@ const REGION = process.env.AWS_REGION;
 
 
 exports.handler = async (event) => {
-    const claims =
-        event.requestContext?.authorizer?.jwt?.claims ??
-        event.requestContext?.authorizer?.claims ??
-        {};
-
-    const groups = normalizeGroups(claims['cognito:groups']);
-    const isAdmin = groups.some(g => g === 'admins' || g.endsWith(' admins'));
 
     if (!isAdmin) {
         return { statusCode: 403, body: 'Forbidden' };
