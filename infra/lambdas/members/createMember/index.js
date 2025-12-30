@@ -8,7 +8,7 @@ const {
   AdminCreateUserCommand,
 } = require("@aws-sdk/client-cognito-identity-provider");
 
-const { normalizeGroups } = require("../../shared_utils/utils");
+const { normalizeGroups } = require("../../shared_utils");
 
 const Stripe = require("stripe");
 const cognito = new CognitoIdentityProviderClient({ region: "us-east-2" });

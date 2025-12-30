@@ -1,5 +1,5 @@
 const { getSupabase } = require("../../shared_utils/supabase");
-const { normalizeGroups } = require("../../shared_utils/utils");
+const { normalizeGroups } = require("../../shared_utils");
 
 const ASSIGNED_PAYMENTS_TABLE = "AssignedPayments";
 

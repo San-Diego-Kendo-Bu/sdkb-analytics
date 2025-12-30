@@ -5,7 +5,7 @@ const {
   UpdateCommand
 } = require("@aws-sdk/lib-dynamodb");
 
-const { normalizeGroups } = require("../../shared_utils/utils");
+const { normalizeGroups } = require("../../shared_utils");
 
 // Init DynamoDB
 const client = new DynamoDBClient({});

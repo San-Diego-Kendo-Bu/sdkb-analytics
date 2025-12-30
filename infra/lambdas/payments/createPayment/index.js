@@ -4,7 +4,7 @@ const { getSupabase, callPostgresFunction } = require("../../shared_utils/supaba
 const SUPABASE_SECRET_ID = process.env.SUPABASE_SECRET_ID;
 const REGION = process.env.AWS_REGION;
 
-const { normalizeGroups } = require("../../shared_utils/utils");
+const { normalizeGroups } = require("../../shared_utils");
 
 exports.handler = async (event) => {
 

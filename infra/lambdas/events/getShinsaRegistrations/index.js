@@ -1,5 +1,5 @@
 const { getSupabase } = require("../../shared_utils/supabase");
-const { normalizeGroups } = require("../../shared_utils/utils");
+const { normalizeGroups } = require("../../shared_utils");
 
 const SUPABASE_SECRET_ID = process.env.SUPABASE_SECRET_ID;
 const SHINSA_REGISTRATION_TABLE = "ShinsaRegistrations";
