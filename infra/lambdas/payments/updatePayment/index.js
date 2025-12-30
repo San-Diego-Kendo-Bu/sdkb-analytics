@@ -1,11 +1,20 @@
 const { getSupabase, callPostgresFunction } = require("../../shared_utils/supabase");
-// TODO: authentication to be added
+const { normalizeGroups } = require("../../shared_utils/utils");
+
 const SUPABASE_SECRET_ID = process.env.SUPABASE_SECRET_ID;
 const REGION = process.env.AWS_REGION;
 
 const FIELDS = ['payment_id', 'title', 'created_at', 'due_date', 'payment_value', 'overdue_penalty'];
 
 exports.handler = async (event) => {
+
+    const claims =
+        event.requestContext?.authorizer?.jwt?.claims ??
+        event.requestContext?.authorizer?.claims ?? {};
+
+    const groups = normalizeGroups(claims["cognito:groups"]);
+    const isAdmin = groups.some((g) => g === "admins" || g.endsWith(" admins"));
+    if (!isAdmin) return { statusCode: 403, body: "Forbidden" };
 
     try {
 
