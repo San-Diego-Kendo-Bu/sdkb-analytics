@@ -7,19 +7,18 @@ const SHINSA_REGISTRATION_TABLE = "ShinsaRegistrations";
 const SEMINAR_REGISTRATION_TABLE = "SeminarRegistrations";
 const REGION = process.env.AWS_REGION;
 
-function dummyCognito(){
-    return ['admin@gmail.com'];
-}
-
-function isAdmin(clientEmail){
-    return dummyCognito()[0] === clientEmail;
-}
-
 exports.handler = async (event) => {
 
-    const clientEmail = event.headers["client_email"];
-    
-    if(!isAdmin(clientEmail))
+    const claims =
+        event.requestContext?.authorizer?.jwt?.claims ??
+        event.requestContext?.authorizer?.claims ?? {};
+
+    const groups = normalizeGroups(claims["cognito:groups"]);
+    const isAdmin = groups.some((g) => g === "admins" || g.endsWith(" admins"));
+
+    if (!isAdmin) return { statusCode: 403, body: "Forbidden" };
+
+    if (!isAdmin(clientEmail))
         return { statusCode: 403, body: "Forbidden" };
 
     try {
@@ -32,8 +31,8 @@ exports.handler = async (event) => {
 
         // check if this member_id is in the members database
         const memberExists = await verifyMemberExists(memberId);
-        if(!memberExists){
-            return {    
+        if (!memberExists) {
+            return {
                 statusCode: 404,
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ error: "Member not found" })
@@ -53,13 +52,13 @@ exports.handler = async (event) => {
                 division: division,
                 doing_teams: doingTeams
             });
-            
-            if(response.error){
+
+            if (response.error) {
                 return {
                     statusCode: 500,
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ error: response.error })
-                }; 
+                };
             }
         } else if (configType === "shinsa") {
             const testing_for = parameters.testing_for;
@@ -71,10 +70,10 @@ exports.handler = async (event) => {
                 testing_for: testing_for
             });
 
-            if(response.error){
+            if (response.error) {
                 return {
                     statusCode: 500,
-                    headers: { "Content-Type": "application/json" },     
+                    headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ error: response.error })
                 };
             }
@@ -85,9 +84,9 @@ exports.handler = async (event) => {
                 registered_date: registered_date
             });
 
-            if(response.error){
+            if (response.error) {
                 return {
-                    statusCode: 500,   
+                    statusCode: 500,
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ error: response.error })
                 };
@@ -100,13 +99,13 @@ exports.handler = async (event) => {
             };
         }
 
-        return{
-            statusCode : 200,
-            headers : {
+        return {
+            statusCode: 200,
+            headers: {
                 "Content-Type": "application/json",
                 "Access-Control-Allow-Origin": "*"
             },
-            body : JSON.stringify({
+            body: JSON.stringify({
                 message: "Registered Event Successfully",
                 request_parameters: parameters,
             })

@@ -6,30 +6,24 @@ const SHINSA_TABLE = "Shinsas";
 const SEMINAR_TABLE = "Seminars";
 const REGION = process.env.AWS_REGION;
 
-function dummyCognito(){
-    return ['admin@gmail.com'];
-}
-
-function isAdmin(clientEmail){
-    return dummyCognito()[0] === clientEmail;
-}
-
 exports.handler = async (event) => {
+    const claims =
+        event.requestContext?.authorizer?.jwt?.claims ??
+        event.requestContext?.authorizer?.claims ?? {};
 
-    const clientEmail = event.headers["client_email"];
-    
-    if(!isAdmin(clientEmail))
-        return { statusCode: 403, body: "Forbidden" };
+    const groups = normalizeGroups(claims["cognito:groups"]);
+    const isAdmin = groups.some((g) => g === "admins" || g.endsWith(" admins"));
+    if (!isAdmin) return { statusCode: 403, body: "Forbidden" };
 
     try {
 
         const parameters = JSON.parse(event.body);
-        
+
         // parse out if this is a shinsa or tournament or seminar configuration
         const configType = parameters.config_type;
         const supabase = await getSupabase(SUPABASE_SECRET_ID, REGION);
 
-        if(configType === "tournament"){
+        if (configType === "tournament") {
             const eventId = parameters.event_id;
             const shinpanNeeded = parameters.shinpan_needed;
             const divisions = parameters.divisions;
@@ -41,15 +35,15 @@ exports.handler = async (event) => {
                 divisions: divisions,
                 teams_included: teamsIncluded,
             });
-            
-            if(response.error){
+
+            if (response.error) {
                 return {
                     statusCode: 500,
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ error: response.error })
-                }; 
+                };
             }
-        } else if(configType === "shinsa"){
+        } else if (configType === "shinsa") {
             const eventId = parameters.event_id;
             const shinsaLevels = parameters.shinsa_levels;
 
@@ -58,14 +52,14 @@ exports.handler = async (event) => {
                 shinsa_levels: shinsaLevels,
             });
 
-            if(response.error){
+            if (response.error) {
                 return {
                     statusCode: 500,
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ error: response.error })
-                }; 
+                };
             }
-        } else if(configType === "seminar"){
+        } else if (configType === "seminar") {
             const eventId = parameters.event_id;
             const seminarGuests = parameters.seminar_guests;
             const bring_your_lunch = parameters.bring_your_lunch;
@@ -77,12 +71,12 @@ exports.handler = async (event) => {
 
             });
 
-            if(response.error){
+            if (response.error) {
                 return {
                     statusCode: 500,
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ error: response.error })
-                }; 
+                };
             }
         } else {
             return {
@@ -92,13 +86,13 @@ exports.handler = async (event) => {
             };
         }
 
-        return{
-            statusCode : 200,
-            headers : {
+        return {
+            statusCode: 200,
+            headers: {
                 "Content-Type": "application/json",
                 "Access-Control-Allow-Origin": "*"
             },
-            body : JSON.stringify({
+            body: JSON.stringify({
                 message: "Configured Event Successfully",
                 request_parameters: parameters,
             })

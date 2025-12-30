@@ -1,6 +1,6 @@
 const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
 const {
-  DynamoDBDocumentClient, UpdateCommand,
+    DynamoDBDocumentClient, UpdateCommand,
 } = require("@aws-sdk/lib-dynamodb");
 
 const { getSupabase } = require("../../shared_utils/supabase");
@@ -10,20 +10,14 @@ const EVENTS_TABLE = "Events";
 const REGION = process.env.AWS_REGION;
 const ddb = DynamoDBDocumentClient.from(new DynamoDBClient({ region: REGION }));
 
-function dummyCognito(){
-    return ['admin@gmail.com'];
-}
-
-function isAdmin(clientEmail){
-    return dummyCognito()[0] === clientEmail;
-}
-
 exports.handler = async (event) => {
+    const claims =
+        event.requestContext?.authorizer?.jwt?.claims ??
+        event.requestContext?.authorizer?.claims ?? {};
 
-    const clientEmail = event.headers["client_email"];
-    
-    if(!isAdmin(clientEmail))
-        return { statusCode: 403, body: "Forbidden" };
+    const groups = normalizeGroups(claims["cognito:groups"]);
+    const isAdmin = groups.some((g) => g === "admins" || g.endsWith(" admins"));
+    if (!isAdmin) return { statusCode: 403, body: "Forbidden" };
 
     try {
         const updateParams = {
@@ -57,24 +51,24 @@ exports.handler = async (event) => {
             created_at: createdAt,
             event_location: eventLocation
         });
-        
-        if(response.error){
+
+        if (response.error) {
             return {
                 statusCode: 500,
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ error: response.error })
-            }; 
+            };
         }
 
         const data = response.data[0];
 
-        return{
-            statusCode : 200,
-            headers : {
+        return {
+            statusCode: 200,
+            headers: {
                 "Content-Type": "application/json",
                 "Access-Control-Allow-Origin": "*"
             },
-            body : JSON.stringify({
+            body: JSON.stringify({
                 message: "Created Event Successfully",
                 id: data.event_id,
                 data: data,
