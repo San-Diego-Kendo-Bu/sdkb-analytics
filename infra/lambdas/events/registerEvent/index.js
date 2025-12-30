@@ -1,5 +1,6 @@
 const { getSupabase } = require("../../shared_utils/supabase");
 const { verifyMemberExists } = require("../../shared_utils/members");
+const { normalizeGroups } = require("../../shared_utils/utils");
 
 const SUPABASE_SECRET_ID = process.env.SUPABASE_SECRET_ID;
 const TOURNAMENT_REGISTRATION_TABLE = "TournamentRegistrations";

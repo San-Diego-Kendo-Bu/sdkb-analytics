@@ -5,12 +5,14 @@ const {
   UpdateCommand
 } = require("@aws-sdk/lib-dynamodb");
 
+const { normalizeGroups } = require("../../shared_utils/utils");
+
 // Init DynamoDB
 const client = new DynamoDBClient({});
 const ddb = DynamoDBDocumentClient.from(client);
 
 const MEMBERS_TABLE = "members";
-const DEDUP_INDEX   = "dedup_key-index";
+const DEDUP_INDEX = "dedup_key-index";
 
 const lc = v => (v ?? "").toString().trim().toLowerCase();
 
@@ -50,7 +52,7 @@ exports.handler = async (event) => {
     return { statusCode: 403, body: 'Forbidden' };
   }
 
-  try { 
+  try {
     const data = JSON.parse(event.body);
     const { member_id, ...fieldsToUpdate } = data;
 
@@ -124,7 +126,7 @@ exports.handler = async (event) => {
     });
 
     const result = await ddb.send(updateCommand);
- 
+
     return {
       statusCode: 200,
       body: JSON.stringify({

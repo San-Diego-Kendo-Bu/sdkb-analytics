@@ -8,6 +8,8 @@ const {
   AdminCreateUserCommand,
 } = require("@aws-sdk/client-cognito-identity-provider");
 
+const { normalizeGroups } = require("../../shared_utils/utils");
+
 const Stripe = require("stripe");
 const cognito = new CognitoIdentityProviderClient({ region: "us-east-2" });
 const USER_POOL_ID = "us-east-2_pOKlRyKnT"
@@ -21,13 +23,6 @@ const ddb = DynamoDBDocumentClient.from(new DynamoDBClient({ region: REGION }));
 const secrets_client = new SecretsManagerClient({ region: REGION });
 
 const lc = (v) => (v ?? "").toString().trim().toLowerCase();
-
-function normalizeGroups(raw) {
-  if (Array.isArray(raw)) return raw.flatMap(normalizeGroups);
-  const s = String(raw ?? "").trim();
-  const withoutBrackets = s.startsWith("[") && s.endsWith("]") ? s.slice(1, -1) : s;
-  return withoutBrackets.split(",").map((x) => x.trim()).filter(Boolean);
-}
 
 async function getStripe() {
   const r = await secrets_client.send(new GetSecretValueCommand({ SecretId: SECRET_ID }));

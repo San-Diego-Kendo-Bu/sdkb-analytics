@@ -1,5 +1,5 @@
 const { getSupabase, callPostgresFunction } = require("../../shared_utils/supabase");
-
+// TODO: authentication to be added
 const SUPABASE_SECRET_ID = process.env.SUPABASE_SECRET_ID;
 const REGION = process.env.AWS_REGION;
 

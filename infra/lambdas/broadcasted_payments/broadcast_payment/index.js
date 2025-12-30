@@ -1,6 +1,7 @@
 const { getSupabase, callPostgresFunction } = require("../../shared_utils/supabase");
 const { getAllMemberIds } = require("../../shared_utils/members");
 const { getCurrentTimeUTC } = require("../../shared_utils/dates");
+const { normalizeGroups } = require("../../shared_utils/utils");
 
 const SUPABASE_SECRET_ID = process.env.SUPABASE_SECRET_ID;
 const REGION = process.env.AWS_REGION;

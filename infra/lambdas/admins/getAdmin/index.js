@@ -1,18 +1,4 @@
-function normalizeGroups(raw) {
-  if (Array.isArray(raw)) {
-    return raw.flatMap(item => normalizeGroups(item)); // handle nested / mixed shapes
-  }
-  const s = String(raw || '').trim();
-
-  // If the value is like "[a, b, c]" (stringified array), strip brackets first
-  const withoutBrackets = (s.startsWith('[') && s.endsWith(']')) ? s.slice(1, -1) : s;
-
-  // Split by comma, trim entries, drop empties
-  return withoutBrackets
-    .split(',')
-    .map(x => x.trim())
-    .filter(Boolean);
-}
+const { normalizeGroups } = require("../../shared_utils/utils");
 
 exports.handler = async (event) => {
   const claims =
@@ -32,7 +18,7 @@ exports.handler = async (event) => {
   if (!isAdmin) {
     return { statusCode: 403, body: 'Forbidden' };
   }
-  
+
   return {
     statusCode: 200,
     headers: {
