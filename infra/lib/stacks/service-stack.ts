@@ -372,8 +372,7 @@ export class ServiceStack extends Stack {
     httpApi.addRoutes({
       path: "/admins",
       methods: [HttpMethod.GET],
-      integration: new HttpLambdaIntegration("AdminsGetInt", getAdminLambda),
-      ...(auth ? { authorizer: auth } : {}),
+      integration: new HttpLambdaIntegration("AdminsGetInt", getAdminLambda)
     });
 
     // Members
