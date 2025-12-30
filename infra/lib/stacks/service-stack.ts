@@ -68,11 +68,10 @@ export class ServiceStack extends Stack {
       ...commonNodejs,
     });
 
-    const getAdminLambda = new LambdaFunction(this, "GetAdminLambda", {
-      runtime: Runtime.NODEJS_18_X,
-      handler: "index.handler",
-      code: Code.fromAsset(path.join(__dirname, "../../lambdas/admins/getAdmin")),
-      logRetention: logs.RetentionDays.ONE_WEEK,
+    const getAdminLambda = new NodejsFunction(this, "GetAdminLambda", {
+      entry: path.join(__dirname, "../../lambdas/admins/getAdmin/index.js"),
+      handler: "handler",
+      ...commonNodejs,
     });
 
     const removeMemberLambda = new NodejsFunction(this, "RemoveMemberLambda", {
@@ -82,11 +81,10 @@ export class ServiceStack extends Stack {
       environment: { SECRET_ID: props.stripeSecret.secretName },
     });
 
-    const modifyMemberLambda = new LambdaFunction(this, "ModifyMemberLambda", {
-      runtime: Runtime.NODEJS_18_X,
-      handler: "index.handler",
-      code: Code.fromAsset(path.join(__dirname, "../../lambdas/members/modifyMember")),
-      logRetention: logs.RetentionDays.ONE_WEEK,
+    const modifyMemberLambda = new NodejsFunction(this, "ModifyMemberLambda", {
+      entry: path.join(__dirname, "../../lambdas/members/modifyMember/index.js"),
+      handler: "handler",
+      ...commonNodejs,
     });
 
     const createPaymentLambda = new NodejsFunction(this, "CreatePaymentLambda", {
@@ -345,11 +343,6 @@ export class ServiceStack extends Stack {
       resources: [members],
     }));
 
-    broadcastPaymentLambda.role?.addToPrincipalPolicy(new iam.PolicyStatement({
-      actions: ["dynamodb:Scan"],
-      resources: [members],
-    }));
-
     // ---- HTTP API + routes
     const httpApi = new HttpApi(this, "ServiceApi", {
       apiName: "MembersApi",
@@ -372,7 +365,8 @@ export class ServiceStack extends Stack {
     httpApi.addRoutes({
       path: "/admins",
       methods: [HttpMethod.GET],
-      integration: new HttpLambdaIntegration("AdminsGetInt", getAdminLambda)
+      integration: new HttpLambdaIntegration("AdminsGetInt", getAdminLambda),
+      ...(auth ? { authorizer: auth } : {}),
     });
 
     // Members

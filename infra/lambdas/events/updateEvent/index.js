@@ -1,5 +1,5 @@
 const { getSupabase } = require("../../shared_utils/supabase");
-const { normalizeGroups } = require("../../shared_utils");
+const { normalizeGroups } = require("../../shared_utils/normalize_claim");
 
 const EVENTS_TABLE = "Events";
 const SUPABASE_SECRET_ID = process.env.SUPABASE_SECRET_ID;

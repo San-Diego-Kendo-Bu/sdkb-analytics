@@ -1,4 +1,4 @@
-const { normalizeGroups } = require("../../shared_utils");
+const { normalizeGroups } = require("../../shared_utils/normalize_claim");
 
 exports.handler = async (event) => {
   const claims =

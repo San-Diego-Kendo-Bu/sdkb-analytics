@@ -1,7 +1,7 @@
 const { getSupabase, callPostgresFunction } = require("../../shared_utils/supabase");
 const { verifyMemberExists } = require("../../shared_utils/members");
 const { getCurrentTimeUTC } = require("../../shared_utils/dates");
-const { normalizeGroups } = require("../../shared_utils");
+const { normalizeGroups } = require("../../shared_utils/normalize_claim");
 
 const REQUIRED_FIELDS = ["member_id", "payment_id"];
 

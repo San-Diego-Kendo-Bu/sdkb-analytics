@@ -1,5 +1,5 @@
 const { getSupabase } = require("../../shared_utils/supabase");
-const { normalizeGroups } = require("../../shared_utils");
+const { normalizeGroups } = require("../../shared_utils/normalize_claim");
 
 const SUPABASE_SECRET_ID = process.env.SUPABASE_SECRET_ID;
 const TOURNAMENT_REGISTRATION_TABLE = "TournamentRegistrations";
