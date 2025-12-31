@@ -4,7 +4,6 @@ const {
   ScanCommand,
   DynamoDBDocumentClient
 } = require("@aws-sdk/lib-dynamodb");
-const { get } = require("http");
 
 const REGION = process.env.AWS_REGION;
 const ddb = DynamoDBDocumentClient.from(new DynamoDBClient({ region: REGION }));
@@ -100,7 +99,22 @@ async function getAllMemberIds(onlyActiveNoExempt, noGuests, onlySenseis) {
 async function getMemberIdByToken(claims) {
   const username = claims["cognito:username"];
 
-  return username;
+  const res = await ddb.send(
+    new QueryCommand({
+      TableName: MEMBERS_TABLE,
+      IndexName: "username-index",
+      KeyConditionExpression: "#u = :u",
+      ExpressionAttributeNames: { "#u": "username" },
+      ExpressionAttributeValues: { ":u": username },
+      Limit: 1, // username is unique
+      ProjectionExpression: "member_id",
+    })
+  );
+
+  const member_id = res.Items?.[0]?.member_id ?? null;
+  console.log("getMemberIdByToken result:", member_id);
+  return member_id;
+
 }
 
 module.exports = { getMemberById, getMembersByEmail, verifyMemberExists, getAllMemberIds, getMemberIdByToken };
