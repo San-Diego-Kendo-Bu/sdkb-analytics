@@ -7,20 +7,7 @@ const SHINSA_REGISTRATION_TABLE = "ShinsaRegistrations";
 const SEMINAR_REGISTRATION_TABLE = "SeminarRegistrations";
 const REGION = process.env.AWS_REGION;
 
-function dummyCognito(){
-    return ['admin@gmail.com'];
-}
-
-function isAdmin(clientEmail){
-    return dummyCognito()[0] === clientEmail;
-}
-
 exports.handler = async (event) => {
-
-    const clientEmail = event.headers["client_email"];
-    
-    if(!isAdmin(clientEmail))
-        return { statusCode: 403, body: "Forbidden" };
 
     try {
         const parameters = JSON.parse(event.body);
@@ -29,8 +16,8 @@ exports.handler = async (event) => {
         const memberId = parameters.member_id;
 
         const memberExists = await verifyMemberExists(memberId);
-        if(!memberExists){
-            return {    
+        if (!memberExists) {
+            return {
                 statusCode: 404,
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ error: "Member not found" })
@@ -44,26 +31,26 @@ exports.handler = async (event) => {
                 .from(TOURNAMENT_REGISTRATION_TABLE)
                 .delete()
                 .match({ event_id: eventId, member_id: memberId });
-            
-            if(response.error){
+
+            if (response.error) {
                 return {
                     statusCode: 500,
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ error: response.error })
-                }; 
+                };
             }
         } else if (configType === "shinsa") {
             const response = await supabase
                 .from(SHINSA_REGISTRATION_TABLE)
                 .delete()
                 .match({ event_id: eventId, member_id: memberId });
-            
-            if(response.error){
+
+            if (response.error) {
                 return {
                     statusCode: 500,
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ error: response.error })
-                }; 
+                };
             }
 
         } else if (configType === "seminar") {
@@ -71,13 +58,13 @@ exports.handler = async (event) => {
                 .from(SEMINAR_REGISTRATION_TABLE)
                 .delete()
                 .match({ event_id: eventId, member_id: memberId });
-            
-            if(response.error){
+
+            if (response.error) {
                 return {
                     statusCode: 500,
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ error: response.error })
-                }; 
+                };
             }
         } else {
             return {
@@ -88,15 +75,15 @@ exports.handler = async (event) => {
         }
 
 
-        
 
-        return{
-            statusCode : 200,
-            headers : {
+
+        return {
+            statusCode: 200,
+            headers: {
                 "Content-Type": "application/json",
                 "Access-Control-Allow-Origin": "*"
             },
-            body : JSON.stringify({
+            body: JSON.stringify({
                 message: "Event Unregistered Successfully",
                 request_parameters: parameters,
             })

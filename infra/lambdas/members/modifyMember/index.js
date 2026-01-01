@@ -5,30 +5,16 @@ const {
   UpdateCommand
 } = require("@aws-sdk/lib-dynamodb");
 
+const { normalizeGroups } = require("../../shared_utils/normalize_claim");
+
 // Init DynamoDB
 const client = new DynamoDBClient({});
 const ddb = DynamoDBDocumentClient.from(client);
 
 const MEMBERS_TABLE = "members";
-const DEDUP_INDEX   = "dedup_key-index";
+const DEDUP_INDEX = "dedup_key-index";
 
 const lc = v => (v ?? "").toString().trim().toLowerCase();
-
-function normalizeGroups(raw) {
-  if (Array.isArray(raw)) {
-    return raw.flatMap(item => normalizeGroups(item)); // handle nested / mixed shapes
-  }
-  const s = String(raw || '').trim();
-
-  // If the value is like "[a, b, c]" (stringified array), strip brackets first
-  const withoutBrackets = (s.startsWith('[') && s.endsWith(']')) ? s.slice(1, -1) : s;
-
-  // Split by comma, trim entries, drop empties
-  return withoutBrackets
-    .split(',')
-    .map(x => x.trim())
-    .filter(Boolean);
-}
 
 exports.handler = async (event) => {
   // Prefer claims from API Gateway authorizer (ID token path)
@@ -40,17 +26,11 @@ exports.handler = async (event) => {
   const groups = normalizeGroups(claims['cognito:groups']);
   const isAdmin = groups.some(g => g === 'admins' || g.endsWith(' admins'));
 
-  console.log('Auth debug', {
-    email: claims.email,
-    groups,
-    token_use: claims.token_use,
-  });
-
   if (!isAdmin) {
     return { statusCode: 403, body: 'Forbidden' };
   }
 
-  try { 
+  try {
     const data = JSON.parse(event.body);
     const { member_id, ...fieldsToUpdate } = data;
 
@@ -124,7 +104,7 @@ exports.handler = async (event) => {
     });
 
     const result = await ddb.send(updateCommand);
- 
+
     return {
       statusCode: 200,
       body: JSON.stringify({

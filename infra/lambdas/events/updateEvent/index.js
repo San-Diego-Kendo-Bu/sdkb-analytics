@@ -1,4 +1,5 @@
 const { getSupabase } = require("../../shared_utils/supabase");
+const { normalizeGroups } = require("../../shared_utils/normalize_claim");
 
 const EVENTS_TABLE = "Events";
 const SUPABASE_SECRET_ID = process.env.SUPABASE_SECRET_ID;
@@ -6,27 +7,21 @@ const REGION = process.env.AWS_REGION;
 const FIELDS = ["event_id", "event_date", "event_name", "event_type", "event_deadline", "created_at", "event_location", "payment_id"];
 const DATE_FIELDS = ["event_date", "event_deadline", "created_at"];
 
-function dummyCognito(){
-    return ['admin@gmail.com'];
-}
-
-function isAdmin(clientEmail){
-    return dummyCognito()[0] === clientEmail;
-}
-
 exports.handler = async (event) => {
 
-    const clientEmail = event.headers["client_email"];
+    const claims =
+        event.requestContext?.authorizer?.jwt?.claims ??
+        event.requestContext?.authorizer?.claims ?? {};
 
-    if(!isAdmin(clientEmail)) {
-        return { statusCode: 403, body: "Forbidden" };
-    }
+    const groups = normalizeGroups(claims["cognito:groups"]);
+    const isAdmin = groups.some((g) => g === "admins" || g.endsWith(" admins"));
+    if (!isAdmin) return { statusCode: 403, body: "Forbidden" };
 
     try {
         const parameters = JSON.parse(event.body);
         const eventId = parameters.event_id;
 
-        if(!eventId){
+        if (!eventId) {
             return {
                 status: 400,
                 message: "Missing value for event_id"
@@ -34,8 +29,8 @@ exports.handler = async (event) => {
         }
 
         const payload = {};
-        for(const field of FIELDS){
-            if(field in parameters){
+        for (const field of FIELDS) {
+            if (field in parameters) {
                 payload[field] = parameters[field];
             }
         }
@@ -44,7 +39,7 @@ exports.handler = async (event) => {
         const malformedDateFieldValues = [];
 
         DATE_FIELDS.forEach((fieldName) => {
-            if(payload[fieldName] && !dateStringIsValid(payload[fieldName])){
+            if (payload[fieldName] && !dateStringIsValid(payload[fieldName])) {
                 malformedDateFields.push(fieldName);
                 malformedDateFieldValues.push(payload[fieldName]);
             }
@@ -62,7 +57,7 @@ exports.handler = async (event) => {
         }
 
         if (payload.event_date && payload.event_deadline &&
-                new Date(payload.event_date) < new Date(payload.event_deadline)) {
+            new Date(payload.event_date) < new Date(payload.event_deadline)) {
             return {
                 statusCode: 400,
                 message: "Event date cannot be earlier than event deadline",
@@ -79,7 +74,7 @@ exports.handler = async (event) => {
             .update(payload)
             .eq('event_id', eventId);
 
-        if(response.error){
+        if (response.error) {
             return {
                 statusCode: 500,
                 headers: { "Content-Type": "application/json" },
@@ -89,13 +84,13 @@ exports.handler = async (event) => {
 
         const data = response.data[0];
 
-        return{
-            statusCode : 200,
-            headers : {
+        return {
+            statusCode: 200,
+            headers: {
                 "Content-Type": "application/json",
                 "Access-Control-Allow-Origin": "*"
             },
-            body : JSON.stringify({
+            body: JSON.stringify({
                 message: "Updated Event Successfully",
                 id: data.event_id,
                 data: data,
