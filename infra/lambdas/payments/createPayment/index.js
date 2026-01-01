@@ -24,7 +24,7 @@ exports.handler = async (event) => {
 
         const title = parameters.title;
         const createdAt = parameters.created_at ? parameters.created_at : getCurrentTimeUTC();
-        const dueDate = parameters.due_date;
+        const dueDate = parameters.due_date ? parameters.due_date : null;
         const paymentValue = parameters.payment_value ? parseFloat(parameters.payment_value) : null;
         const overduePenalty = parameters.overdue_penalty ? parseFloat(parameters.overdue_penalty) : 0.0;
         
