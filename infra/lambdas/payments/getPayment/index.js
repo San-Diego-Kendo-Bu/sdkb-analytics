@@ -6,20 +6,7 @@ const FIELDS = ['payment_id', 'title', 'created_at', 'due_date', 'payment_value'
 const SUPABASE_SECRET_ID = process.env.SUPABASE_SECRET_ID;
 const REGION = process.env.AWS_REGION;
 
-function dummyRegisteredUsers(){
-    return ['admin@gmail.com', 'user@gmail.com'];
-}
-
-function isRegisteredUser(clientEmail){
-    return (dummyRegisteredUsers()[0] === clientEmail || dummyRegisteredUsers()[1] === clientEmail);
-}
-
 exports.handler = async (event) => {
-
-    const clientEmail = event.headers["client_email"];
-    
-    if(!isRegisteredUser(clientEmail))
-        return { statusCode: 403, body: "Forbidden" };
 
     try {
         const parameters = event.headers;

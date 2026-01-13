@@ -1,4 +1,5 @@
 const { getSupabase } = require("../../shared_utils/supabase");
+const { normalizeGroups } = require("../../shared_utils/normalize_claim");
 
 const ASSIGNED_PAYMENTS_TABLE = "AssignedPayments";
 
@@ -8,37 +9,34 @@ const REGION = process.env.AWS_REGION;
 const REQUIRED_FIELDS = ["member_id", "payment_id"];
 const UPDATE_FIELDS = ["assigned_on", "status"];
 
-function dummyCognito(){
-    return ['admin@gmail.com'];
-}
-
-function isAdmin(clientEmail){
-    return dummyCognito()[0] === clientEmail;
-}
 
 exports.handler = async (event) => {
-    const clientEmail = event.headers["client_email"];
-    if(!isAdmin(clientEmail))
-        return { statusCode: 403, body: "Forbidden" };
-    
-    try{
+    const claims =
+        event.requestContext?.authorizer?.jwt?.claims ??
+        event.requestContext?.authorizer?.claims ?? {};
+
+    const groups = normalizeGroups(claims["cognito:groups"]);
+    const isAdmin = groups.some((g) => g === "admins" || g.endsWith(" admins"));
+    if (!isAdmin) return { statusCode: 403, body: "Forbidden" };
+
+    try {
 
         const parameters = JSON.parse(event.body);
         const ids = {};
         const payload = {};
 
-        for(const field of REQUIRED_FIELDS){
-            if(!parameters[field]){
-                return { 
-                    statusCode: 400, 
-                    body: `${field} is missing from your request, please include it.` 
+        for (const field of REQUIRED_FIELDS) {
+            if (!parameters[field]) {
+                return {
+                    statusCode: 400,
+                    body: `${field} is missing from your request, please include it.`
                 };
             }
             ids[field] = parameters[field];
         }
-        
-        for(const field of UPDATE_FIELDS){
-            if(field in parameters){
+
+        for (const field of UPDATE_FIELDS) {
+            if (field in parameters) {
                 payload[field] = parameters[field];
             }
         }
@@ -48,31 +46,31 @@ exports.handler = async (event) => {
             .update(payload)
             .match(ids)
             .select();
-        
-        if(response.error){
+
+        if (response.error) {
             return {
                 statusCode: 500,
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ error: response.error })
-            }; 
+            };
         }
 
         const data = response.data[0];
-        return{
-            statusCode : 200,
-            headers : {"Content-Type" : "application/json"},
-            body : JSON.stringify({
+        return {
+            statusCode: 200,
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
                 payment_id: data.payment_id,
                 member_id: data.member_id,
                 data: data,
             })
         };
 
-    }catch(err){
-        return{
-            statusCode : 500,
-            headers : {"Content-Type" : "application/json"},
-            body : JSON.stringify({ error : err.message })
+    } catch (err) {
+        return {
+            statusCode: 500,
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ error: err.message })
         };
     }
 }
