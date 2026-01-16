@@ -22,6 +22,9 @@ import * as iam from "aws-cdk-lib/aws-iam";
 import { ISecret } from "aws-cdk-lib/aws-secretsmanager";
 import { IUserPool } from "aws-cdk-lib/aws-cognito";
 
+import * as scheduler from 'aws-cdk-lib/aws-scheduler'; // https://docs.aws.amazon.com/cdk/api/v2/docs/aws-cdk-lib.aws_scheduler-readme.html
+import * as targets from 'aws-cdk-lib/aws-scheduler-targets'
+
 export interface ServiceStackProps extends StackProps {
   membersAuthorizer?: IHttpRouteAuthorizer;   // attach to protected routes if provided
   stripeSecret: ISecret;
@@ -114,6 +117,14 @@ export class ServiceStack extends Stack {
       ...commonNodejs,
       environment: { SUPABASE_SECRET_ID: props.supabaseSecret.secretName },
     });
+
+    const clearOvrPaymentsLambda = new NodejsFunction(this, "ClearOvrPaymentsLambda", {
+      entry: path.join(__dirname, "../../lambdas/payments/clearOverduePayments/index.js"),
+      handler: "handler",
+      ...commonNodejs,
+      environment: { SUPABASE_SECRET_ID: props.supabaseSecret.secretName },
+    });
+
 
     const getSeminarRegistrationsLambda = new NodejsFunction(this, "GetSeminarRegistrationsLambda", {
       entry: path.join(__dirname, "../../lambdas/events/getSeminarRegistrations/index.js"),
@@ -244,6 +255,7 @@ export class ServiceStack extends Stack {
     props.supabaseSecret.grantRead(removePaymentLambda);
     props.supabaseSecret.grantRead(updatePaymentLambda);
     props.supabaseSecret.grantRead(getPaymentLambda);
+    props.supabaseSecret.grantRead(clearOvrPaymentsLambda);
 
     props.supabaseSecret.grantRead(assignPaymentLambda);
     props.supabaseSecret.grantRead(unassignPaymentLambda);
@@ -524,6 +536,22 @@ export class ServiceStack extends Stack {
     });
 
     const { userPool } = props;
+
+    // ---- Schedulers
+    const clearPaymentScheduleRole = new iam.Role(this, 'clearPaymentScheduleRole', {
+      assumedBy: new iam.ServicePrincipal('scheduler.amazonaws.com'),
+    });
+    clearOvrPaymentsLambda.grantInvoke(clearPaymentScheduleRole);
+    
+    const target = new targets.LambdaInvoke(clearOvrPaymentsLambda, {
+      role: clearPaymentScheduleRole,
+    });
+    const schedule = new scheduler.Schedule(this, 'ClearPaymentsSchedule', {
+        schedule: scheduler.ScheduleExpression.rate(Duration.days(1)),
+        target: target,
+        enabled: false,
+        description: 'This schedule periodically calls clearOvrPaymentsLambda. Functions as a scheduled database cleanup for payments.',
+    });
 
     // Cognito permissions
     createMemberLambda.role?.addToPrincipalPolicy(new iam.PolicyStatement({
