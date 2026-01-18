@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SDKB Portal</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body { margin: 0; background: #f4f6f8; }
+    .iframe-wrapper { height: calc(100vh - 180px); min-height: 480px; }
+    .nav-link { cursor: pointer; }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</head>
+<body>
+  <div id="root"></div>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script>
+    const { useState, createElement: e } = React;
+    const { createRoot } = ReactDOM;
+
+    const tabs = ['Nafudakake', 'Pay', 'Events', 'Admin Control'];
+
+    const Placeholder = ({ title }) => e(
+      'div',
+      { className: 'p-4 bg-white border rounded shadow-sm text-center text-muted' },
+      e('h4', { className: 'mb-2' }, title),
+      e('p', { className: 'mb-0' }, 'Coming soon.')
+    );
+
+    const Content = ({ activeTab }) => {
+      if (activeTab === 'Nafudakake') {
+        return e(
+          'div',
+          { className: 'bg-white border rounded shadow-sm overflow-hidden iframe-wrapper' },
+          e('iframe', {
+            src: './index.html',
+            title: 'Nafudakake',
+            className: 'w-100 h-100',
+            style: { border: '0' }
+          })
+        );
+      }
+      return e(Placeholder, { title: activeTab });
+    };
+
+    function App() {
+      const [activeTab, setActiveTab] = useState('Nafudakake');
+      const [signedIn, setSignedIn] = useState(false);
+
+      return e(
+        'div',
+        { className: 'bg-light min-vh-100' },
+        e(
+          'nav',
+          { className: 'navbar navbar-expand-lg navbar-light bg-white mb-4 shadow-sm' },
+          e(
+            'div',
+            { className: 'container-fluid' },
+            e('a', { className: 'navbar-brand', href: '#' }, 'SDKB Portal'),
+            e('button', {
+              className: 'navbar-toggler',
+              type: 'button',
+              'data-bs-toggle': 'collapse',
+              'data-bs-target': '#navbarNav'
+            }, e('span', { className: 'navbar-toggler-icon' })),
+            e(
+              'div',
+              { className: 'collapse navbar-collapse', id: 'navbarNav' },
+              e(
+                'ul',
+                { className: 'navbar-nav me-auto' },
+                tabs.map(tab => e(
+                  'li',
+                  { className: 'nav-item', key: tab },
+                  e(
+                    'a',
+                    {
+                      className: `nav-link${activeTab === tab ? ' active' : ''}`,
+                      onClick: () => setActiveTab(tab)
+                    },
+                    tab
+                  )
+                ))
+              ),
+              e(
+                'button',
+                {
+                  className: `btn btn-${signedIn ? 'outline-secondary' : 'warning'}`,
+                  onClick: () => setSignedIn(v => !v)
+                },
+                signedIn ? 'Sign Out' : 'Sign In'
+              )
+            )
+          )
+        ),
+        e(
+          'div',
+          { className: 'container-fluid pb-4' },
+          e(Content, { activeTab })
+        )
+      );
+    }
+
+    const mount = document.getElementById('root');
+    if (mount) {
+      createRoot(mount).render(e(App));
+    }
+  </script>
+</body>
+</html>
