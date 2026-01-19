@@ -99,11 +99,11 @@ export class DatabaseStack extends Stack {
             vpcSubnets: { subnets: vpc.isolatedSubnets },
             availabilityZone: vpc.isolatedSubnets[0].availabilityZone,
             instanceType: ec2.InstanceType.of(ec2.InstanceClass.T4G, ec2.InstanceSize.MICRO),
-            engine: rds.DatabaseInstanceEngine.postgres({ version: rds.PostgresEngineVersion.VER_14_6 }),
+            engine: rds.DatabaseInstanceEngine.postgres({ version: rds.PostgresEngineVersion.VER_14_19 }),
             port: 5432,
-            instanceIdentifier: 'librarydb-instance',
-            allocatedStorage: 20,
-            maxAllocatedStorage: 20,
+            instanceIdentifier: 'sdkb-instance',
+            allocatedStorage: 10,
+            maxAllocatedStorage: 10,
             deleteAutomatedBackups: true,
             backupRetention: Duration.millis(0),
             credentials: rds.Credentials.fromUsername('libraryadmin'),
@@ -139,19 +139,19 @@ export class DatabaseStack extends Stack {
         const instantiate = createResolver('instantiate', 'src/instantiate.ts');
         instantiate.node.addDependency(rdsInstance);
 
-        // Lambda function for adding a book in the RDS table.
-        const addBook = createResolver('add-book', 'src/addBook.ts');
-        addBook.node.addDependency(rdsInstance);
+        // // Lambda function for adding a book in the RDS table.
+        // const addBook = createResolver('add-book', 'src/addBook.ts');
+        // addBook.node.addDependency(rdsInstance);
 
-        // Lambda function for gettings books in the RDS table.
-        const getBooks = createResolver('get-books', 'src/getBooks.ts');
-        getBooks.node.addDependency(rdsInstance);
+        // // Lambda function for gettings books in the RDS table.
+        // const getBooks = createResolver('get-books', 'src/getBooks.ts');
+        // getBooks.node.addDependency(rdsInstance);
 
         // Custom Resource to execute instantiate function.
         const customResource = new cr.AwsCustomResource(this, 'TriggerInstantiate', {
             functionName: 'trigger-instantiate',
             role,
-            onUpdate: {
+            onCreate: {
                 service: 'Lambda',
                 action: 'invoke',
                 parameters: {
