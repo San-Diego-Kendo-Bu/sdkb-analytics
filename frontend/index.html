@@ -1,20 +1,24 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>San Diego Kendo Bu</title>
-    <link rel="stylesheet" href="./css/style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SDKB Portal</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="./css/style.css">
+  <style>
+    body { margin: 0; background: #f4f6f8; }
+    .nav-link { cursor: pointer; }
+        .nafudakake-container { display: none; }
+        .nafudakake-container.active { display: block; }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </head>
-
 <body>
-    <div class="top-bar">
-        <h1 style="margin: 0;">San Diego Kendo Bu</h1>
-        <button id="signIn" style="margin-left: 40px;" class="sign-in-btn">Sign In</button>
-        <button id="signOut" style="margin-left: 70px; display: none;" class="sign-in-btn">Sign Out</button>
-    </div>
+  <div id="root"></div>
 
+  <!-- Nafudakake Content -->
+  <div id="nafudakake-content" class="nafudakake-container">
     <div id="shelf"></div>
     <div id="modalOverlay">
         <div id="modalForm">
@@ -172,8 +176,127 @@
             <div id="searchResultsList"></div>
         </div>
     </form>
+  </div>
+
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script type="module">
+    import { renderTable, layoutShelf, setupEventListeners } from "./js/nafudaManager.js";
+    import * as buttonLogic from "./js/buttonLogic.js";
+
+    const { useState, createElement: e, useEffect } = React;
+    const { createRoot } = ReactDOM;
+
+    const tabs = ['Nafudakake', 'Pay', 'Events', 'Admin Control'];
+
+    const Placeholder = ({ title }) => e(
+      'div',
+      { className: 'p-4 bg-white border rounded shadow-sm text-center text-muted' },
+      e('h4', { className: 'mb-2' }, title),
+      e('p', { className: 'mb-0' }, 'Coming soon.')
+    );
+
+    const Content = ({ activeTab }) => {
+      if (activeTab === 'Nafudakake') {
+        return null;
+      }
+      return e(Placeholder, { title: activeTab });
+    };
+
+    function App() {
+    const [activeTab, setActiveTab] = useState('Nafudakake');
+
+            useEffect(() => {
+                const nafudakakeContent = document.getElementById('nafudakake-content');
+                const handleResize = () => layoutShelf();
+        
+                if (activeTab === 'Nafudakake' && nafudakakeContent) {
+                    nafudakakeContent.classList.add('active');
+                    renderTable();
+                    buttonLogic.setButtonsDisplay();
+                    setupEventListeners();
+                    window.addEventListener('resize', handleResize);
+                } else if (nafudakakeContent) {
+                    nafudakakeContent.classList.remove('active');
+                }
+
+                return () => {
+                    window.removeEventListener('resize', handleResize);
+                };
+            }, [activeTab]);
+
+            useEffect(() => {
+                const signInBtn = document.getElementById('signIn');
+                const signOutBtn = document.getElementById('signOut');
+
+                if (signInBtn) signInBtn.addEventListener('click', buttonLogic.signInLogic);
+                if (signOutBtn) signOutBtn.addEventListener('click', buttonLogic.signOutLogic);
+
+                buttonLogic.setButtonsDisplay();
+
+                return () => {
+                    if (signInBtn) signInBtn.removeEventListener('click', buttonLogic.signInLogic);
+                    if (signOutBtn) signOutBtn.removeEventListener('click', buttonLogic.signOutLogic);
+                };
+            }, []);
+
+      return e(
+        'div',
+                { className: 'bg-light' },
+                e(
+                    'nav',
+                    { className: 'navbar navbar-expand-lg navbar-light bg-white mb-4 shadow-sm' },
+                    e(
+                        'div',
+                        { className: 'container-fluid' },
+                        e('a', { className: 'navbar-brand', href: '#' }, 'SDKB Portal'),
+                        e('button', {
+                            className: 'navbar-toggler',
+                            type: 'button',
+                            'data-bs-toggle': 'collapse',
+                            'data-bs-target': '#navbarNav'
+                        }, e('span', { className: 'navbar-toggler-icon' })),
+                        e(
+                            'div',
+                            { className: 'collapse navbar-collapse', id: 'navbarNav' },
+                            e(
+                                'ul',
+                                { className: 'navbar-nav me-auto' },
+                                tabs.map(tab => e(
+                                    'li',
+                                    { className: 'nav-item', key: tab },
+                                    e(
+                                        'a',
+                                        {
+                                            className: `nav-link${activeTab === tab ? ' active' : ''}`,
+                                            onClick: () => setActiveTab(tab)
+                                        },
+                                        tab
+                                    )
+                                ))
+                            ),
+                            e(
+                                'div',
+                                { className: 'd-flex gap-2' },
+                                e('button', { id: 'signIn', className: 'btn btn-warning' }, 'Sign In'),
+                                e('button', { id: 'signOut', className: 'btn btn-outline-secondary', style: { display: 'none' } }, 'Sign Out')
+                            )
+                        )
+                    )
+                ),
+        activeTab !== 'Nafudakake' && e(
+          'div',
+          { className: 'container-fluid pb-4' },
+          e(Content, { activeTab })
+        )
+      );
+    }
+
+    const mount = document.getElementById('root');
+    if (mount) {
+      createRoot(mount).render(e(App));
+    }
+  </script>
+  <script type="module" src="js/buttonLogic.js"></script>
 </body>
-
-<script type="module" src="js/main.js"></script>
-
 </html>

@@ -1,0 +1,620 @@
+import { userManager } from "./cognitoManager.js";
+import { rankToNum, compareRank, formatName, formatRank, rankToKanji } from "./nafudaTools.js";
+import * as buttonLogic from "./buttonLogic.js";
+
+let selectedMember = null;
+let members = null;
+let renderedSlips = [];
+
+async function renderTable() {
+    try {
+        const response = await fetch('https://jlsml5sfaj.execute-api.us-east-2.amazonaws.com/members');
+        if (!response.ok) throw new Error(`HTTP error ${response.status}`);
+
+        const data = await response.json();
+        members = data.items;
+        members.sort(compareRank);
+
+        const slips = [];
+        let curRank = null;
+
+        for (const member of members) {
+            const memberId = member['member_id'];
+            const rankNum = member['rank_number'];
+            const rankType = member['rank_type'];
+            const firstName = member['first_name'];
+            const lastName = member['last_name'];
+            const zekkenText = member['zekken_text'];
+
+            if (curRank == null || curRank !== rankToNum(rankNum, rankType)) {
+                const rankSlip = await generateSlip(rankToKanji(rankNum, rankType), formatRank(rankNum, rankType), -1);
+                slips.push(rankSlip);
+                curRank = rankToNum(rankNum, rankType);
+            }
+
+            const memberSlip = await generateSlip(zekkenText, formatName(firstName, lastName), memberId);
+            slips.push(memberSlip);
+        }
+
+        renderedSlips = slips;
+        layoutShelf();
+
+    } catch (error) {
+        console.error(error);
+    }
+}
+
+function createEmptySlip() {
+    const nafuda = document.createElement('div');
+    nafuda.className = 'nafuda';
+
+    const slip = document.createElement('div');
+    slip.className = 'slip';
+
+    const front = document.createElement('div');
+    front.className = 'front';
+
+    slip.appendChild(front);
+    nafuda.appendChild(slip);
+
+    return nafuda;
+}
+
+function fitZekkenFront(frontEl) {
+    if (!frontEl) return;
+
+    frontEl.style.transform = '';
+    const spans = frontEl.querySelectorAll('span');
+    spans.forEach(s => {
+        s.style.lineHeight = '';
+        s.style.marginTop = '';
+        s.style.marginBottom = '';
+    });
+    frontEl.offsetHeight;
+
+    const available = frontEl.clientHeight;
+    let content = frontEl.scrollHeight;
+    if (content <= available) return;
+
+    const lineHeights = [1.0, 0.95, 0.9, 0.85, 0.8, 0.75];
+    for (const lh of lineHeights) {
+        spans.forEach(s => { s.style.lineHeight = String(lh); });
+        frontEl.offsetHeight;
+        content = frontEl.scrollHeight;
+        if (content <= available) return;
+    }
+
+    const scale = Math.max(0.6, Math.min(1, available / content));
+    frontEl.style.transform = `translateZ(0.001px) scale(${scale})`;
+}
+
+function fitAllZekkenFronts() {
+    const shelf = document.getElementById('shelf');
+    if (!shelf) return;
+    const fronts = shelf.querySelectorAll('.slip .front');
+    fronts.forEach(fitZekkenFront);
+}
+
+async function generateSlip(frontText, backText, memberId) {
+    const user = await userManager.getUser();
+
+    frontText = frontText.replace(/\./g, '·').replace(/ /g, '\u00A0').replace(/ー/g, '|');
+    backText = backText.replace(/\./g, '·').replace(/ /g, '\u00A0').replace(/ー/g, '|');
+
+    const nafuda = document.createElement('div');
+    nafuda.className = 'nafuda';
+
+    const slip = document.createElement('div');
+    if (memberId < 0) slip.className = 'slip rank';
+    else slip.className = 'slip';
+
+    const front = document.createElement('div');
+    front.className = 'front';
+
+    var kanjiSize;
+    if (frontText.length <= 4) kanjiSize = 'kanjiLarge';
+    else if (frontText.length <= 12) kanjiSize = 'kanjiMed';
+    else kanjiSize = 'kanjiSmall';
+
+    for (const char of frontText) {
+        const span = document.createElement('span');
+        span.className = kanjiSize;
+        span.textContent = char;
+        front.appendChild(span);
+    }
+
+    const back = document.createElement('div');
+    back.className = 'back';
+
+    for (const char of backText) {
+        const span = document.createElement('span');
+        span.className = 'character';
+        span.textContent = char;
+        back.appendChild(span);
+    }
+
+    slip.appendChild(front);
+    slip.appendChild(back);
+    nafuda.appendChild(slip);
+
+    nafuda.addEventListener('mouseenter', () => {
+        slip.classList.add('flipped');
+    });
+
+    nafuda.addEventListener('mouseleave', () => {
+        setTimeout(() => slip.classList.remove('flipped'), 150);
+    });
+
+    let isAdmin;
+    if (user) {
+        try {
+            const response = await fetch('https://jlsml5sfaj.execute-api.us-east-2.amazonaws.com/admins', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${user.id_token}`
+                }
+            });
+            if (!response.ok) throw new Error(`HTTP error ${response.status}`);
+
+            const data = await response.json();
+            isAdmin = data.isAdmin;
+
+        } catch (error) {
+            console.error(error);
+        }
+    }
+
+    if (memberId >= 0 && isAdmin) {
+        nafuda.addEventListener('click', () => {
+            openModal(memberId);
+        });
+        nafuda.style.cursor = 'pointer';
+    }
+
+    return nafuda;
+}
+
+function layoutShelf() {
+    try {
+        if (!renderedSlips || renderedSlips.length === 0) return;
+
+        const slipWidth = 70;
+        const shelf = document.getElementById('shelf');
+        if (!shelf) return;
+
+        const shelfWidth = shelf.clientWidth;
+        const isMobile = shelfWidth <= 600;
+
+        if (isMobile) {
+            shelf.innerHTML = '';
+            const rowDiv = document.createElement('div');
+            rowDiv.classList.add('slip-row');
+            renderedSlips.forEach(slip => rowDiv.appendChild(slip));
+            shelf.appendChild(rowDiv);
+
+            (window.requestAnimationFrame || setTimeout)(() => fitAllZekkenFronts(), 0);
+        } else {
+            const slipsPerRow = Math.max(2, Math.floor(shelfWidth / slipWidth));
+
+            let row = [];
+            const rows = [];
+
+            for (let i = 0; i < renderedSlips.length; i++) {
+                const slip = renderedSlips[i];
+                if (slip.firstChild.classList.contains('rank') && row.length === slipsPerRow - 1) {
+                    row.unshift(createEmptySlip());
+                    i--;
+                } else {
+                    row.unshift(slip);
+                }
+
+                if (row.length === slipsPerRow) {
+                    rows.push(row);
+                    row = [];
+                }
+            }
+
+            if (row.length > 0) {
+                while (row.length < slipsPerRow) {
+                    row.unshift(createEmptySlip());
+                }
+                rows.push(row);
+            }
+
+            shelf.innerHTML = '';
+            for (const r of rows) {
+                const rowDiv = document.createElement('div');
+                rowDiv.classList.add('slip-row');
+                r.forEach(slip => rowDiv.appendChild(slip));
+                shelf.appendChild(rowDiv);
+            }
+
+            (window.requestAnimationFrame || setTimeout)(() => fitAllZekkenFronts(), 0);
+        }
+    } catch (e) {
+        console.error('Failed to layout shelf:', e);
+    }
+}
+
+function openModal(memberId) {
+    for (let i = 0; i < members.length; i++) {
+        if (members[i]['member_id'] === memberId) {
+            selectedMember = members[i];
+            break;
+        }
+    }
+
+    document.getElementById('editFirstName').value = selectedMember.first_name || '';
+    document.getElementById('editLastName').value = selectedMember.last_name || '';
+    document.getElementById('editZekken').value = selectedMember.zekken_text || '';
+    document.getElementById('editRankType').value = selectedMember.rank_type || 'dan';
+    document.getElementById('editRankNumber').value = selectedMember.rank_number || 0;
+    document.getElementById('editEmail').value = selectedMember.email || '';
+    document.getElementById('editBirthday').value = selectedMember.birthday || '';
+    document.getElementById('editStatus').value = selectedMember.status || '';
+    document.getElementById('modalOverlay').style.display = 'flex';
+
+    let rankNumberInput = document.getElementById('editRankNumber');
+    if (selectedMember['rank_type'] === 'shihan') {
+        rankNumberInput.value = 0;
+        rankNumberInput.placeholder = '';
+        rankNumberInput.disabled = true;
+    } else {
+        rankNumberInput.disabled = false;
+    }
+}
+
+function closeModal() {
+    document.getElementById('modalOverlay').style.display = 'none';
+    selectedMember = null;
+}
+
+function displayRemoveResults(matchingMembers) {
+    const resultsDiv = document.getElementById('removeResults');
+    const resultsList = document.getElementById('removeResultsList');
+
+    resultsList.innerHTML = '';
+
+    matchingMembers.forEach(member => {
+        const memberDiv = document.createElement('div');
+        memberDiv.style.cssText = `
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        `;
+
+        const memberInfo = document.createElement('div');
+        memberInfo.innerHTML = `
+            <strong>${member.first_name} ${member.last_name}</strong><br>
+            Rank: ${formatRank(member.rank_number, member.rank_type)}<br>
+            Email: ${member.email || 'N/A'}<br>
+            Zekken: ${member.zekken_text || 'N/A'}
+        `;
+
+        const removeButton = document.createElement('button');
+        removeButton.textContent = 'Remove This Member';
+        removeButton.style.cssText = `
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 3px;
+            cursor: pointer;
+            margin-top: 5px;
+        `;
+
+        removeButton.addEventListener('click', async () => {
+            try {
+                const user = await userManager.getUser();
+                if (!user || user.expired) {
+                    alert("You must be signed in to remove a member.");
+                    return;
+                }
+
+                const response = await fetch('https://jlsml5sfaj.execute-api.us-east-2.amazonaws.com/members', {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${user.id_token}`
+                    },
+                    body: JSON.stringify({
+                        member_id: member.member_id
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Server returned ${response.status}`);
+                }
+
+                document.getElementById('removeForm').style.display = 'none';
+                document.getElementById('removeResults').style.display = 'none';
+                document.getElementById('removeForm').reset();
+
+                document.getElementById('shelf').innerHTML = '';
+                await renderTable();
+
+                console.log('Member removed successfully');
+
+            } catch (error) {
+                console.error("❌ Failed to remove member:", error);
+            }
+        });
+
+        memberDiv.appendChild(memberInfo);
+        memberDiv.appendChild(removeButton);
+        resultsList.appendChild(memberDiv);
+    });
+
+    resultsDiv.style.display = 'block';
+}
+
+function displaySearchResults(matchingMembers) {
+    const resultsDiv = document.getElementById('searchResults');
+    const resultsList = document.getElementById('searchResultsList');
+
+    resultsList.innerHTML = '';
+
+    matchingMembers.forEach(member => {
+        const memberDiv = document.createElement('div');
+        memberDiv.style.cssText = `
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+            cursor: pointer;
+        `;
+
+        const memberInfo = document.createElement('div');
+        memberInfo.innerHTML = `
+            <strong>${member.first_name} ${member.last_name}</strong><br>
+            Rank: ${formatRank(member.rank_number, member.rank_type)}<br>
+            Email: ${member.email || 'N/A'}<br>
+            Zekken: ${member.zekken_text || 'N/A'}
+        `;
+
+        memberDiv.appendChild(memberInfo);
+
+        memberDiv.addEventListener('click', () => {
+            openModal(member.member_id);
+            document.getElementById('searchForm').style.display = 'none';
+            document.getElementById('searchResults').style.display = 'none';
+            document.getElementById('searchForm').reset();
+        });
+
+        resultsList.appendChild(memberDiv);
+    });
+
+    resultsDiv.style.display = 'block';
+}
+
+function setupEventListeners() {
+    // Click outside to close dropdowns and forms
+    document.addEventListener('click', function (event) {
+        const addDropdownButton = document.getElementById('addDropdownButton');
+        const addMember = document.getElementById('add-member');
+        const csvInput = document.getElementById('groupCsvInput');
+        if (
+            event.target !== addMember && !addMember.contains(event.target) &&
+            event.target !== addDropdownButton && !addDropdownButton.contains(event.target) &&
+            event.target !== csvInput && !csvInput.contains(event.target)
+        ) {
+            if (addMember.style.display == 'flex') addMember.style.display = 'none';
+        }
+
+        const addForm = document.getElementById('addForm');
+        const openAddButton = document.getElementById('openAddButton');
+        const addMemberContainer = document.getElementById('add-member');
+        if (
+            event.target !== addForm && !addForm.contains(event.target) &&
+            event.target !== openAddButton && !addMemberContainer.contains(event.target)
+        ) {
+            if (addForm.style.display == 'flex') {
+                addForm.style.display = 'none';
+                addForm.reset();
+            }
+        }
+
+        const removeDropdownButton = document.getElementById('removeDropdownButton');
+        const removeMember = document.getElementById('remove-member');
+        if (
+            event.target !== removeMember && !removeMember.contains(event.target) &&
+            event.target !== removeDropdownButton && !removeDropdownButton.contains(event.target)
+        ) {
+            if (removeMember.style.display == 'flex') removeMember.style.display = 'none';
+        }
+
+        const searchDropdownButton = document.getElementById('searchDropdownButton');
+        const searchMember = document.getElementById('search-member');
+        if (
+            event.target !== searchMember && !searchMember.contains(event.target) &&
+            event.target !== searchDropdownButton && !searchDropdownButton.contains(event.target)
+        ) {
+            if (searchMember.style.display == 'flex') searchMember.style.display = 'none';
+        }
+
+        const downloadDropdownButton = document.getElementById('downloadDropdownButton');
+        const downloadMember = document.getElementById('download-member');
+        if (
+            downloadMember && 
+            event.target !== downloadMember && !downloadMember.contains(event.target) &&
+            event.target !== downloadDropdownButton && !downloadDropdownButton.contains(event.target)
+        ) {
+            if (downloadMember && downloadMember.style.display == 'flex') downloadMember.style.display = 'none';
+        }
+
+        const removeForm = document.getElementById('removeForm');
+        const openRemoveButton = document.getElementById('openRemoveButton');
+        const removeMemberContainer = document.getElementById('remove-member');
+        if (
+            event.target !== removeForm && !removeForm.contains(event.target) &&
+            event.target !== openRemoveButton && !removeMemberContainer.contains(event.target)
+        ) {
+            if (removeForm.style.display == 'flex') {
+                removeForm.style.display = 'none';
+                document.getElementById('removeResults').style.display = 'none';
+                removeForm.reset();
+            }
+        }
+
+        const searchForm = document.getElementById('searchForm');
+        const openSearchButton = document.getElementById('openSearchButton');
+        const searchMemberContainer = document.getElementById('search-member');
+        if (
+            event.target !== searchForm && !searchForm.contains(event.target) &&
+            event.target !== openSearchButton && !searchMemberContainer.contains(event.target)
+        ) {
+            if (searchForm.style.display == 'flex') {
+                searchForm.style.display = 'none';
+                document.getElementById('searchResults').style.display = 'none';
+                searchForm.reset();
+            }
+        }
+    });
+
+    // Modal buttons
+    document.getElementById('cancelButton').addEventListener('click', () => {
+        closeModal();
+    });
+
+    document.getElementById('saveButton').addEventListener('click', async () => {
+        try {
+            await buttonLogic.saveButtonLogic(selectedMember);
+            await renderTable();
+            closeModal();
+        } catch (error) {
+            console.error("❌ Failed to save or render table:", error);
+            alert("Something went wrong. Please try again.");
+        }
+    });
+
+    document.getElementById('removeButton').addEventListener('click', async () => {
+        try {
+            await buttonLogic.removeButtonLogic(selectedMember);
+            await renderTable();
+            closeModal();
+        } catch (error) {
+            console.error("❌ Failed to delete member:", error);
+            alert("Failed to delete member. Please try again.");
+        }
+    });
+
+    // Add form
+    document.getElementById('addForm').addEventListener('submit', async function (event) {
+        try {
+            await buttonLogic.addFormSubmitLogic(event);
+            await renderTable();
+        } catch (err) {
+            console.error("❌ Error adding member:", JSON.stringify(err, Object.getOwnPropertyNames(err), 2));
+            alert("Failed to add member. Please check the form and try again.");
+        }
+    });
+
+    // Dropdown buttons
+    document.getElementById('addDropdownButton').addEventListener('click', () => { 
+        buttonLogic.dropdownButtonLogic('add-member'); 
+    });
+
+    document.getElementById('removeDropdownButton').addEventListener('click', () => { 
+        buttonLogic.dropdownButtonLogic('remove-member'); 
+    });
+
+    document.getElementById('searchDropdownButton').addEventListener('click', () => { 
+        buttonLogic.dropdownButtonLogic('search-member'); 
+    });
+
+    const downloadBtn = document.getElementById('downloadDropdownButton');
+    if (downloadBtn) {
+        downloadBtn.addEventListener('click', () => { 
+            buttonLogic.dropdownButtonLogic('download-member'); 
+        });
+    }
+
+    // Open form buttons
+    document.getElementById('openAddButton').addEventListener('click', () => { 
+        buttonLogic.openFormLogic('addForm'); 
+    });
+
+    document.getElementById('openRemoveButton').addEventListener('click', () => { 
+        buttonLogic.openFormLogic('removeForm'); 
+    });
+
+    document.getElementById('openSearchButton').addEventListener('click', () => { 
+        buttonLogic.openFormLogic('searchForm'); 
+    });
+
+    const openDownloadBtn = document.getElementById('openDownloadButton');
+    if (openDownloadBtn) {
+        openDownloadBtn.addEventListener('click', () => { 
+            buttonLogic.exportCsv(members); 
+        });
+    }
+
+    // Cancel buttons
+    document.getElementById('cancelAddButton').addEventListener('click', () => {
+        buttonLogic.cancelDropdownLogic('addForm');
+    });
+
+    document.getElementById('cancelRemoveButton').addEventListener('click', () => {
+        buttonLogic.cancelDropdownLogic('removeForm', 'removeResults');
+    });
+
+    document.getElementById('cancelSearchButton').addEventListener('click', () => {
+        buttonLogic.cancelDropdownLogic('searchForm', 'searchResults');
+    });
+
+    // Search buttons
+    document.getElementById('searchRemoveButton').addEventListener('click', async () => {
+        const matchingMembers = buttonLogic.findMatchingMembers(members, 'removeFirstName', 'removeLastName');
+        if (matchingMembers && matchingMembers.length > 0) { 
+            displayRemoveResults(matchingMembers); 
+        }
+    });
+
+    document.getElementById('searchMemberButton').addEventListener('click', async () => {
+        const matchingMembers = buttonLogic.findMatchingMembers(members, 'searchFirstName', 'searchLastName');
+        if (matchingMembers && matchingMembers.length > 0) { 
+            displaySearchResults(matchingMembers); 
+        }
+    });
+
+    // CSV upload
+    document.getElementById('openAddGroupButton').addEventListener('click', () => {
+        document.getElementById('groupCsvInput').click();
+    });
+
+    document.getElementById('groupCsvInput').addEventListener('change', async (event) => {
+        buttonLogic.csvAddLogic(event);
+    });
+
+    // Rank type change handler
+    const rankTypeSelect = document.getElementById('editRankType');
+    const rankNumberInput = document.getElementById('editRankNumber');
+
+    rankTypeSelect.addEventListener('change', () => {
+        if (rankTypeSelect.value === 'shihan') {
+            rankNumberInput.value = 0;
+            rankNumberInput.placeholder = '';
+            rankNumberInput.disabled = true;
+        } else {
+            rankNumberInput.disabled = false;
+        }
+    });
+}
+
+export function getMembers() {
+    return members;
+}
+
+export function getSelectedMember() {
+    return selectedMember;
+}
+
+export { 
+    renderTable, 
+    layoutShelf, 
+    setupEventListeners 
+};
