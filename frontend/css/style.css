@@ -381,6 +381,7 @@ body {
 
 #removeButton{
     color: red;
+    height: 28px;
 }
 
 .modal-buttons {
