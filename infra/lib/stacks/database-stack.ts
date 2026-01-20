@@ -136,16 +136,17 @@ export class DatabaseStack extends Stack {
         })
 
         // Instantiate new db with user and permissions also add table.
-        const instantiate = createResolver('instantiate', 'src/instantiate.ts');
+        const instantiate = createResolver('instantiate', '../../lambdas/psql/init/index.js');
         instantiate.node.addDependency(rdsInstance);
 
-        // // Lambda function for adding a book in the RDS table.
-        // const addBook = createResolver('add-book', 'src/addBook.ts');
-        // addBook.node.addDependency(rdsInstance);
+        const deleteItem = createResolver('delete-item', '../../lambdas/psql/delete/index.js');
+        deleteItem.node.addDependency(rdsInstance);
 
-        // // Lambda function for gettings books in the RDS table.
-        // const getBooks = createResolver('get-books', 'src/getBooks.ts');
-        // getBooks.node.addDependency(rdsInstance);
+        const insertItem = createResolver('insert-item', '../../lambdas/psql/insert/index.js');
+        insertItem.node.addDependency(rdsInstance);
+
+        const selectItems = createResolver('select-item', '../../lambdas/psql/select/index.js');
+        selectItems.node.addDependency(rdsInstance);
 
         // Custom Resource to execute instantiate function.
         const customResource = new cr.AwsCustomResource(this, 'TriggerInstantiate', {
