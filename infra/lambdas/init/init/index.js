@@ -48,37 +48,37 @@ exports.handler = async () => {
         console.log('setup completed!');
         await adminClient.end();
 
-        // Instantiate RDS Client with new user
-        console.log('instantiating client with new user...');
-        const userClient = new Client({
-            host: admin.host,
-            user: credentials.user,
-            password: credentials.password,
-            database: 'librarydb',
-            port: 5432,
-        });
+        // // Instantiate RDS Client with new user
+        // console.log('instantiating client with new user...');
+        // const userClient = new Client({
+        //     host: admin.host,
+        //     user: credentials.user,
+        //     password: credentials.password,
+        //     database: 'librarydb',
+        //     port: 5432,
+        // });
 
-        // Connect to RDS instance
-        console.log('connecting to rds with new user...');
-        await userClient.connect();
+        // // Connect to RDS instance
+        // console.log('connecting to rds with new user...');
+        // await userClient.connect();
 
-        console.log('creating new table...');
-        const createTableCommand = [
-            'CREATE TABLE library (',
-            'isbn VARCHAR(50) UNIQUE NOT NULL, ',
-            'name VARCHAR(50) NOT NULL, ',
-            'authors VARCHAR(50)[] NOT NULL, ',
-            'languages VARCHAR(50)[] NOT NULL, ',
-            'countries VARCHAR(50)[] NOT NULL, ',
-            'numberOfPages integer, ',
-            'releaseDate VARCHAR(50) NOT NULL',
-            ');',
-        ].join('');
+        // console.log('creating new table...');
+        // const createTableCommand = [
+        //     'CREATE TABLE library (',
+        //     'isbn VARCHAR(50) UNIQUE NOT NULL, ',
+        //     'name VARCHAR(50) NOT NULL, ',
+        //     'authors VARCHAR(50)[] NOT NULL, ',
+        //     'languages VARCHAR(50)[] NOT NULL, ',
+        //     'countries VARCHAR(50)[] NOT NULL, ',
+        //     'numberOfPages integer, ',
+        //     'releaseDate VARCHAR(50) NOT NULL',
+        //     ');',
+        // ].join('');
 
-        await userClient.query(createTableCommand);
+        // await userClient.query(createTableCommand);
 
-        console.log('tasks completed!');
-        await userClient.end();
+        // console.log('tasks completed!');
+        // await userClient.end();
 
     } catch (error) {
         console.error('Error creating database:', error);
