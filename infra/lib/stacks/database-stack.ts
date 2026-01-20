@@ -106,7 +106,7 @@ export class DatabaseStack extends Stack {
             maxAllocatedStorage: 10,
             deleteAutomatedBackups: true,
             backupRetention: Duration.millis(0),
-            credentials: rds.Credentials.fromUsername('libraryadmin'),
+            credentials: rds.Credentials.fromUsername('sdkbadmin'),
             publiclyAccessible: false
         })
         rdsInstance.secret?.grantRead(role)
