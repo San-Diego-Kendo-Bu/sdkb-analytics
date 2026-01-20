@@ -1,18 +1,21 @@
-const { SecretsManager } = require('aws-sdk');
-const { Client } = require('pg');
+const {
+    SecretsManagerClient,
+    GetSecretValueCommand,
+} = require("@aws-sdk/client-secrets-manager");
 
+const { Client } = require("pg");
 const RDS_ARN = process.env.RDS_ARN;
 const CREDENTIALS_ARN = process.env.CREDENTIALS_ARN;
 
-const secrets = new SecretsManager();
+const secrets = new SecretsManagerClient({});
 
 exports.handler = async () => {
     try {
         // Retrieve RDS Admin credentials
         console.log('retrieving admin credentials...');
-        const adminSecret = await secrets
-            .getSecretValue({ SecretId: RDS_ARN })
-            .promise();
+        const adminSecret = await secrets.send(
+            new GetSecretValueCommand({ SecretId: RDS_ARN })
+        );
         const admin = JSON.parse(adminSecret.SecretString);
 
         // Retrieve RDS User credentials

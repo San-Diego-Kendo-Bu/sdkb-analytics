@@ -22,12 +22,13 @@
   "dependencies": {
     "@aws-sdk/client-cognito-identity-provider": "^3.940.0",
     "@aws-sdk/client-dynamodb": "^3.888.0",
-    "@aws-sdk/client-secrets-manager": "^3.888.0",
+    "@aws-sdk/client-secrets-manager": "^3.971.0",
     "@aws-sdk/credential-providers": "^3.888.0",
     "@aws-sdk/lib-dynamodb": "^3.888.0",
     "@supabase/supabase-js": "^2.57.4",
     "aws-cdk-lib": "^2.204.0",
     "constructs": "^10.4.2",
+    "pg": "^8.17.1",
     "stripe": "^18.5.0"
   }
 }

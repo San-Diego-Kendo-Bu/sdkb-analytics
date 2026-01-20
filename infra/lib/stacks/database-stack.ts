@@ -7,6 +7,7 @@ import * as secrets from 'aws-cdk-lib/aws-secretsmanager';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as nodejs from 'aws-cdk-lib/aws-lambda-nodejs';
 import * as cr from 'aws-cdk-lib/custom-resources';
+import path from "path";
 
 export interface DatabaseStackProps extends StackProps { }
 
@@ -16,7 +17,6 @@ export class DatabaseStack extends Stack {
 
         // VPC for RDS and Lambda resolvers
         const vpc = new ec2.Vpc(this, 'VPC', {
-            vpcName: 'rds-vpc',
             maxAzs: 2,
             natGateways: 0,
             subnetConfiguration: [
@@ -31,12 +31,10 @@ export class DatabaseStack extends Stack {
         // Security Groups
         const securityGroupResolvers = new ec2.SecurityGroup(this, 'SecurityGroupResolvers', {
             vpc,
-            securityGroupName: 'resolvers-sg',
             description: 'Security Group with Resolvers',
         })
         const securityGroupRds = new ec2.SecurityGroup(this, 'SecurityGroupRds', {
             vpc,
-            securityGroupName: 'rds-sg',
             description: 'Security Group with RDS',
         })
 
@@ -61,7 +59,6 @@ export class DatabaseStack extends Stack {
 
         // IAM Role
         const role = new iam.Role(this, 'Role', {
-            roleName: 'rds-role',
             description: 'Role used in the RDS stack',
             assumedBy: new iam.CompositePrincipal(
                 new iam.ServicePrincipal('ec2.amazonaws.com'),
@@ -117,7 +114,6 @@ export class DatabaseStack extends Stack {
 
         // Returns function to connect with RDS instance.
         const createResolver = (name: string, entry: string) => new nodejs.NodejsFunction(this, name, {
-            functionName: name,
             entry: entry,
             bundling: {
                 externalModules: ['pg-native']
@@ -136,17 +132,17 @@ export class DatabaseStack extends Stack {
         })
 
         // Instantiate new db with user and permissions also add table.
-        const instantiate = createResolver('instantiate', '../../lambdas/psql/init/index.js');
+        const instantiate = createResolver('instantiate', path.join(__dirname, '../../lambdas/psql/init/index.js'));
         instantiate.node.addDependency(rdsInstance);
 
-        const deleteItem = createResolver('delete-item', '../../lambdas/psql/delete/index.js');
-        deleteItem.node.addDependency(rdsInstance);
+        // const deleteItem = createResolver('delete-item', '../../lambdas/psql/delete/index.js');
+        // deleteItem.node.addDependency(rdsInstance);
 
-        const insertItem = createResolver('insert-item', '../../lambdas/psql/insert/index.js');
-        insertItem.node.addDependency(rdsInstance);
+        // const insertItem = createResolver('insert-item', '../../lambdas/psql/insert/index.js');
+        // insertItem.node.addDependency(rdsInstance);
 
-        const selectItems = createResolver('select-item', '../../lambdas/psql/select/index.js');
-        selectItems.node.addDependency(rdsInstance);
+        // const selectItems = createResolver('select-item', '../../lambdas/psql/select/index.js');
+        // selectItems.node.addDependency(rdsInstance);
 
         // Custom Resource to execute instantiate function.
         const customResource = new cr.AwsCustomResource(this, 'TriggerInstantiate', {
