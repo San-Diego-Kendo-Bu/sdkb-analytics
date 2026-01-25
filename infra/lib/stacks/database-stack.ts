@@ -38,25 +38,12 @@ export class DatabaseStack extends Stack {
             description: 'Security Group with RDS',
         })
 
-        const jumpBoxSg = ec2.SecurityGroup.fromSecurityGroupId(
-            this,
-            'jump-box-sg',
-            'sg-0e186ec3a9373e678'
-        );
-
         // Ingress and Egress Rules
         securityGroupRds.addIngressRule(
             securityGroupResolvers,
             ec2.Port.tcp(5432),
             'Allow inbound traffic to RDS'
         )
-
-        
-        securityGroupRds.addIngressRule(
-            jumpBoxSg,
-            ec2.Port.tcp(5432),
-            'Allow jump box access'
-        );
 
         // VPC Interfaces
         vpc.addInterfaceEndpoint('LAMBDA', {
