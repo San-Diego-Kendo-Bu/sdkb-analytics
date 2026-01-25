@@ -21,6 +21,11 @@ export class DatabaseStack extends Stack {
             natGateways: 0,
             subnetConfiguration: [
                 {
+                subnetType: ec2.SubnetType.PUBLIC,
+                cidrMask: 24,
+                name: 'public'
+                },
+                {
                     subnetType: ec2.SubnetType.PRIVATE_ISOLATED,
                     cidrMask: 24,
                     name: 'rds'
