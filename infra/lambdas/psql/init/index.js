@@ -39,49 +39,68 @@ exports.handler = async () => {
         console.log('connecting to rds with admin...');
         await adminClient.connect();
 
-        console.log('setting up new database...');
-        await adminClient.query('CREATE DATABASE librarydb;');
-        await adminClient.query(
-            `CREATE USER ${credentials.user} WITH PASSWORD '${credentials.password}';`
+        const dbExists = await adminClient.query(
+            'SELECT 1 FROM pg_database WHERE datname = $1',
+            ['sdkb-db']
         );
+
+        if (dbExists.rowCount === 0) {
+            console.log('creating database sdkb-db...');
+            await adminClient.query('CREATE DATABASE sdkb-db');
+        } else {
+            console.log('database librarydb already exists, skipping');
+        }
+
+        const userExists = await adminClient.query(
+            'SELECT 1 FROM pg_roles WHERE rolname = $1',
+            [credentials.user]
+        );
+
+        if (userExists.rowCount === 0) {
+            console.log(`creating user ${credentials.user}...`);
+            await adminClient.query(
+                `CREATE USER ${credentials.user} WITH PASSWORD '${credentials.password}'`
+            );
+        }
+
         await adminClient.query(
-            `GRANT ALL PRIVILEGES ON DATABASE librarydb TO ${credentials.user};`
+            `GRANT ALL PRIVILEGES ON DATABASE sdkb-db TO ${credentials.user};`
         );
 
         console.log('setup completed!');
         await adminClient.end();
 
-        // // Instantiate RDS Client with new user
-        // console.log('instantiating client with new user...');
-        // const userClient = new Client({
-        //     host: admin.host,
-        //     user: credentials.user,
-        //     password: credentials.password,
-        //     database: 'librarydb',
-        //     port: 5432,
-        // });
+        // Instantiate RDS Client with new user
+        console.log('instantiating client with new user...');
+        const userClient = new Client({
+            host: admin.host,
+            user: credentials.user,
+            password: credentials.password,
+            database: 'sdkb-db',
+            port: 5432,
+        });
 
-        // // Connect to RDS instance
-        // console.log('connecting to rds with new user...');
-        // await userClient.connect();
+        // Connect to RDS instance
+        console.log('connecting to rds with new user...');
+        await userClient.connect();
 
-        // console.log('creating new table...');
-        // const createTableCommand = [
-        //     'CREATE TABLE library (',
-        //     'isbn VARCHAR(50) UNIQUE NOT NULL, ',
-        //     'name VARCHAR(50) NOT NULL, ',
-        //     'authors VARCHAR(50)[] NOT NULL, ',
-        //     'languages VARCHAR(50)[] NOT NULL, ',
-        //     'countries VARCHAR(50)[] NOT NULL, ',
-        //     'numberOfPages integer, ',
-        //     'releaseDate VARCHAR(50) NOT NULL',
-        //     ');',
-        // ].join('');
+        console.log('creating new table...');
+        const createTableCommand = [
+            'CREATE TABLE IF NOT EXISTS payments (',
+            'payment_id BIGINT PRIMARY KEY, ',
+            'created_at TIMESTAMPTZ NOT NULL, ',
+            'payment_value DOUBLE PRECISION NOT NULL, ',
+            'overdue_penalty DOUBLE PRECISION, ',
+            'due_date TIMESTAMPTZ NOT NULL, ',
+            'title TEXT NOT NULL, ',
+            'has_submission BOOLEAN NOT NULL',
+            ');',
+        ].join('');
 
-        // await userClient.query(createTableCommand);
+        await userClient.query(createTableCommand);
 
-        // console.log('tasks completed!');
-        // await userClient.end();
+        console.log('tasks completed!');
+        await userClient.end();
 
     } catch (error) {
         console.error('Error creating database:', error);
