@@ -17,21 +17,14 @@ export class DatabaseStack extends Stack {
 
         // VPC for RDS and Lambda resolvers
         const vpc = new ec2.Vpc(this, 'VPC', {
+            ipAddresses: ec2.IpAddresses.cidr('10.1.0.0/16'), // Custom CIDR block to make sure it doesn't overlap
             maxAzs: 2,
             natGateways: 0,
             subnetConfiguration: [
-                {
-                subnetType: ec2.SubnetType.PUBLIC,
-                cidrMask: 24,
-                name: 'public'
-                },
-                {
-                    subnetType: ec2.SubnetType.PRIVATE_ISOLATED,
-                    cidrMask: 24,
-                    name: 'rds'
-                }
-            ]
-        })
+                { subnetType: ec2.SubnetType.PUBLIC, cidrMask: 24, name: 'public' },
+                { subnetType: ec2.SubnetType.PRIVATE_ISOLATED, cidrMask: 24, name: 'rds' },
+            ],
+        });
 
         // Security Groups
         const securityGroupResolvers = new ec2.SecurityGroup(this, 'SecurityGroupResolvers', {
@@ -151,7 +144,6 @@ export class DatabaseStack extends Stack {
 
         // Custom Resource to execute instantiate function.
         const customResource = new cr.AwsCustomResource(this, 'TriggerInstantiate', {
-            functionName: 'trigger-instantiate',
             role,
             onCreate: {
                 service: 'Lambda',
