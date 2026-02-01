@@ -8,6 +8,12 @@ const RDS_ARN = process.env.RDS_ARN;
 const CREDENTIALS_ARN = process.env.CREDENTIALS_ARN;
 
 const secrets = new SecretsManagerClient({});
+const fs = require("fs");
+const path = require("path");
+
+function loadSql(name) {
+  return fs.readFileSync(path.join(__dirname, "sql", name), "utf8");
+}
 
 exports.handler = async () => {
     try {
@@ -18,14 +24,19 @@ exports.handler = async () => {
         );
         const admin = JSON.parse(adminSecret.SecretString);
 
-        // Retrieve RDS User credentials
-        console.log('retrieving library credentials...');
-        const credentialsSecret = await secrets
-            .getSecretValue({ SecretId: CREDENTIALS_ARN })
-            .promise();
+        console.log("AWS_REGION:", process.env.AWS_REGION);
+        console.log("RDS_ARN:", process.env.RDS_ARN);
+        console.log("CREDENTIALS_ARN:", process.env.CREDENTIALS_ARN);
+
+        // Retrieve RDS User credentials (v3)
+        console.log('retrieving sdkb credentials...');
+        const credentialsSecret = await secrets.send(
+        new GetSecretValueCommand({ SecretId: CREDENTIALS_ARN })
+        );
         const credentials = JSON.parse(credentialsSecret.SecretString);
 
         // Instantiate RDS Client with Admin
+        console.log("admin keys:", Object.keys(admin));
         console.log('instantiating client with admin...');
         const adminClient = new Client({
             host: admin.host,
@@ -46,9 +57,9 @@ exports.handler = async () => {
 
         if (dbExists.rowCount === 0) {
             console.log('creating database sdkb-db...');
-            await adminClient.query('CREATE DATABASE sdkb-db');
+            await adminClient.query('CREATE DATABASE "sdkb-db"');
         } else {
-            console.log('database librarydb already exists, skipping');
+            console.log('database sdkb-db already exists, skipping');
         }
 
         const userExists = await adminClient.query(
@@ -64,12 +75,16 @@ exports.handler = async () => {
         }
 
         await adminClient.query(
-            `GRANT ALL PRIVILEGES ON DATABASE sdkb-db TO ${credentials.user};`
+            `GRANT ALL PRIVILEGES ON DATABASE "sdkb-db" TO ${credentials.user};`
+        );
+
+        await adminClient.query(
+            `ALTER DATABASE "sdkb-db" OWNER TO ${credentials.user};`
         );
 
         console.log('setup completed!');
         await adminClient.end();
-
+ 
         // Instantiate RDS Client with new user
         console.log('instantiating client with new user...');
         const userClient = new Client({
@@ -83,21 +98,10 @@ exports.handler = async () => {
         // Connect to RDS instance
         console.log('connecting to rds with new user...');
         await userClient.connect();
-
+        
         console.log('creating new table...');
-        const createTableCommand = [
-            'CREATE TABLE IF NOT EXISTS payments (',
-            'payment_id BIGINT PRIMARY KEY, ',
-            'created_at TIMESTAMPTZ NOT NULL, ',
-            'payment_value DOUBLE PRECISION NOT NULL, ',
-            'overdue_penalty DOUBLE PRECISION, ',
-            'due_date TIMESTAMPTZ NOT NULL, ',
-            'title TEXT NOT NULL, ',
-            'has_submission BOOLEAN NOT NULL',
-            ');',
-        ].join('');
-
-        await userClient.query(createTableCommand);
+        
+        await userClient.query(loadSql("init.sql"));
 
         console.log('tasks completed!');
         await userClient.end();
