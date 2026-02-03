@@ -5,6 +5,7 @@ import { StorageStack } from '../lib/stacks/storage-stack';
 import { IdentityStack } from '../lib/stacks/identity-stack';
 import { SecretsStack } from '../lib/stacks/secrets-stack';
 import { ServiceStack } from '../lib/stacks/service-stack';
+import { DatabaseStack } from '../lib/stacks/database-stack';
 
 const app = new App();
 
@@ -33,5 +34,9 @@ STAGES.forEach((stage) => {
     supabaseSecret: secretsStack.supabaseSecret,
     membersTableArn: stage.membersTableArn,
     configTableArn: stage.configTableArn,
+  });
+  
+  const databaseStack = new DatabaseStack(app, `DatabaseStack-${stage.name}-${stage.env.region}`, {
+    env: stage.env,
   });
 });
