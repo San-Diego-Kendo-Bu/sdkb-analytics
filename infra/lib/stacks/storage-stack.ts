@@ -14,16 +14,16 @@ export class StorageStack extends Stack {
 
     // Import existing bucket
     const siteBucket = Bucket.fromBucketName(this, 'ExistingBucket', 'nafudakake');
-    const frontendDir = path.join(__dirname, '../../../frontend');
+    const frontendDir = path.join(__dirname, '../../../frontend/dist');
 
     const distribution = Distribution.fromDistributionAttributes(this, 'ImportedDist', {
       distributionId: 'E2BATTQHTLXB4Y',                 // ← find in console/CLI
       domainName: 'd3j7mmciz70vi1.cloudfront.net',      // NOT your custom alias
     });
 
-    // Long-cache everything EXCEPT index.html and JS
+    // Long-cache everything with hash (Vite adds hash to filename)
     new BucketDeployment(this, 'AssetsLongCache', {
-      sources: [Source.asset(frontendDir, { exclude: ['index.html', 'js/**', 'css/**'] })],
+      sources: [Source.asset(frontendDir, { exclude: ['index.html', 'callback.html'] })],
       destinationBucket: siteBucket,
       prune: false,
       cacheControl: [
@@ -32,43 +32,14 @@ export class StorageStack extends Stack {
       ],
     });
 
-    // No-cache ALL JS (covers main.js and its imports)
-    new BucketDeployment(this, 'JSNoCache', {
-      sources: [ Source.asset(path.join(frontendDir, 'js')) ],
-      destinationBucket: siteBucket,
-      destinationKeyPrefix: 'js',  // ensures keys are js/<file>
-      prune: false,
-      cacheControl: [
-        CacheControl.noCache(),
-        CacheControl.noStore(),
-        CacheControl.mustRevalidate(),
-      ],
-      distribution,
-      distributionPaths: ['/js/*'],
-    });
+    // No-cache HTML files
+    const indexHtml = fs.readFileSync(path.join(frontendDir, 'index.html'), 'utf8');
+    const callbackHtml = fs.readFileSync(path.join(frontendDir, 'callback.html'), 'utf8');
 
-    // No-cache ALL CSS (covers main.js and its imports)
-    new BucketDeployment(this, 'CSSSNoCache', {
-      sources: [ Source.asset(path.join(frontendDir, 'css')) ],
-      destinationBucket: siteBucket,
-      destinationKeyPrefix: 'css',  // ensures keys are css/<file>
-      prune: false,
-      cacheControl: [
-        CacheControl.noCache(),
-        CacheControl.noStore(),
-        CacheControl.mustRevalidate(),
-      ],
-      distribution,
-      distributionPaths: ['/css/*'],
-    });
-
-    // No-cache index.html
     new BucketDeployment(this, 'IndexNoCache', {
       sources: [
-        Source.data(
-          'index.html',
-          fs.readFileSync(path.join(frontendDir, 'index.html'), 'utf8')
-        ),
+        Source.data('index.html', indexHtml),
+        Source.data('callback.html', callbackHtml),
       ],
       destinationBucket: siteBucket,
       prune: false,
@@ -79,7 +50,7 @@ export class StorageStack extends Stack {
         CacheControl.mustRevalidate(),
       ],
       distribution,
-      distributionPaths: ['/*'],
+      distributionPaths: ['/*.html'],
     });
 
 

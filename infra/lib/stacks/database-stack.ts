@@ -111,11 +111,21 @@ export class DatabaseStack extends Stack {
                 beforeInstall() { return []; },
                 beforeBundling() { return []; },
                 afterBundling(inputDir: string, outputDir: string) {
-                    const repoSqlDir = path.resolve(__dirname, "../../sql"); // adjust to your repo
-                    return [
-                        `mkdir -p "${outputDir}/sql"`,
-                        `cp -R "${repoSqlDir}/." "${outputDir}/sql/"`,
-                    ];
+                    const repoSqlDir = path.resolve(__dirname, "../../sql");
+                    const sqlOutDir = path.join(outputDir, "sql");
+                    const isWindows = process.platform === "win32";
+                    
+                    if (isWindows) {
+                        return [
+                            `if not exist "${sqlOutDir}" mkdir "${sqlOutDir}"`,
+                            `xcopy /E /I /Y "${repoSqlDir}" "${sqlOutDir}"`,
+                        ];
+                    } else {
+                        return [
+                            `mkdir -p "${sqlOutDir}"`,
+                            `cp -R "${repoSqlDir}/." "${sqlOutDir}/"`,
+                        ];
+                    }
                 },
             },
         },
