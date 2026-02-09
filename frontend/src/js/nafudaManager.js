@@ -8,12 +8,31 @@ let renderedSlips = [];
 
 async function renderTable() {
     try {
-        const response = await fetch('https://jlsml5sfaj.execute-api.us-east-2.amazonaws.com/members');
-        if (!response.ok) throw new Error(`HTTP error ${response.status}`);
-
-        const data = await response.json();
+        const user = await userManager.getUser();
+        
+        const [membersResponse, adminResponse] = await Promise.all([
+            fetch('https://jlsml5sfaj.execute-api.us-east-2.amazonaws.com/members'),
+            user ? fetch('https://jlsml5sfaj.execute-api.us-east-2.amazonaws.com/admins', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${user.id_token}`
+                }
+            }) : Promise.resolve(null)
+        ]);
+        
+        if (!membersResponse.ok) throw new Error(`HTTP error ${membersResponse.status}`);
+        
+        const data = await membersResponse.json();
         members = data.items;
         members.sort(compareRank);
+        
+        // Extract admin status from response
+        let isAdmin = false;
+        if (adminResponse && adminResponse.ok) {
+            const adminData = await adminResponse.json();
+            isAdmin = adminData.isAdmin;
+        }
 
         const slips = [];
         let curRank = null;
@@ -27,12 +46,12 @@ async function renderTable() {
             const zekkenText = member['zekken_text'];
 
             if (curRank == null || curRank !== rankToNum(rankNum, rankType)) {
-                const rankSlip = await generateSlip(rankToKanji(rankNum, rankType), formatRank(rankNum, rankType), -1);
+                const rankSlip = generateSlip(rankToKanji(rankNum, rankType), formatRank(rankNum, rankType), -1, isAdmin);
                 slips.push(rankSlip);
                 curRank = rankToNum(rankNum, rankType);
             }
 
-            const memberSlip = await generateSlip(zekkenText, formatName(firstName, lastName), memberId);
+            const memberSlip = generateSlip(zekkenText, formatName(firstName, lastName), memberId, isAdmin);
             slips.push(memberSlip);
         }
 
@@ -95,9 +114,7 @@ function fitAllZekkenFronts() {
     fronts.forEach(fitZekkenFront);
 }
 
-async function generateSlip(frontText, backText, memberId) {
-    const user = await userManager.getUser();
-
+function generateSlip(frontText, backText, memberId, isAdmin) {
     frontText = frontText.replace(/\./g, '·').replace(/ /g, '\u00A0').replace(/ー/g, '|');
     backText = backText.replace(/\./g, '·').replace(/ /g, '\u00A0').replace(/ー/g, '|');
 
@@ -144,26 +161,6 @@ async function generateSlip(frontText, backText, memberId) {
     nafuda.addEventListener('mouseleave', () => {
         setTimeout(() => slip.classList.remove('flipped'), 150);
     });
-
-    let isAdmin;
-    if (user) {
-        try {
-            const response = await fetch('https://jlsml5sfaj.execute-api.us-east-2.amazonaws.com/admins', {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${user.id_token}`
-                }
-            });
-            if (!response.ok) throw new Error(`HTTP error ${response.status}`);
-
-            const data = await response.json();
-            isAdmin = data.isAdmin;
-
-        } catch (error) {
-            console.error(error);
-        }
-    }
 
     if (memberId >= 0 && isAdmin) {
         nafuda.addEventListener('click', () => {

@@ -1,8 +1,3 @@
-/**
- * TODO: For the search button logic, you could return the div that's created in it,
- * this way you can hook the "openModal" function on main.
- */
-
 import { userManager } from "./cognitoManager.js";
 
 export async function setButtonsDisplay() {
@@ -327,7 +322,6 @@ export async function csvAddLogic(event) {
         let isGuest = ''; // idx = 7
 
         if (file) {
-            // Example: Read the CSV file as text
             const reader = new FileReader();
 
             reader.onload = async function (e) {
