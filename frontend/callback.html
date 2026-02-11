@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Callback</title>
+</head>
+<body>
+  <p>Processing login...</p>
+
+  <script type="module">
+    import { userManager } from "/src/js/cognitoManager.js";
+
+    (async () => {
+      try {
+        const user = await userManager.signinRedirectCallback();
+        window.location.replace("/index.html");
+      } catch (err) {
+        console.error("Signin redirect callback error:", err);
+        const p = new URLSearchParams(location.search);
+        if (p.get("error")) {
+          console.error("OIDC error:", p.get("error"), p.get("error_description"));
+        }
+        document.body.textContent = "Login failed. Check console for details.";
+      }
+    })();
+  </script>
+</body>
+</html>
