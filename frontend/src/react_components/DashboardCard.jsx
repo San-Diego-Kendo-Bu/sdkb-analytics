@@ -10,6 +10,7 @@ function DashboardCard({title, description, icon, color, width, height}){
         padding:"3%",
         width:`${width}px`,
         height:`${height}px`,
+        marginBottom: `2%`
     };
 
     const cardStyleHover = {
@@ -20,15 +21,22 @@ function DashboardCard({title, description, icon, color, width, height}){
         height:`${height}px`,
         cursor:"pointer"
     }
+    
+    const headerStyle = {
+        marginTop: '2%'
+    }
+
     return(
         <div className="dashboard-card" 
         style={hover ? cardStyleHover : cardStyle} 
         onMouseEnter={ () => setHover(true)}
         onMouseLeave={ () => setHover(false)}
         >
-            <CardIcon icon={icon} size={40} color={color} />
-            <h3>{title}</h3>
-            <p>{description}</p>
+            <CardIcon icon={icon} size={40} color={color}/>
+            <header style={headerStyle}>
+                <h3>{title}</h3>
+                <p>{description}</p>
+            </header>
         </div>
     );
 }

@@ -42,13 +42,10 @@ header{
   margin-bottom: 2%;
 }
 
-.dashboard-card{
-  margin-bottom: 2%;
-}
-
 .container{
     display: flex;
-    justify-content: space-between;
+    justify-content: center;
+    gap: 5%;
 }
 
 button {
