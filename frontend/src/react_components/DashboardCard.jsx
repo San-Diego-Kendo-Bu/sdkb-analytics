@@ -1,7 +1,7 @@
 import { useState } from "react";
 import CardIcon from "./CardIcon";
 
-function DashboardCard({title, description, icon, color, width, height}){
+function DashboardCard({title, description, icon, color, width, height, onClick}){
     const [hover, setHover] = useState(false);
 
     const cardStyle = {
@@ -31,6 +31,7 @@ function DashboardCard({title, description, icon, color, width, height}){
         style={hover ? cardStyleHover : cardStyle} 
         onMouseEnter={ () => setHover(true)}
         onMouseLeave={ () => setHover(false)}
+        onClick={onClick}
         >
             <CardIcon icon={icon} size={40} color={color}/>
             <header style={headerStyle}>

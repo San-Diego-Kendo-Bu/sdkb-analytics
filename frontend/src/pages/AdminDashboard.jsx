@@ -5,7 +5,7 @@ import { MdManageAccounts } from "react-icons/md";
 import { MdPayment } from "react-icons/md";
 import '../../css/admindashboard.css';
 
-function AdminDashboard() {
+function AdminDashboard({setPage}) {
   const palettes = {
     pink : { r: 176, g : 70, b : 180, a : 1 },
     orange : { r : 255, g : 140, b : 18, a : 1 },
@@ -30,6 +30,7 @@ function AdminDashboard() {
           color={palettes.green}
           width={cardWidth}
           height={cardHeight}
+          onClick={()=>setPage("Payments")}
           />
           <DashboardCard 
           title='Announcements' 
@@ -38,6 +39,7 @@ function AdminDashboard() {
           color={palettes.orange}
           width={cardWidth}
           height={cardHeight}
+          onClick={()=>{console.log("Announcements");}}
           />
         </div>
         <div className='container'>
@@ -48,6 +50,7 @@ function AdminDashboard() {
           color={palettes.blue}
           width={cardWidth}
           height={cardHeight}
+          onClick={()=>setPage("Members")}
           />
           <DashboardCard 
           title='Events' 
@@ -56,6 +59,7 @@ function AdminDashboard() {
           color={palettes.pink}
           width={cardWidth}
           height={cardHeight}
+          onClick={()=>{console.log("Events");}}
           />
         </div>
       </div>

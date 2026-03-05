@@ -3,6 +3,7 @@ import { renderTable, layoutShelf, setupEventListeners } from '../../js/nafudaMa
 
 import * as buttonLogic from '../../js/buttonLogic.js';
 import AdminDashboard from './AdminDashboard.jsx';
+import AdminControl from './AdminControl.jsx';
 
 const tabs = ['Nafudakake', 'Pay', 'Events', 'Admin Control'];
 
@@ -18,7 +19,7 @@ const Content = ({ activeTab }) => {
     return null;
   }
   if(activeTab === 'Admin Control'){
-    return <AdminDashboard />;
+    return <AdminControl />;
   }
   return <Placeholder title={activeTab} />;
 };
