@@ -16,13 +16,13 @@ function AdminDashboard({setPage}) {
   const cardWidth = 390;
   const cardHeight = 210;
   return (
-    <>
+    <div className='admin-dashboard'>
       <div style={{padding:"2%"}}>
-        <header>
+        <header className='page-header'>
           <h1>Quick Actions</h1>
           <p> Common tasks and management tools</p>
         </header>
-        <div className='container'>
+        <div className='admin-dashboard container'>
           <DashboardCard 
           title='Payments' 
           description='Review payment history and analytics'
@@ -63,7 +63,7 @@ function AdminDashboard({setPage}) {
           />
         </div>
       </div>
-    </>
+    </div>
   );
 }
 
