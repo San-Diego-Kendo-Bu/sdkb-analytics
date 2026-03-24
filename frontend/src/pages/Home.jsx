@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { renderTable, layoutShelf, setupEventListeners } from '../../js/nafudaManager.js';
+import { renderTable, layoutShelf, setupEventListeners } from '../js/nafudaManager.js';
 
-import * as buttonLogic from '../../js/buttonLogic.js';
+import * as buttonLogic from '../js/buttonLogic.js';
 import AdminDashboard from './AdminDashboard.jsx';
 
 const tabs = ['Nafudakake', 'Pay', 'Events', 'Admin Control'];
