@@ -3,7 +3,7 @@ import { UserManager } from "oidc-client-ts";
 const cognitoDomain = "https://us-east-2poklryknt.auth.us-east-2.amazoncognito.com";
 const clientId      = "7uqje135h2m1tu0t1j2bdasgq3";
 const userPoolId    = "us-east-2_pOKlRyKnT";
-const redirectUri   = "https://d3j7mmciz70vi1.cloudfront.net/callback.html";
+const redirectUri   = "https://d3j7mmciz70vi1.cloudfront.net/components/callback.html";
 
 export const userManager = new UserManager({
   authority: cognitoDomain,             // Hosted UI domain
