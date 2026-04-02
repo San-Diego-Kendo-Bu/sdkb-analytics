@@ -44,4 +44,9 @@ async function getDbPool() {
   return pool;
 }
 
-module.exports = { getDbPool };
+async function query(text, params) {
+  const dbPool = await getDbPool();
+  return dbPool.query(text, params);
+}
+
+module.exports = { getDbPool, query };
