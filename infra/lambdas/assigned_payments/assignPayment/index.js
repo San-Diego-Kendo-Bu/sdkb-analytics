@@ -52,7 +52,7 @@ exports.handler = async (event) => {
         
         const result = await query(
             `
-            INSERT INTO payment_assignments (
+            INSERT INTO assigned_payments (
                 member_id,
                 payment_id,
                 assigned_on,

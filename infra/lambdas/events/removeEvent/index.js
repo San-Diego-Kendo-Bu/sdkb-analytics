@@ -1,9 +1,7 @@
-const { getSupabase } = require("../../shared_utils/supabase");
+const { query } = require("../../shared_utils/db");
 const { normalizeGroups } = require("../../shared_utils/normalize_claim");
 
-const SUPABASE_SECRET_ID = process.env.SUPABASE_SECRET_ID;
-const REGION = process.env.AWS_REGION;
-const EVENTS_TABLE = "Events";
+const EVENTS_TABLE = "events";
 
 exports.handler = async (event) => {
     const claims =
@@ -15,29 +13,43 @@ exports.handler = async (event) => {
     if (!isAdmin) return { statusCode: 403, body: "Forbidden" };
 
     try {
+        const parameters = JSON.parse(event.body || "{}");
+        const eventId = parseInt(parameters.event_id, 10);
 
-        const parameters = JSON.parse(event.body);
-        const eventId = parameters.event_id;
-
-        if (!eventId) {
+        if (Number.isNaN(eventId)) {
             return {
-                status: 400,
-                message: "Please specify a event id"
-            }
-        }
-
-        const supabase = await getSupabase(SUPABASE_SECRET_ID, REGION);
-        const response = await supabase.from(EVENTS_TABLE).delete().eq('event_id', eventId);
-
-        if (response.error) {
-            return {
-                statusCode: 500,
+                statusCode: 400,
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ error: response.error })
+                body: JSON.stringify({ error: "Please specify a valid event id" })
             };
         }
 
-        const data = response.data[0];
+        const result = await query(
+            `
+            DELETE FROM ${EVENTS_TABLE}
+            WHERE event_id = $1
+            RETURNING
+                event_id,
+                event_date,
+                event_name,
+                event_type,
+                event_deadline,
+                created_at,
+                event_location,
+                payment_id
+            `,
+            [eventId]
+        );
+
+        if (result.rowCount === 0) {
+            return {
+                statusCode: 404,
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ error: "Event not found" })
+            };
+        }
+
+        const data = result.rows[0];
 
         return {
             statusCode: 200,
@@ -48,11 +60,13 @@ exports.handler = async (event) => {
             body: JSON.stringify({
                 message: "Deleted Event Successfully",
                 id: data.event_id,
-                data: data,
+                data,
             })
         };
 
     } catch (err) {
+        console.error("deleteEvent error:", err);
+
         return {
             statusCode: 500,
             headers: { "Content-Type": "application/json" },
