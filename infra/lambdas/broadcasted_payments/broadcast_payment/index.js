@@ -3,6 +3,16 @@ const { getAllMemberIds } = require("../../shared_utils/members");
 const { getCurrentTimeUTC } = require("../../shared_utils/dates");
 const { normalizeGroups } = require("../../shared_utils/normalize_claim");
 
+const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
+const {
+  DynamoDBDocumentClient, UpdateCommand,
+} = require("@aws-sdk/lib-dynamodb");
+
+const REGION = process.env.AWS_REGION;
+const APPCONFIGS_TABLE = "appConfigs";
+
+const ddb = DynamoDBDocumentClient.from(new DynamoDBClient({ region: REGION }));
+
 exports.handler = async (event) => {
     const claims =
         event.requestContext?.authorizer?.jwt?.claims ??
@@ -57,10 +67,22 @@ exports.handler = async (event) => {
             };
         }
 
+        const updateParams = {
+              TableName: APPCONFIGS_TABLE,
+              Key: { type: "paymentIdCounter" },
+              UpdateExpression: "ADD #counter :val",
+              ExpressionAttributeNames: { "#counter": "idCounter" },
+              ExpressionAttributeValues: { ":val": 1 },
+              ReturnValues: "ALL_NEW",
+            };
+        const updateResult = await ddb.send(new UpdateCommand(updateParams));
+        const newPaymentId = updateResult.Attributes.paymentIdCounter;
+
         // --- 1. INSERT PAYMENT ---
-        const paymentResult = await query(
+        await query(
             `
             INSERT INTO payments (
+                payment_id,
                 created_at,
                 payment_value,
                 overdue_penalty,
@@ -68,20 +90,18 @@ exports.handler = async (event) => {
                 title,
                 has_submission
             )
-            VALUES ($1, $2, $3, $4, $5, $6)
-            RETURNING payment_id
+            VALUES ($1, $2, $3, $4, $5, $6, $7)
             `,
             [
+                newPaymentId,
                 createdAt,
                 paymentValue,
                 overduePenalty,
                 dueDate,
                 title,
-                false // or whatever your logic is
+                false 
             ]
         );
-
-        const newPaymentId = paymentResult.rows[0].payment_id;
 
         console.log("Payment created:", newPaymentId);
 
@@ -98,11 +118,11 @@ exports.handler = async (event) => {
         for (const memberId of memberIds) {
             await query(
                 `
-                INSERT INTO payment_assignments (
+                INSERT INTO assigned_payments (
                     member_id,
                     payment_id,
                     assigned_on,
-                    status
+                    due_status
                 )
                 VALUES ($1, $2, $3, $4)
                 `,
