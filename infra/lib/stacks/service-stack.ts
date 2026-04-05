@@ -96,7 +96,6 @@ export class ServiceStack extends Stack {
       entry: path.join(__dirname, "../../lambdas/payments/createPayment/index.js"),
       handler: "handler",
       ...commonNodejs,
-      environment: { SUPABASE_SECRET_ID: props.supabaseSecret.secretName },
     });
 
     const removePaymentLambda = new NodejsFunction(this, "RemovePaymentLambda", {
@@ -249,6 +248,7 @@ export class ServiceStack extends Stack {
     });
 
     props.databaseStack.grantDatabaseAccess(broadcastPaymentLambda);
+    props.databaseStack.grantDatabaseAccess(createPaymentLambda);
 
     // ---- Secrets access (same as your IamStack)
     props.stripeSecret.grantRead(createMemberLambda);
@@ -302,6 +302,11 @@ export class ServiceStack extends Stack {
     }));
 
     broadcastPaymentLambda.role?.addToPrincipalPolicy(new iam.PolicyStatement({
+      actions: ["dynamodb:UpdateItem"],
+      resources: [config],
+    }));
+
+    createPaymentLambda.role?.addToPrincipalPolicy(new iam.PolicyStatement({
       actions: ["dynamodb:UpdateItem"],
       resources: [config],
     }));

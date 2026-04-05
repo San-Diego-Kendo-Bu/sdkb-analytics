@@ -76,7 +76,7 @@ exports.handler = async (event) => {
               ReturnValues: "ALL_NEW",
             };
         const updateResult = await ddb.send(new UpdateCommand(updateParams));
-        const newPaymentId = updateResult.Attributes.paymentIdCounter;
+        const newPaymentId = updateResult.Attributes.idCounter;
 
         // --- 1. INSERT PAYMENT ---
         await query(

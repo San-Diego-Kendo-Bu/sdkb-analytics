@@ -2,6 +2,16 @@ const { getCurrentTimeUTC } = require("../../shared_utils/dates");
 const { query } = require("../../shared_utils/db");
 const { normalizeGroups } = require("../../shared_utils/normalize_claim");
 
+const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
+const {
+  DynamoDBDocumentClient, UpdateCommand,
+} = require("@aws-sdk/lib-dynamodb");
+
+const REGION = process.env.AWS_REGION;
+const APPCONFIGS_TABLE = "appConfigs";
+
+const ddb = DynamoDBDocumentClient.from(new DynamoDBClient({ region: REGION }));
+
 exports.handler = async (event) => {
     const claims =
         event.requestContext?.authorizer?.jwt?.claims ??
@@ -15,8 +25,8 @@ exports.handler = async (event) => {
         const parameters = JSON.parse(event.body || "{}");
 
         const title = parameters.title;
-        const createdAt = parameters.created_at || getCurrentTimeUTC();
-        const dueDate = parameters.due_date || null;
+        const createdAt = getCurrentTimeUTC();
+        const dueDate = parameters.due_date;
         const paymentValue =
             parameters.payment_value !== undefined && parameters.payment_value !== null
                 ? parseFloat(parameters.payment_value)
@@ -48,19 +58,33 @@ exports.handler = async (event) => {
             };
         }
 
+        const updateParams = {
+            TableName: APPCONFIGS_TABLE,
+            Key: { type: "paymentIdCounter" },
+            UpdateExpression: "ADD #counter :val",
+            ExpressionAttributeNames: { "#counter": "idCounter" },
+            ExpressionAttributeValues: { ":val": 1 },
+            ReturnValues: "ALL_NEW",
+        };
+
+        const updateResult = await ddb.send(new UpdateCommand(updateParams));
+        const newPaymentId = updateResult.Attributes.idCounter;
+
         const result = await query(
             `
             INSERT INTO payments (
+                payment_id,
                 title,
                 created_at,
                 due_date,
                 payment_value,
-                overdue_penalty
+                overdue_penalty,
+                has_submission
             )
-            VALUES ($1, $2, $3, $4, $5)
+            VALUES ($1, $2, $3, $4, $5, $6, $7)
             RETURNING *
             `,
-            [title, createdAt, dueDate, paymentValue, overduePenalty]
+            [newPaymentId, title, createdAt, dueDate, paymentValue, overduePenalty, false]
         );
 
         return {
