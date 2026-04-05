@@ -6,15 +6,12 @@ const {
 const { Pool } = require("pg");
 
 const secrets = new SecretsManagerClient({});
-
-let pool; // reused across Lambda invocations
+let pool;
 
 async function getDbPool() {
   if (pool) {
-    return pool; // reuse existing pool
+    return pool;
   }
-
-  console.log("Fetching DB credentials...");
 
   const adminSecret = await secrets.send(
     new GetSecretValueCommand({ SecretId: process.env.RDS_ARN })
@@ -26,19 +23,28 @@ async function getDbPool() {
   );
   const credentials = JSON.parse(credentialsSecret.SecretString);
 
-  console.log("Creating DB pool...");
+  // print out keys for debugging
+  console.log("Credentials keys:", Object.keys(credentials));
+
+  const user = credentials.user;
+  const password = credentials.password;  
+  console.log("credentials keys:", Object.keys(credentials));
+  console.log("user:", credentials.user);
+  console.log("password length:", credentials["password "]?.length);
 
   pool = new Pool({
     host: admin.host,
-    user: credentials.user,
-    password: credentials.password,
+    user: user,
+    password: password,
     database: "sdkb-db",
     port: 5432,
-
-    // optional but recommended
-    max: 5,                 // max connections
+    max: 5,
     idleTimeoutMillis: 30000,
     connectionTimeoutMillis: 2000,
+  });
+
+  pool.on("error", (err) => {
+    console.error("Unexpected idle PostgreSQL client error:", err);
   });
 
   return pool;
