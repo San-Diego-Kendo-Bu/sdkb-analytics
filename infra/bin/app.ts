@@ -26,6 +26,10 @@ STAGES.forEach((stage) => {
     env: stage.env,
   });
 
+  const databaseStack = new DatabaseStack(app, `DatabaseStack-${stage.name}-${stage.env.region}`, {
+    env: stage.env,
+  });
+
   const serviceStack = new ServiceStack(app, `ServiceStack-${stage.name}-${stage.env.region}`, {
     env: stage.env,
     membersAuthorizer: identityStack.membersAuthorizer, // if you have one
@@ -34,9 +38,7 @@ STAGES.forEach((stage) => {
     supabaseSecret: secretsStack.supabaseSecret,
     membersTableArn: stage.membersTableArn,
     configTableArn: stage.configTableArn,
+    databaseStack
   });
   
-  const databaseStack = new DatabaseStack(app, `DatabaseStack-${stage.name}-${stage.env.region}`, {
-    env: stage.env,
-  });
 });
