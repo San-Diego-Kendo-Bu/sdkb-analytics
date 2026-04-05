@@ -24,6 +24,7 @@ import { IUserPool } from "aws-cdk-lib/aws-cognito";
 
 import * as scheduler from 'aws-cdk-lib/aws-scheduler'; // https://docs.aws.amazon.com/cdk/api/v2/docs/aws-cdk-lib.aws_scheduler-readme.html
 import * as targets from 'aws-cdk-lib/aws-scheduler-targets'
+import { DatabaseStack } from "./database-stack";
 
 export interface ServiceStackProps extends StackProps {
   membersAuthorizer?: IHttpRouteAuthorizer;   // attach to protected routes if provided
@@ -32,6 +33,7 @@ export interface ServiceStackProps extends StackProps {
   membersTableArn: string;
   configTableArn: string;
   userPool: IUserPool;
+  databaseStack: DatabaseStack;
 }
 
 export class ServiceStack extends Stack {
@@ -244,8 +246,9 @@ export class ServiceStack extends Stack {
       entry: path.join(__dirname, "../../lambdas/broadcasted_payments/broadcast_payment/index.js"),
       handler: "handler",
       ...commonNodejs,
-      environment: { SUPABASE_SECRET_ID: props.supabaseSecret.secretName },
     });
+
+    props.databaseStack.grantDatabaseAccess(broadcastPaymentLambda);
 
     // ---- Secrets access (same as your IamStack)
     props.stripeSecret.grantRead(createMemberLambda);
@@ -287,9 +290,20 @@ export class ServiceStack extends Stack {
       actions: ["dynamodb:Scan"],
       resources: [members],
     }));
+
     getMembersLambda.role?.addToPrincipalPolicy(new iam.PolicyStatement({
       actions: ["dynamodb:Query"],
       resources: [members, `${members}/index/email-index`],
+    }));
+
+    broadcastPaymentLambda.role?.addToPrincipalPolicy(new iam.PolicyStatement({
+      actions: ["dynamodb:Scan"],
+      resources: [members],
+    }));
+
+    broadcastPaymentLambda.role?.addToPrincipalPolicy(new iam.PolicyStatement({
+      actions: ["dynamodb:UpdateItem"],
+      resources: [config],
     }));
 
     createMemberLambda.role?.addToPrincipalPolicy(new iam.PolicyStatement({

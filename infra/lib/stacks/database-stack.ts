@@ -12,17 +12,17 @@ import path from "path";
 import { NodejsFunction, LogLevel, OutputFormat } from "aws-cdk-lib/aws-lambda-nodejs";
 import * as logs from "aws-cdk-lib/aws-logs";
 import * as sqs from "aws-cdk-lib/aws-sqs";
-import {
-  Runtime
-} from "aws-cdk-lib/aws-lambda";
+import { Runtime } from "aws-cdk-lib/aws-lambda";
 
 export interface DatabaseStackProps extends StackProps {}
 
 export class DatabaseStack extends Stack {
+  public readonly rdsInstance: rds.DatabaseInstance;
+  public readonly credentialsSecret: secrets.ISecret;
+
   constructor(scope: Construct, id: string, props?: DatabaseStackProps) {
     super(scope, id, props);
 
-    // ===== SQS (write buffer) =====
     const dbOpsDlq = new sqs.Queue(this, "DbOpsDlq", {
       retentionPeriod: Duration.days(14),
       fifo: true,
@@ -33,7 +33,6 @@ export class DatabaseStack extends Stack {
     const dbOpsQueue = new sqs.Queue(this, "DbOpsQueue", {
       visibilityTimeout: Duration.minutes(2),
       deadLetterQueue: { queue: dbOpsDlq, maxReceiveCount: 5 },
-
       fifo: true,
       queueName: "db-ops.fifo",
       contentBasedDeduplication: true,
@@ -55,10 +54,8 @@ export class DatabaseStack extends Stack {
       logRetention: logs.RetentionDays.ONE_WEEK,
     };
 
-    // Use default VPC just to host RDS (you are not creating subnets yourself)
     const vpc = ec2.Vpc.fromLookup(this, "DefaultVpc", { isDefault: true });
 
-    // Security group for RDS
     const securityGroupRds = new ec2.SecurityGroup(this, "SecurityGroupRds", {
       vpc,
       description: "Security Group with RDS",
@@ -70,13 +67,11 @@ export class DatabaseStack extends Stack {
       "Allow Postgres (dev)"
     );
 
-    // RDS Public PostgreSQL Instance
-    const rdsInstance = new rds.DatabaseInstance(this, "PostgresRds", {
+    this.rdsInstance = new rds.DatabaseInstance(this, "PostgresRds", {
       vpc,
       vpcSubnets: { subnetType: ec2.SubnetType.PUBLIC },
       publiclyAccessible: true,
       securityGroups: [securityGroupRds],
-
       instanceType: ec2.InstanceType.of(ec2.InstanceClass.T4G, ec2.InstanceSize.MICRO),
       engine: rds.DatabaseInstanceEngine.postgres({
         version: rds.PostgresEngineVersion.VER_14_19,
@@ -86,13 +81,12 @@ export class DatabaseStack extends Stack {
       allocatedStorage: 10,
       maxAllocatedStorage: 10,
       deleteAutomatedBackups: true,
-      removalPolicy: RemovalPolicy.DESTROY,   // delete only when stack is destroyed
-      deletionProtection: false,              // must be false or deletion can be blocked
+      removalPolicy: RemovalPolicy.DESTROY,
+      deletionProtection: false,
       backupRetention: Duration.days(0),
       credentials: rds.Credentials.fromUsername("sdkbadmin"),
     });
 
-    // ===== Consumer: dequeues + writes to Postgres =====
     const dbWriterLambda = new NodejsFunction(this, "DbWriterLambda", {
       entry: path.join(__dirname, "../../lambdas/rds/dbWriter/index.js"),
       handler: "handler",
@@ -100,24 +94,21 @@ export class DatabaseStack extends Stack {
       timeout: Duration.seconds(30),
       runtime: lambda.Runtime.NODEJS_18_X,
       environment: {
-        HOST: rdsInstance.dbInstanceEndpointAddress,
-        DB_SECRET_ARN: rdsInstance.secret!.secretArn,
+        HOST: this.rdsInstance.dbInstanceEndpointAddress,
+        DB_SECRET_ARN: this.rdsInstance.secret!.secretArn,
         PORT: "5432",
       },
     });
 
-    // Create the event source mapping explicitly so we can enable/disable it
-    const mapping = new lambda.EventSourceMapping(this, "DbWriterMapping", {
+    new lambda.EventSourceMapping(this, "DbWriterMapping", {
       target: dbWriterLambda,
       eventSourceArn: dbOpsQueue.queueArn,
       batchSize: 5,
       enabled: true,
     });
 
-    // Allow Lambda service to consume from the queue (CDK handles some of this, but explicit is fine)
     dbOpsQueue.grantConsumeMessages(dbWriterLambda);
 
-    // ===== Producer: other lambdas invoke this to enqueue SQL work =====
     const enqueueSqlLambda = new NodejsFunction(this, "EnqueueSqlLambda", {
       entry: path.join(__dirname, "../../lambdas/rds/enqueueSql/index.js"),
       handler: "handler",
@@ -130,33 +121,30 @@ export class DatabaseStack extends Stack {
     });
     dbOpsQueue.grantSendMessages(enqueueSqlLambda);
 
-    // allow dbWriter to read creds
-    rdsInstance.secret!.grantRead(dbWriterLambda);
+    this.rdsInstance.secret!.grantRead(dbWriterLambda);
 
-    // shutdown logic
     const controlDbLambda = new NodejsFunction(this, "ControlDbLambda", {
       entry: path.join(__dirname, "../../lambdas/rds/controlDb/index.js"),
       handler: "handler",
-      ...commonNodejs, // or whatever you called it
-      environment: {          
-        DB_INSTANCE_ID: rdsInstance.instanceIdentifier, // pass this in from your stack props
+      ...commonNodejs,
+      environment: {
+        DB_INSTANCE_ID: this.rdsInstance.instanceIdentifier,
       },
       timeout: Duration.seconds(30),
       runtime: lambda.Runtime.NODEJS_18_X,
     });
 
-    // Permissions for Lambda to start/stop THIS DB
     controlDbLambda.addToRolePolicy(
       new iam.PolicyStatement({
         actions: ["rds:StartDBInstance", "rds:StopDBInstance", "rds:DescribeDBInstances"],
-        resources: [rdsInstance.instanceArn], // RDS instance ARNs can be tricky w/ imported attrs; "*" is common here
+        resources: [this.rdsInstance.instanceArn],
       })
     );
 
-    // Role that EventBridge Scheduler uses to invoke the Lambda
     const schedulerRole = new iam.Role(this, "SchedulerInvokeRole", {
       assumedBy: new iam.ServicePrincipal("scheduler.amazonaws.com"),
     });
+
     schedulerRole.addToPolicy(
       new iam.PolicyStatement({
         actions: ["lambda:InvokeFunction"],
@@ -164,10 +152,9 @@ export class DatabaseStack extends Stack {
       })
     );
 
-    // 2) Schedule STOP at 12:00 AM America/Los_Angeles
     new scheduler.CfnSchedule(this, "StopAtMidnightPT", {
       flexibleTimeWindow: { mode: "OFF" },
-      scheduleExpression: "cron(0 0 * * ? *)", // 00:00 every day
+      scheduleExpression: "cron(0 0 * * ? *)",
       scheduleExpressionTimezone: "America/Los_Angeles",
       target: {
         arn: controlDbLambda.functionArn,
@@ -176,10 +163,9 @@ export class DatabaseStack extends Stack {
       },
     });
 
-    // 3) Schedule START at 7:00 AM America/Los_Angeles
     new scheduler.CfnSchedule(this, "StartAtSevenPT", {
       flexibleTimeWindow: { mode: "OFF" },
-      scheduleExpression: "cron(0 7 * * ? *)", // 07:00 every day
+      scheduleExpression: "cron(0 7 * * ? *)",
       scheduleExpressionTimezone: "America/Los_Angeles",
       target: {
         arn: controlDbLambda.functionArn,
@@ -188,7 +174,6 @@ export class DatabaseStack extends Stack {
       },
     });
 
-    // IAM Role for Lambdas + custom resource
     const role = new iam.Role(this, "Role", {
       description: "Role used in the RDS stack",
       assumedBy: new iam.CompositePrincipal(
@@ -211,77 +196,73 @@ export class DatabaseStack extends Stack {
       })
     );
 
-    // Allow reading the generated admin secret
-    rdsInstance.secret?.grantRead(role);
+    this.rdsInstance.secret?.grantRead(role);
 
     const region = Stack.of(this).region;
 
-    // Put the correct ARN for each region here
     const credentialsSecretArnByRegion: Record<string, string> = {
-    "us-east-2": "arn:aws:secretsmanager:us-east-2:222575804757:secret:rds-db-creds-ZdoyWS",
-    "us-west-2": "arn:aws:secretsmanager:us-west-2:222575804757:secret:rds-db-creds-S0vLyA",
+      "us-east-2": "arn:aws:secretsmanager:us-east-2:222575804757:secret:rds-db-creds-ZdoyWS",
+      "us-west-2": "arn:aws:secretsmanager:us-west-2:222575804757:secret:rds-db-creds-S0vLyA",
     };
 
     const credentialsSecretArn = credentialsSecretArnByRegion[region];
     if (!credentialsSecretArn) {
-    throw new Error(
+      throw new Error(
         `No credentials secret configured for region ${region}. Add it to credentialsSecretArnByRegion.`
-    );
+      );
     }
 
-    const credentials = secrets.Secret.fromSecretCompleteArn(
-    this,
-    "CredentialsSecret",
-    credentialsSecretArn
+    this.credentialsSecret = secrets.Secret.fromSecretCompleteArn(
+      this,
+      "CredentialsSecret",
+      credentialsSecretArn
     );
-    credentials.grantRead(role);
 
-    // Lambda creator - NOT in VPC (fast, no VPC endpoints needed)
+    this.credentialsSecret.grantRead(role);
+
     const createResolver = (name: string, entry: string) =>
       new nodejs.NodejsFunction(this, name, {
         entry,
         bundling: {
-            externalModules: ["pg-native"],
-            commandHooks: {
-                beforeInstall() { return []; },
-                beforeBundling() { return []; },
-                afterBundling(inputDir: string, outputDir: string) {
-                    const repoSqlDir = path.resolve(__dirname, "../../sql");
-                    const sqlOutDir = path.join(outputDir, "sql");
-                    const isWindows = process.platform === "win32";
-                    
-                    if (isWindows) {
-                        return [
-                            `if not exist "${sqlOutDir}" mkdir "${sqlOutDir}"`,
-                            `xcopy /E /I /Y "${repoSqlDir}" "${sqlOutDir}"`,
-                        ];
-                    } else {
-                        return [
-                            `mkdir -p "${sqlOutDir}"`,
-                            `cp -R "${repoSqlDir}/." "${sqlOutDir}/"`,
-                        ];
-                    }
-                },
+          externalModules: ["pg-native"],
+          commandHooks: {
+            beforeInstall() { return []; },
+            beforeBundling() { return []; },
+            afterBundling(inputDir: string, outputDir: string) {
+              const repoSqlDir = path.resolve(__dirname, "../../sql");
+              const sqlOutDir = path.join(outputDir, "sql");
+              const isWindows = process.platform === "win32";
+
+              if (isWindows) {
+                return [
+                  `if not exist "${sqlOutDir}" mkdir "${sqlOutDir}"`,
+                  `xcopy /E /I /Y "${repoSqlDir}" "${sqlOutDir}"`,
+                ];
+              } else {
+                return [
+                  `mkdir -p "${sqlOutDir}"`,
+                  `cp -R "${repoSqlDir}/." "${sqlOutDir}/"`,
+                ];
+              }
             },
+          },
         },
         runtime: lambda.Runtime.NODEJS_18_X,
         timeout: Duration.minutes(2),
-        role,   
+        role,
         environment: {
-          RDS_ARN: rdsInstance.secret!.secretArn,
-          CREDENTIALS_ARN: credentials.secretArn,
-          HOST: rdsInstance.dbInstanceEndpointAddress,
+          RDS_ARN: this.rdsInstance.secret!.secretArn,
+          CREDENTIALS_ARN: this.credentialsSecret.secretArn,
+          HOST: this.rdsInstance.dbInstanceEndpointAddress,
         },
-    });
+      });
 
-    // Init lambda
     const instantiate = createResolver(
       "instantiate",
       path.join(__dirname, "../../lambdas/psql/init/index.js")
     );
-    instantiate.node.addDependency(rdsInstance);
+    instantiate.node.addDependency(this.rdsInstance);
 
-    // Custom Resource to run init lambda ON CREATE
     const customResource = new cr.AwsCustomResource(this, "TriggerInstantiate", {
       role,
       onCreate: {
@@ -296,6 +277,16 @@ export class DatabaseStack extends Stack {
         resources: [instantiate.functionArn],
       }),
     });
+
     customResource.node.addDependency(instantiate);
+  }
+
+  public grantDatabaseAccess(fn: lambda.Function | nodejs.NodejsFunction) {
+    fn.addEnvironment("RDS_ARN", this.rdsInstance.secret!.secretArn);
+    fn.addEnvironment("CREDENTIALS_ARN", this.credentialsSecret.secretArn);
+    fn.addEnvironment("HOST", this.rdsInstance.dbInstanceEndpointAddress);
+
+    this.rdsInstance.secret!.grantRead(fn);
+    this.credentialsSecret.grantRead(fn);
   }
 }
