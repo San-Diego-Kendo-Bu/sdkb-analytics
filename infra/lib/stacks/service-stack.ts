@@ -250,6 +250,7 @@ export class ServiceStack extends Stack {
     props.databaseStack.grantDatabaseAccess(broadcastPaymentLambda);
     props.databaseStack.grantDatabaseAccess(createPaymentLambda);
     props.databaseStack.grantDatabaseAccess(getPaymentLambda);
+    props.databaseStack.grantDatabaseAccess(removePaymentLambda);
 
     // ---- Secrets access (same as your IamStack)
     props.stripeSecret.grantRead(createMemberLambda);
