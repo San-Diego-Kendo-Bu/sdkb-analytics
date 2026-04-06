@@ -4,7 +4,7 @@ async function fetchPayments(){
     try{
         const user = await userManager.getUser();
 
-        const response = await fetch('https://jlsml5sfaj.execute-api.us-east-2.amazonaws.com/payments', {
+        const response = await fetch('https://qh3c0tz6s9.execute-api.us-east-2.amazonaws.com/payments', {
             method: 'GET',
             headers: {
                 'Content-Type' : 'application/json',
@@ -14,10 +14,13 @@ async function fetchPayments(){
 
         console.log("Payments retrieved successfully.");
         const data = await response.json();
-        console.log(data);
+        console.log(data.message);
+        console.log(data.data);
+        return data;
     }catch (error){
         console.log("Failed to retrieve payments.");
         console.log(error);
+        return null;
     }
 }
 

@@ -1,0 +1,17 @@
+:root{
+    --short-cell-width : 5rem;
+    --medium-cell-width : 8rem;
+    --long-cell-width : 12rem;
+}
+
+.shortcell{
+    width: var(--short-cell-width);
+}
+
+.mediumcell{
+    width: var(--medium-cell-width);
+}
+
+.longcell{
+    width: var(--long-cell-width);
+}
