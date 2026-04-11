@@ -41,7 +41,7 @@ exports.handler = async (event) => {
             `
             DELETE FROM ${ASSIGNED_PAYMENTS_TABLE}
             WHERE member_id = $1 AND payment_id = $2
-            RETURNING member_id, payment_id, assigned_on, status
+            RETURNING member_id, payment_id, assigned_on, due_status
             `,
             [memberId, paymentId]
         );

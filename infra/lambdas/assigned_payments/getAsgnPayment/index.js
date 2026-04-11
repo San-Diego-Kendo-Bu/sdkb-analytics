@@ -1,12 +1,12 @@
 const { query } = require("../../shared_utils/db");
 
 const ASSIGNED_PAYMENTS_TABLE = "assigned_payments";
-const FIELDS = ["member_id", "payment_id", "status", "assigned_on"];
+const FIELDS = ["member_id", "payment_id", "due_status", "assigned_on"];
 
 exports.handler = async (event) => {
     try {
         const payload = {};
-        const parameters = event.headers;
+        const parameters = JSON.parse(event.body || "{}");
 
         for (const field of FIELDS) {
             if (field in parameters) {

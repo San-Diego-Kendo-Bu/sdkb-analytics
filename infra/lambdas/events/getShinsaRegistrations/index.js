@@ -5,7 +5,7 @@ const SHINSA_FIELDS = ["event_id", "member_id", "registered_date", "testing_for"
 
 exports.handler = async (event) => {
     try {
-        const parameters = event.headers || {};
+        const parameters = JSON.parse(event.body || "{}");
         const payload = {};
 
         for (const field of SHINSA_FIELDS) {

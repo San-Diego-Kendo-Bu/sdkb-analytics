@@ -12,7 +12,7 @@ exports.handler = async (event) => {
         const configType = parameters.config_type;
         const eventId = parameters.event_id;
         const memberId = parameters.member_id;
-        const registeredDate = parameters.registered_date;
+        const registeredDate = parameters.registration_date;
 
         const memberExists = await verifyMemberExists(memberId);
         if (!memberExists) {
@@ -33,7 +33,7 @@ exports.handler = async (event) => {
                 INSERT INTO ${TOURNAMENT_REGISTRATION_TABLE} (
                     event_id,
                     member_id,
-                    registered_date,
+                    registration_date,
                     shinpanning,
                     division,
                     doing_teams
@@ -42,7 +42,7 @@ exports.handler = async (event) => {
                 RETURNING
                     event_id,
                     member_id,
-                    registered_date,
+                    registration_date,
                     shinpanning,
                     division,
                     doing_teams
@@ -72,14 +72,14 @@ exports.handler = async (event) => {
                 INSERT INTO ${SHINSA_REGISTRATION_TABLE} (
                     event_id,
                     member_id,
-                    registered_date,
+                    registration_date,
                     testing_for
                 )
                 VALUES ($1, $2, $3, $4)
                 RETURNING
                     event_id,
                     member_id,
-                    registered_date,
+                    registration_date,
                     testing_for
                 `,
                 [eventId, memberId, registeredDate, testingFor]
@@ -105,13 +105,13 @@ exports.handler = async (event) => {
                 INSERT INTO ${SEMINAR_REGISTRATION_TABLE} (
                     event_id,
                     member_id,
-                    registered_date
+                    registration_date
                 )
                 VALUES ($1, $2, $3)
                 RETURNING
                     event_id,
                     member_id,
-                    registered_date
+                    registration_date
                 `,
                 [eventId, memberId, registeredDate]
             );

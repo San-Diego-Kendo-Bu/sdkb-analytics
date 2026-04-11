@@ -6,7 +6,7 @@ const SEMINAR_FIELDS = ["event_id", "member_id", "registration_date"];
 
 exports.handler = async (event) => {
     try {
-        const parameters = event.headers || {};
+        const parameters = JSON.parse(event.body || "{}");
         const payload = {};
 
         for (const field of SEMINAR_FIELDS) {

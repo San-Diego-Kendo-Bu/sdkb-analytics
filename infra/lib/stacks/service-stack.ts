@@ -25,6 +25,7 @@ import { IUserPool } from "aws-cdk-lib/aws-cognito";
 import * as scheduler from 'aws-cdk-lib/aws-scheduler'; // https://docs.aws.amazon.com/cdk/api/v2/docs/aws-cdk-lib.aws_scheduler-readme.html
 import * as targets from 'aws-cdk-lib/aws-scheduler-targets'
 import { DatabaseStack } from "./database-stack";
+import { get } from "http";
 
 export interface ServiceStackProps extends StackProps {
   membersAuthorizer?: IHttpRouteAuthorizer;   // attach to protected routes if provided
@@ -102,28 +103,24 @@ export class ServiceStack extends Stack {
       entry: path.join(__dirname, "../../lambdas/payments/removePayment/index.js"),
       handler: "handler",
       ...commonNodejs,
-      environment: { SUPABASE_SECRET_ID: props.supabaseSecret.secretName },
     });
 
     const updatePaymentLambda = new NodejsFunction(this, "UpdatePaymentLambda", {
       entry: path.join(__dirname, "../../lambdas/payments/updatePayment/index.js"),
       handler: "handler",
       ...commonNodejs,
-      environment: { SUPABASE_SECRET_ID: props.supabaseSecret.secretName },
     });
 
     const getPaymentLambda = new NodejsFunction(this, "GetPaymentLambda", {
       entry: path.join(__dirname, "../../lambdas/payments/getPayment/index.js"),
       handler: "handler",
       ...commonNodejs,
-      environment: { SUPABASE_SECRET_ID: props.supabaseSecret.secretName },
     });
 
     const clearOvrPaymentsLambda = new NodejsFunction(this, "ClearOvrPaymentsLambda", {
       entry: path.join(__dirname, "../../lambdas/payments/clearOverduePayments/index.js"),
       handler: "handler",
       ...commonNodejs,
-      environment: { SUPABASE_SECRET_ID: props.supabaseSecret.secretName },
     });
 
 
@@ -131,60 +128,53 @@ export class ServiceStack extends Stack {
       entry: path.join(__dirname, "../../lambdas/events/getSeminarRegistrations/index.js"),
       handler: "handler",
       ...commonNodejs,
-      environment: { SUPABASE_SECRET_ID: props.supabaseSecret.secretName },
     });
 
     const getShinsaRegistrationsLambda = new NodejsFunction(this, "GetShinsaRegistrationsLambda", {
       entry: path.join(__dirname, "../../lambdas/events/getShinsaRegistrations/index.js"),
       handler: "handler",
       ...commonNodejs,
-      environment: { SUPABASE_SECRET_ID: props.supabaseSecret.secretName },
     });
 
     const getTournamentRegistrationsLambda = new NodejsFunction(this, "GetTournamentRegistrationsLambda", {
       entry: path.join(__dirname, "../../lambdas/events/getTournamentRegistrations/index.js"),
       handler: "handler",
       ...commonNodejs,
-      environment: { SUPABASE_SECRET_ID: props.supabaseSecret.secretName },
     });
 
     const registerEventLambda = new NodejsFunction(this, "RegisterEventLambda", {
       entry: path.join(__dirname, "../../lambdas/events/registerEvent/index.js"),
       handler: "handler",
       ...commonNodejs,
-      environment: { SUPABASE_SECRET_ID: props.supabaseSecret.secretName },
     });
     const unregisterEventLambda = new NodejsFunction(this, "UnregisterEventLambda", {
       entry: path.join(__dirname, "../../lambdas/events/unregisterEvent/index.js"),
       handler: "handler",
       ...commonNodejs,
-      environment: { SUPABASE_SECRET_ID: props.supabaseSecret.secretName },
     });
 
     const assignPaymentLambda = new NodejsFunction(this, "AssignPaymentLambda", {
       entry: path.join(__dirname, "../../lambdas/assigned_payments/assignPayment/index.js"),
       handler: "handler",
       ...commonNodejs,
-      environment: { SUPABASE_SECRET_ID: props.supabaseSecret.secretName },
     });
+
     const unassignPaymentLambda = new NodejsFunction(this, "UnassignPaymentLambda", {
       entry: path.join(__dirname, "../../lambdas/assigned_payments/unassignPayment/index.js"),
       handler: "handler",
       ...commonNodejs,
-      environment: { SUPABASE_SECRET_ID: props.supabaseSecret.secretName },
     });
+
     const updateAsgnPaymentLambda = new NodejsFunction(this, "updateAsgnPaymentLambda", {
       entry: path.join(__dirname, "../../lambdas/assigned_payments/updateAsgnPayment/index.js"),
       handler: "handler",
       ...commonNodejs,
-      environment: { SUPABASE_SECRET_ID: props.supabaseSecret.secretName },
     });
 
     const getAsgnPaymentLambda = new NodejsFunction(this, "getAsgnPaymentLambda", {
       entry: path.join(__dirname, "../../lambdas/assigned_payments/getAsgnPayment/index.js"),
       handler: "handler",
       ...commonNodejs,
-      environment: { SUPABASE_SECRET_ID: props.supabaseSecret.secretName },
     });
 
     const submitPaymentLambda = new NodejsFunction(this, "SubmitPaymentLambda", {
@@ -210,35 +200,30 @@ export class ServiceStack extends Stack {
       entry: path.join(__dirname, "../../lambdas/events/createEvent/index.js"),
       handler: "handler",
       ...commonNodejs,
-      environment: { SUPABASE_SECRET_ID: props.supabaseSecret.secretName },
     });
 
     const configureEventLambda = new NodejsFunction(this, "ConfigureEventLambda", {
       entry: path.join(__dirname, "../../lambdas/events/configureEvent/index.js"),
       handler: "handler",
       ...commonNodejs,
-      environment: { SUPABASE_SECRET_ID: props.supabaseSecret.secretName },
     });
 
     const getEventLambda = new NodejsFunction(this, "GetEventLambda", {
       entry: path.join(__dirname, "../../lambdas/events/getEvents/index.js"),
       handler: "handler",
       ...commonNodejs,
-      environment: { SUPABASE_SECRET_ID: props.supabaseSecret.secretName },
     });
 
     const updateEventLambda = new NodejsFunction(this, "UpdateEventLambda", {
       entry: path.join(__dirname, "../../lambdas/events/updateEvent/index.js"),
       handler: "handler",
       ...commonNodejs,
-      environment: { SUPABASE_SECRET_ID: props.supabaseSecret.secretName },
     });
 
     const removeEventLambda = new NodejsFunction(this, "RemoveEventLambda", {
       entry: path.join(__dirname, "../../lambdas/events/removeEvent/index.js"),
       handler: "handler",
       ...commonNodejs,
-      environment: { SUPABASE_SECRET_ID: props.supabaseSecret.secretName },
     });
 
     const broadcastPaymentLambda = new NodejsFunction(this, "BroadcastPaymentLambda", {
@@ -252,38 +237,32 @@ export class ServiceStack extends Stack {
     props.databaseStack.grantDatabaseAccess(getPaymentLambda);
     props.databaseStack.grantDatabaseAccess(removePaymentLambda);
     props.databaseStack.grantDatabaseAccess(updatePaymentLambda);
+    props.databaseStack.grantDatabaseAccess(assignPaymentLambda);
+    props.databaseStack.grantDatabaseAccess(getAsgnPaymentLambda);
+    props.databaseStack.grantDatabaseAccess(unassignPaymentLambda);
+    props.databaseStack.grantDatabaseAccess(updateAsgnPaymentLambda);
+    props.databaseStack.grantDatabaseAccess(configureEventLambda);
+    props.databaseStack.grantDatabaseAccess(createEventLambda);
+    props.databaseStack.grantDatabaseAccess(getEventLambda);
+    props.databaseStack.grantDatabaseAccess(updateEventLambda);
+    props.databaseStack.grantDatabaseAccess(removeEventLambda);
+    props.databaseStack.grantDatabaseAccess(getSeminarRegistrationsLambda);
+    props.databaseStack.grantDatabaseAccess(getShinsaRegistrationsLambda);
+    props.databaseStack.grantDatabaseAccess(getTournamentRegistrationsLambda);
+    props.databaseStack.grantDatabaseAccess(registerEventLambda);
+    props.databaseStack.grantDatabaseAccess(unregisterEventLambda);
+
 
     // ---- Secrets access (same as your IamStack)
     props.stripeSecret.grantRead(createMemberLambda);
     props.stripeSecret.grantRead(removeMemberLambda);
 
-    props.supabaseSecret.grantRead(createPaymentLambda);
-    props.supabaseSecret.grantRead(removePaymentLambda);
-    props.supabaseSecret.grantRead(updatePaymentLambda);
-    props.supabaseSecret.grantRead(getPaymentLambda);
     props.supabaseSecret.grantRead(clearOvrPaymentsLambda);
 
-    props.supabaseSecret.grantRead(assignPaymentLambda);
-    props.supabaseSecret.grantRead(unassignPaymentLambda);
-    props.supabaseSecret.grantRead(updateAsgnPaymentLambda);
-    props.supabaseSecret.grantRead(getAsgnPaymentLambda);
 
     props.supabaseSecret.grantRead(submitPaymentLambda);
     props.supabaseSecret.grantRead(removeSbmtPaymentLambda);
     props.supabaseSecret.grantRead(getSbmtPaymentLambda);
-
-    props.supabaseSecret.grantRead(createEventLambda);
-    props.supabaseSecret.grantRead(getEventLambda);
-    props.supabaseSecret.grantRead(updateEventLambda);
-    props.supabaseSecret.grantRead(removeEventLambda);
-    props.supabaseSecret.grantRead(registerEventLambda);
-    props.supabaseSecret.grantRead(unregisterEventLambda);
-    props.supabaseSecret.grantRead(configureEventLambda);
-    props.supabaseSecret.grantRead(getSeminarRegistrationsLambda);
-    props.supabaseSecret.grantRead(getShinsaRegistrationsLambda);
-    props.supabaseSecret.grantRead(getTournamentRegistrationsLambda);
-
-    props.supabaseSecret.grantRead(broadcastPaymentLambda);
 
     // ---- DynamoDB policies (same as your IamStack)
     const members = props.membersTableArn;

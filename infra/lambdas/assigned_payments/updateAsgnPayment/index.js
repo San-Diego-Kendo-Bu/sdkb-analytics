@@ -4,7 +4,7 @@ const { normalizeGroups } = require("../../shared_utils/normalize_claim");
 const ASSIGNED_PAYMENTS_TABLE = "assigned_payments";
 
 const REQUIRED_FIELDS = ["member_id", "payment_id"];
-const UPDATE_FIELDS = ["assigned_on", "status"];
+const UPDATE_FIELDS = ["assigned_on", "due_status"];
 
 exports.handler = async (event) => {
     const claims =
@@ -71,7 +71,7 @@ exports.handler = async (event) => {
             SET ${setClause}
             WHERE member_id = $${updateKeys.length + 1}
               AND payment_id = $${updateKeys.length + 2}
-            RETURNING member_id, payment_id, assigned_on, status
+            RETURNING member_id, payment_id, assigned_on, due_status
             `,
             values
         );

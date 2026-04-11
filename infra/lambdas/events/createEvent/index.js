@@ -6,6 +6,7 @@ const {
 
 const { query } = require("../../shared_utils/db");
 const { normalizeGroups } = require("../../shared_utils/normalize_claim");
+const { getCurrentTimeUTC } = require("../../shared_utils/dates");
 
 const EVENTS_TABLE = "events";
 const REGION = process.env.AWS_REGION;
@@ -38,7 +39,7 @@ exports.handler = async (event) => {
 
         const eventName = parameters.event_name;
         const eventType = parameters.event_type;
-        const createdAt = parameters.created_at;
+        const createdAt = getCurrentTimeUTC();
         const eventDate = parameters.event_date;
         const eventDeadline = parameters.event_deadline;
         const eventLocation = parameters.event_location;

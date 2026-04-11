@@ -12,7 +12,7 @@ const TOURNAMENT_FIELDS = [
 
 exports.handler = async (event) => {
     try {
-        const parameters = event.headers || {};
+        const parameters = JSON.parse(event.body || "{}");
         const payload = {};
 
         for (const field of TOURNAMENT_FIELDS) {

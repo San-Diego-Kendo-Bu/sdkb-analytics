@@ -56,10 +56,10 @@ exports.handler = async (event) => {
                 member_id,
                 payment_id,
                 assigned_on,
-                status
+                due_status
             )
             VALUES ($1, $2, $3, $4)
-            RETURNING member_id, payment_id, assigned_on, status
+            RETURNING member_id, payment_id, assigned_on, due_status
             `,
             [memberId, paymentId, assignedOn, status]
         );

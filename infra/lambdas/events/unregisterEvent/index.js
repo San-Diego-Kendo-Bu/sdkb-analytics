@@ -37,7 +37,7 @@ exports.handler = async (event) => {
                 `
                 DELETE FROM ${TOURNAMENT_REGISTRATION_TABLE}
                 WHERE event_id = $1 AND member_id = $2
-                RETURNING event_id, member_id, registered_date, shinpanning, division, doing_teams
+                RETURNING event_id, member_id, registration_date, shinpanning, division, doing_teams
                 `,
                 [eventId, memberId]
             );
@@ -46,7 +46,7 @@ exports.handler = async (event) => {
                 `
                 DELETE FROM ${SHINSA_REGISTRATION_TABLE}
                 WHERE event_id = $1 AND member_id = $2
-                RETURNING event_id, member_id, registered_date, testing_for
+                RETURNING event_id, member_id, registration_date, testing_for
                 `,
                 [eventId, memberId]
             );
@@ -55,7 +55,7 @@ exports.handler = async (event) => {
                 `
                 DELETE FROM ${SEMINAR_REGISTRATION_TABLE}
                 WHERE event_id = $1 AND member_id = $2
-                RETURNING event_id, member_id, registered_date
+                RETURNING event_id, member_id, registration_date
                 `,
                 [eventId, memberId]
             );
