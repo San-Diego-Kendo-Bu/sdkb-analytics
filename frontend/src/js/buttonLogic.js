@@ -13,7 +13,7 @@ export async function setButtonsDisplay() {
     if (!user || user.expired) return;
 
     try {
-        const response = await fetch('https://jlsml5sfaj.execute-api.us-east-2.amazonaws.com/admins', {
+        const response = await fetch('https://qh3c0tz6s9.execute-api.us-east-2.amazonaws.com/admins', {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
@@ -83,7 +83,7 @@ export async function saveButtonLogic(selectedMember) {
         const newBirthday = document.getElementById('editBirthday').value;
         const newStatus = document.getElementById('editStatus').value;
 
-        const response = await fetch('https://jlsml5sfaj.execute-api.us-east-2.amazonaws.com/members', {
+        const response = await fetch('https://qh3c0tz6s9.execute-api.us-east-2.amazonaws.com/members', {
             method: 'PATCH',
             headers: {
                 'Content-Type': 'application/json',
@@ -123,7 +123,7 @@ export async function removeButtonLogic(selectedMember) {
             return;
         }
 
-        const response = await fetch('https://jlsml5sfaj.execute-api.us-east-2.amazonaws.com/members', {
+        const response = await fetch('https://qh3c0tz6s9.execute-api.us-east-2.amazonaws.com/members', {
             method: 'DELETE',
             headers: {
                 'Content-Type': 'application/json',
@@ -168,7 +168,7 @@ export async function addFormSubmitLogic(event) {
 
         const isGuest = document.getElementById('isGuest').checked ? 'yes' : 'no';
 
-        const response = await fetch('https://jlsml5sfaj.execute-api.us-east-2.amazonaws.com/members', {
+        const response = await fetch('https://qh3c0tz6s9.execute-api.us-east-2.amazonaws.com/members', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -381,7 +381,7 @@ export async function csvAddLogic(event) {
                         }
                     }
 
-                    const response = await fetch('https://jlsml5sfaj.execute-api.us-east-2.amazonaws.com/members', {
+                    const response = await fetch('https://qh3c0tz6s9.execute-api.us-east-2.amazonaws.com/members', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
