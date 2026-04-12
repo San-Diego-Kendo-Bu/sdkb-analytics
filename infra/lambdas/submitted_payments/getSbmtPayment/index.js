@@ -1,24 +1,41 @@
-const { getSupabase, getFromTable } = require("../../shared_utils/supabase");
-
-const SUBMITTED_PAYMENTS_TABLE = "SubmittedPayments";
+const SUBMITTED_PAYMENTS_TABLE = "submitted_payments";
 const FIELDS = ["member_id", "payment_id", "assigned_on", "submitted_on", "overdue", "total_paid"];
-
-const SUPABASE_SECRET_ID = process.env.SUPABASE_SECRET_ID;
-const REGION = process.env.AWS_REGION;
-
+const { query } = require("../../shared_utils/db");
 
 exports.handler = async (event) => {
 
-    if (!isAdmin) {
-        return { statusCode: 403, body: 'Forbidden' };
-    }
-
     try {
-        const parameters = event.headers;
-        const supabase = await getSupabase(SUPABASE_SECRET_ID, REGION);
-        const response = getFromTable(SUBMITTED_PAYMENTS_TABLE, FIELDS, parameters, supabase);
+        const payload = {};
+        const parameters = JSON.parse(event.body || "{}");
 
-        return response;
+        for (const field of FIELDS) {
+            if (field in parameters) {
+                payload[field] = parameters[field];
+            }
+        }
+
+        const keys = Object.keys(payload);
+
+        const sql =
+            keys.length === 0
+                ? `SELECT * FROM ${SUBMITTED_PAYMENTS_TABLE}`
+                : `SELECT * FROM ${SUBMITTED_PAYMENTS_TABLE} WHERE ` +
+                keys.map((key, index) => `${key} = $${index + 1}`).join(" AND ");
+
+        const values = keys.map((key) => payload[key]);
+        const result = await query(sql, values);
+
+        return {
+            statusCode: 200,
+            headers: {
+                "Content-Type": "application/json",
+                "Access-Control-Allow-Origin": "*"
+            },
+            body: JSON.stringify({
+                message: "Submitted payments retrieved successfully.",
+                data: result.rows
+            })
+        };
 
     } catch (err) {
         return {

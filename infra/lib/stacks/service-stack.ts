@@ -251,6 +251,10 @@ export class ServiceStack extends Stack {
     props.databaseStack.grantDatabaseAccess(getTournamentRegistrationsLambda);
     props.databaseStack.grantDatabaseAccess(registerEventLambda);
     props.databaseStack.grantDatabaseAccess(unregisterEventLambda);
+    props.databaseStack.grantDatabaseAccess(getSbmtPaymentLambda);
+    props.databaseStack.grantDatabaseAccess(submitPaymentLambda);
+    props.databaseStack.grantDatabaseAccess(removeSbmtPaymentLambda);
+    props.databaseStack.grantDatabaseAccess(clearOvrPaymentsLambda);
 
 
     // ---- Secrets access (same as your IamStack)

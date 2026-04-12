@@ -4,6 +4,7 @@ const { normalizeGroups } = require("../../shared_utils/normalize_claim");
 const TOURNAMENTS_TABLE = "tournaments";
 const SHINSA_TABLE = "shinsa_exams";
 const SEMINAR_TABLE = "seminars";
+const EVENTS_TABLE = "events";
 
 exports.handler = async (event) => {
     const claims =
@@ -16,10 +17,33 @@ exports.handler = async (event) => {
 
     try {
         const parameters = JSON.parse(event.body || "{}");
-        const configType = parameters.config_type;
+        const eventId = parameters.event_id;
+
+        // Dynamically detect event type from events table
+        const eventResult = await query(
+            `
+            SELECT event_type
+            FROM ${EVENTS_TABLE}
+            WHERE event_id = $1
+            LIMIT 1
+            `,
+            [eventId]
+        );
+
+        if (eventResult.rows.length === 0) {
+            return {
+                statusCode: 404,
+                headers: {
+                    "Content-Type": "application/json",
+                    "Access-Control-Allow-Origin": "*"
+                },
+                body: JSON.stringify({ error: "Event not found" })
+            };
+        }
+
+        const configType = eventResult.rows[0].event_type;
 
         if (configType === "tournament") {
-            const eventId = parameters.event_id;
             const shinpanNeeded = parameters.shinpan_needed;
             const divisions = parameters.divisions;
             const teamsIncluded = parameters.teams_included;
@@ -53,7 +77,6 @@ exports.handler = async (event) => {
         }
 
         if (configType === "shinsa") {
-            const eventId = parameters.event_id;
             const shinsaLevels = parameters.shinsa_levels;
 
             const result = await query(
@@ -83,7 +106,6 @@ exports.handler = async (event) => {
         }
 
         if (configType === "seminar") {
-            const eventId = parameters.event_id;
             const seminarGuests = parameters.seminar_guests;
             const bringYourLunch = parameters.bring_your_lunch;
 
