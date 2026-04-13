@@ -11,8 +11,8 @@ async function renderTable() {
         const user = await userManager.getUser();
         
         const [membersResponse, adminResponse] = await Promise.all([
-            fetch('https://jlsml5sfaj.execute-api.us-east-2.amazonaws.com/members'),
-            user ? fetch('https://jlsml5sfaj.execute-api.us-east-2.amazonaws.com/admins', {
+            fetch('https://qh3c0tz6s9.execute-api.us-east-2.amazonaws.com/members'),
+            user ? fetch('https://qh3c0tz6s9.execute-api.us-east-2.amazonaws.com/admins', {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
@@ -311,7 +311,7 @@ function displayRemoveResults(matchingMembers) {
                     return;
                 }
 
-                const response = await fetch('https://jlsml5sfaj.execute-api.us-east-2.amazonaws.com/members', {
+                const response = await fetch('https://qh3c0tz6s9.execute-api.us-east-2.amazonaws.com/members', {
                     method: 'DELETE',
                     headers: {
                         'Content-Type': 'application/json',

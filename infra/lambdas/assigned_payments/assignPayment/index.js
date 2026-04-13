@@ -1,12 +1,9 @@
-const { getSupabase, callPostgresFunction } = require("../../shared_utils/supabase");
 const { verifyMemberExists } = require("../../shared_utils/members");
 const { getCurrentTimeUTC } = require("../../shared_utils/dates");
 const { normalizeGroups } = require("../../shared_utils/normalize_claim");
+const { query } = require("../../shared_utils/db");
 
 const REQUIRED_FIELDS = ["member_id", "payment_id"];
-
-const SUPABASE_SECRET_ID = process.env.SUPABASE_SECRET_ID;
-const REGION = process.env.AWS_REGION;
 
 exports.handler = async (event) => {
     const claims =
@@ -18,11 +15,11 @@ exports.handler = async (event) => {
     if (!isAdmin) return { statusCode: 403, body: "Forbidden" };
 
     try {
-        const parameters = JSON.parse(event.body);
+        const parameters = JSON.parse(event.body || "{}");
         const payload = {};
 
         for (const field of REQUIRED_FIELDS) {
-            if (!parameters[field]) {
+            if (parameters[field] === undefined || parameters[field] === null) {
                 return {
                     statusCode: 400,
                     body: `${field} is missing from your request, please include it.`
@@ -31,30 +28,58 @@ exports.handler = async (event) => {
             payload[field] = parameters[field];
         }
 
-        const memberId = parseInt(payload['member_id']);
+        const memberId = parseInt(payload['member_id'], 10);
+        const paymentId = parseInt(payload['payment_id'], 10);
+        const assignedOn = getCurrentTimeUTC();
+        const status = "due";
+
         const memberFound = await verifyMemberExists(memberId);
         if (!memberFound) {
             return { statusCode: 400, body: "Invalid member ID." };
         }
 
-        payload["assigned_on"] = parameters["assigned_on"] ? parameters["assigned_on"] : getCurrentTimeUTC();
+        const paymentCheck = await query(
+            `SELECT 1 FROM payments WHERE payment_id = $1`,
+            [paymentId]
+        );
 
-        const supabase = await getSupabase(SUPABASE_SECRET_ID, REGION);
-        const args = {
-            p_member_id: payload.member_id,
-            p_payment_id: payload.payment_id,
-            p_assigned_on: payload.assigned_on,
-            p_status: "due"
+        if (paymentCheck.rowCount === 0) {
+            return {
+                statusCode: 400,
+                body: "Invalid payment ID.",
+            };
         }
+        
+        const result = await query(
+            `
+            INSERT INTO assigned_payments (
+                member_id,
+                payment_id,
+                assigned_on,
+                due_status
+            )
+            VALUES ($1, $2, $3, $4)
+            RETURNING member_id, payment_id, assigned_on, due_status
+            `,
+            [memberId, paymentId, assignedOn, status]
+        );
 
-        const response = await callPostgresFunction('assign_payment', args, supabase);
-        return response;
+        return {
+            statusCode: 200,
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                message: "Payment assigned successfully.",
+                data: result.rows[0],
+            }),
+        };
 
     } catch (err) {
+        console.error("assignPayments error:", err);
+
         return {
             statusCode: 500,
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ error: err.message })
+            body: JSON.stringify({ error: err.message }),
         };
     }
 }

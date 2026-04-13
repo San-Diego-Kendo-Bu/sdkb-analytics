@@ -1,12 +1,7 @@
-const { getSupabase } = require("../../shared_utils/supabase");
 const { normalizeGroups } = require("../../shared_utils/normalize_claim");
+const { query } = require("../../shared_utils/db");
 
-const SUBMITTED_PAYMENTS_TABLE = "SubmittedPayments";
-
-const SUPABASE_SECRET_ID = process.env.SUPABASE_SECRET_ID;
-const REGION = process.env.AWS_REGION;
-
-const FILTERS = ["member_id", "payment_id", "assigned_on", "submitted_on", "overdue", "total_paid"];
+const SUBMITTED_PAYMENTS_TABLE = "submitted_payments";
 
 exports.handler = async (event) => {
     const claims =
@@ -23,43 +18,45 @@ exports.handler = async (event) => {
 
     try {
 
-        const parameters = JSON.parse(event.body);
-        const payload = {};
+        const parameters = JSON.parse(event.body || "{}");
+        const paymentId = parseInt(parameters.payment_id, 10);
+        const memberId = parseInt(parameters.member_id, 10);
 
-        for (const field of FILTERS) {
-            if (parameters[field]) {
-                payload[field] = parameters[field];
-            }
-        }
+        const result = await query(
+            `
+            DELETE FROM ${SUBMITTED_PAYMENTS_TABLE}
+            WHERE payment_id = $1 AND member_id = $2
+            RETURNING
+                member_id,
+                payment_id,
+                assigned_on,
+                submitted_on,
+                overdue,
+                total_paid
+            `,
+            [paymentId, memberId]
+        );
 
-        const supabase = await getSupabase(SUPABASE_SECRET_ID, REGION);
-
-        let response;
-        if (Object.keys(payload).length == 0) {   // No filters were given, clear entire table
-            response = await supabase.from(SUBMITTED_PAYMENTS_TABLE)
-                .delete()
-                .neq('payment_id', -1)              // ASSUMPTION: no payment will ever have a negative ID
-                .select();
-        } else {  // Remove entries with requested filters
-            response = await supabase.from(SUBMITTED_PAYMENTS_TABLE)
-                .delete()
-                .match(payload)
-                .select();
-        }
-
-        if (response.error) {
+        if (result.rowCount === 0) {
             return {
-                statusCode: 500,
+                statusCode: 404,
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ error: response.error })
+                body: JSON.stringify({ error: "Submitted payment not found" })
             };
         }
 
+        const data = result.rows[0];
+
         return {
             statusCode: 200,
-            headers: { "Content-Type": "application/json" },
+            headers: {
+                "Content-Type": "application/json",
+                "Access-Control-Allow-Origin": "*"
+            },
             body: JSON.stringify({
-                data: response.data,
+                message: "Deleted Submitted Payment Successfully",
+                id: data.payment_id,
+                data,
             })
         };
 

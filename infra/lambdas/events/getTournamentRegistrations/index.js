@@ -1,14 +1,18 @@
-const { getSupabase } = require("../../shared_utils/supabase");
+const { query } = require("../../shared_utils/db");
 
-const SUPABASE_SECRET_ID = process.env.SUPABASE_SECRET_ID;
-const TOURNAMENT_REGISTRATION_TABLE = "TournamentRegistrations";
-const REGION = process.env.AWS_REGION;
-const TOURNAMENT_FIELDS = ["event_id", "member_id", "registered_date", "shinpanning", "division", "doing_teams"];
+const TOURNAMENT_REGISTRATION_TABLE = "tournament_registrations";
+const TOURNAMENT_FIELDS = [
+    "event_id",
+    "member_id",
+    "registered_date",
+    "shinpanning",
+    "division",
+    "doing_teams"
+];
 
 exports.handler = async (event) => {
-
     try {
-        const parameters = event.headers;
+        const parameters = JSON.parse(event.body || "{}");
         const payload = {};
 
         for (const field of TOURNAMENT_FIELDS) {
@@ -17,18 +21,17 @@ exports.handler = async (event) => {
             }
         }
 
-        const supabase = await getSupabase(SUPABASE_SECRET_ID, REGION);
-        const response = (Object.keys(payload).length === 0) ?
-            await supabase.from(TOURNAMENT_REGISTRATION_TABLE).select("*") :
-            await supabase.from(TOURNAMENT_REGISTRATION_TABLE).select("*").match(payload);
+        const keys = Object.keys(payload);
 
-        if (response.error) {
-            return {
-                statusCode: 500,
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ error: response.error }),
-            };
-        }
+        const sql =
+            keys.length === 0
+                ? `SELECT * FROM ${TOURNAMENT_REGISTRATION_TABLE}`
+                : `SELECT * FROM ${TOURNAMENT_REGISTRATION_TABLE} WHERE ` +
+                  keys.map((key, index) => `${key} = $${index + 1}`).join(" AND ");
+
+        const values = keys.map((key) => payload[key]);
+
+        const result = await query(sql, values);
 
         return {
             statusCode: 200,
@@ -38,12 +41,14 @@ exports.handler = async (event) => {
             },
             body: JSON.stringify({
                 message: "Registration(s) retrieved successfully.",
-                payload: payload,
-                body: response.data,
+                payload,
+                body: result.rows,
             })
         };
 
     } catch (err) {
+        console.error("getTournamentRegistrations error:", err);
+
         return {
             statusCode: 500,
             headers: { "Content-Type": "application/json" },

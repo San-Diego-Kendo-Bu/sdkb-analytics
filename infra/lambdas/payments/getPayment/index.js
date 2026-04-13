@@ -1,21 +1,51 @@
-const { getSupabase, getFromTable } = require("../../shared_utils/supabase");
+const { query } = require("../../shared_utils/db");
 
-const PAYMENTS_TABLE = "Payments";
-const FIELDS = ['payment_id', 'title', 'created_at', 'due_date', 'payment_value', 'overdue_penalty'];
-
-const SUPABASE_SECRET_ID = process.env.SUPABASE_SECRET_ID;
-const REGION = process.env.AWS_REGION;
+const PAYMENTS_TABLE = "payments";
+const FIELDS = [
+    "payment_id",
+    "title",
+    "created_at",
+    "due_date",
+    "payment_value",
+    "overdue_penalty"
+];
 
 exports.handler = async (event) => {
-
     try {
-        const parameters = event.headers;
-        const supabase = await getSupabase(SUPABASE_SECRET_ID, REGION);
-        const response = getFromTable(PAYMENTS_TABLE, FIELDS, parameters, supabase);
+        const parameters = JSON.parse(event.body || "{}");
+        const payload = {};
 
-        return response;
+        for (const field of FIELDS) {
+            if (field in parameters) {
+                payload[field] = parameters[field];
+            }
+        }
+
+        const keys = Object.keys(payload);
+
+        const sql =
+            keys.length === 0
+                ? `SELECT * FROM ${PAYMENTS_TABLE}`
+                : `SELECT * FROM ${PAYMENTS_TABLE} WHERE ` +
+                  keys.map((key, index) => `${key} = $${index + 1}`).join(" AND ");
+
+        const values = keys.map((key) => payload[key]);
+
+        const result = await query(sql, values);
+
+        return {
+            statusCode: 200,
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                message: "Data retrieved successfully",
+                length: result.rows.length,
+                data: result.rows
+            })
+        };
 
     } catch (err) {
+        console.error("getPayments error:", err);
+
         return {
             statusCode: 500,
             headers: { "Content-Type": "application/json" },
