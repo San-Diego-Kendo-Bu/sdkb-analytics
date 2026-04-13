@@ -30,7 +30,6 @@ import { get } from "http";
 export interface ServiceStackProps extends StackProps {
   membersAuthorizer?: IHttpRouteAuthorizer;   // attach to protected routes if provided
   stripeSecret: ISecret;
-  supabaseSecret: ISecret;
   membersTableArn: string;
   configTableArn: string;
   userPool: IUserPool;
@@ -181,19 +180,16 @@ export class ServiceStack extends Stack {
       entry: path.join(__dirname, "../../lambdas/submitted_payments/submitPayment/index.js"),
       handler: "handler",
       ...commonNodejs,
-      environment: { SUPABASE_SECRET_ID: props.supabaseSecret.secretName },
     });
     const removeSbmtPaymentLambda = new NodejsFunction(this, "RemoveSbmtPaymentLambda", {
       entry: path.join(__dirname, "../../lambdas/submitted_payments/removeSbmtPayment/index.js"),
       handler: "handler",
       ...commonNodejs,
-      environment: { SUPABASE_SECRET_ID: props.supabaseSecret.secretName },
     });
     const getSbmtPaymentLambda = new NodejsFunction(this, "GetSbmtPaymentLambda", {
       entry: path.join(__dirname, "../../lambdas/submitted_payments/getSbmtPayment/index.js"),
       handler: "handler",
       ...commonNodejs,
-      environment: { SUPABASE_SECRET_ID: props.supabaseSecret.secretName },
     });
 
     const createEventLambda = new NodejsFunction(this, "CreateEventLambda", {
@@ -260,13 +256,6 @@ export class ServiceStack extends Stack {
     // ---- Secrets access (same as your IamStack)
     props.stripeSecret.grantRead(createMemberLambda);
     props.stripeSecret.grantRead(removeMemberLambda);
-
-    props.supabaseSecret.grantRead(clearOvrPaymentsLambda);
-
-
-    props.supabaseSecret.grantRead(submitPaymentLambda);
-    props.supabaseSecret.grantRead(removeSbmtPaymentLambda);
-    props.supabaseSecret.grantRead(getSbmtPaymentLambda);
 
     // ---- DynamoDB policies (same as your IamStack)
     const members = props.membersTableArn;
