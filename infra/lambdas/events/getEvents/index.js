@@ -1,15 +1,20 @@
-const { getSupabase } = require("../../shared_utils/supabase");
+const { query } = require("../../shared_utils/db");
 
-const EVENTS_TABLE = "Events";
-const SUPABASE_SECRET_ID = process.env.SUPABASE_SECRET_ID;
-const REGION = process.env.AWS_REGION;
-const FIELDS = ["event_id", "event_date", "event_name", "event_type", "event_deadline", "created_at", "event_location", "payment_id"];
+const EVENTS_TABLE = "events";
+const FIELDS = [
+    "event_id",
+    "event_date",
+    "event_name",
+    "event_type",
+    "event_deadline",
+    "created_at",
+    "event_location",
+    "payment_id"
+];
 
 exports.handler = async (event) => {
-
     try {
-
-        const parameters = event.headers;
+        const parameters = JSON.parse(event.body || "{}");
         const payload = {};
 
         for (const field of FIELDS) {
@@ -18,18 +23,17 @@ exports.handler = async (event) => {
             }
         }
 
-        const supabase = await getSupabase(SUPABASE_SECRET_ID, REGION);
-        const response = (Object.keys(payload).length === 0) ?
-            await supabase.from(EVENTS_TABLE).select("*") :
-            await supabase.from(EVENTS_TABLE).select("*").match(payload);
+        const keys = Object.keys(payload);
 
-        if (response.error) {
-            return {
-                statusCode: 500,
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ error: response.error }),
-            };
-        }
+        const sql =
+            keys.length === 0
+                ? `SELECT * FROM ${EVENTS_TABLE}`
+                : `SELECT * FROM ${EVENTS_TABLE} WHERE ` +
+                  keys.map((key, index) => `${key} = $${index + 1}`).join(" AND ");
+
+        const values = keys.map((key) => payload[key]);
+
+        const result = await query(sql, values);
 
         return {
             statusCode: 200,
@@ -39,12 +43,14 @@ exports.handler = async (event) => {
             },
             body: JSON.stringify({
                 message: "Event(s) retrieved successfully.",
-                payload: payload,
-                body: response.data,
+                payload,
+                body: result.rows,
             })
         };
 
     } catch (err) {
+        console.error("getEvents error:", err);
+
         return {
             statusCode: 500,
             headers: { "Content-Type": "application/json" },

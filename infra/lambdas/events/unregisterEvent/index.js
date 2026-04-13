@@ -1,19 +1,25 @@
-const { getSupabase } = require("../../shared_utils/supabase");
+const { query } = require("../../shared_utils/db");
 const { verifyMemberExists } = require("../../shared_utils/members");
 
-const SUPABASE_SECRET_ID = process.env.SUPABASE_SECRET_ID;
-const TOURNAMENT_REGISTRATION_TABLE = "Registrations";
-const SHINSA_REGISTRATION_TABLE = "ShinsaRegistrations";
-const SEMINAR_REGISTRATION_TABLE = "SeminarRegistrations";
-const REGION = process.env.AWS_REGION;
+const TOURNAMENT_REGISTRATION_TABLE = "tournament_registrations";
+const SHINSA_REGISTRATION_TABLE = "shinsa_registrations";
+const SEMINAR_REGISTRATION_TABLE = "seminar_registrations";
 
 exports.handler = async (event) => {
-
     try {
-        const parameters = JSON.parse(event.body);
+        const parameters = JSON.parse(event.body || "{}");
+
         const configType = parameters.config_type;
-        const eventId = parameters.event_id;
-        const memberId = parameters.member_id;
+        const eventId = parseInt(parameters.event_id, 10);
+        const memberId = parseInt(parameters.member_id, 10);
+
+        if (Number.isNaN(eventId) || Number.isNaN(memberId)) {
+            return {
+                statusCode: 400,
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ error: "event_id and member_id must be valid numbers" })
+            };
+        }
 
         const memberExists = await verifyMemberExists(memberId);
         if (!memberExists) {
@@ -24,48 +30,35 @@ exports.handler = async (event) => {
             };
         }
 
-        const supabase = await getSupabase(SUPABASE_SECRET_ID, REGION);
+        let result;
 
         if (configType === "tournament") {
-            const response = await supabase
-                .from(TOURNAMENT_REGISTRATION_TABLE)
-                .delete()
-                .match({ event_id: eventId, member_id: memberId });
-
-            if (response.error) {
-                return {
-                    statusCode: 500,
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ error: response.error })
-                };
-            }
+            result = await query(
+                `
+                DELETE FROM ${TOURNAMENT_REGISTRATION_TABLE}
+                WHERE event_id = $1 AND member_id = $2
+                RETURNING event_id, member_id, registration_date, shinpanning, division, doing_teams
+                `,
+                [eventId, memberId]
+            );
         } else if (configType === "shinsa") {
-            const response = await supabase
-                .from(SHINSA_REGISTRATION_TABLE)
-                .delete()
-                .match({ event_id: eventId, member_id: memberId });
-
-            if (response.error) {
-                return {
-                    statusCode: 500,
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ error: response.error })
-                };
-            }
-
+            result = await query(
+                `
+                DELETE FROM ${SHINSA_REGISTRATION_TABLE}
+                WHERE event_id = $1 AND member_id = $2
+                RETURNING event_id, member_id, registration_date, testing_for
+                `,
+                [eventId, memberId]
+            );
         } else if (configType === "seminar") {
-            const response = await supabase
-                .from(SEMINAR_REGISTRATION_TABLE)
-                .delete()
-                .match({ event_id: eventId, member_id: memberId });
-
-            if (response.error) {
-                return {
-                    statusCode: 500,
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ error: response.error })
-                };
-            }
+            result = await query(
+                `
+                DELETE FROM ${SEMINAR_REGISTRATION_TABLE}
+                WHERE event_id = $1 AND member_id = $2
+                RETURNING event_id, member_id, registration_date
+                `,
+                [eventId, memberId]
+            );
         } else {
             return {
                 statusCode: 400,
@@ -74,8 +67,13 @@ exports.handler = async (event) => {
             };
         }
 
-
-
+        if (result.rowCount === 0) {
+            return {
+                statusCode: 404,
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ error: "Registration not found" })
+            };
+        }
 
         return {
             statusCode: 200,
@@ -85,11 +83,13 @@ exports.handler = async (event) => {
             },
             body: JSON.stringify({
                 message: "Event Unregistered Successfully",
-                request_parameters: parameters,
+                data: result.rows[0],
             })
         };
 
     } catch (err) {
+        console.error("unregisterEvent error:", err);
+
         return {
             statusCode: 500,
             headers: { "Content-Type": "application/json" },

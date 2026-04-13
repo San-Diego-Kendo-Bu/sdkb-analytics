@@ -1,11 +1,7 @@
-const { getSupabase, callPostgresFunction } = require("../../shared_utils/supabase");
+const { query } = require("../../shared_utils/db");
 const { normalizeGroups } = require("../../shared_utils/normalize_claim");
 
-const SUPABASE_SECRET_ID = process.env.SUPABASE_SECRET_ID;
-const REGION = process.env.AWS_REGION;
-
 exports.handler = async (event) => {
-
     const claims =
         event.requestContext?.authorizer?.jwt?.claims ??
         event.requestContext?.authorizer?.claims ?? {};
@@ -15,24 +11,73 @@ exports.handler = async (event) => {
     if (!isAdmin) return { statusCode: 403, body: "Forbidden" };
 
     try {
+        const parameters = JSON.parse(event.body || "{}");
+        const paymentId = parseInt(parameters.payment_id, 10);
 
-        const parameters = JSON.parse(event.body);
-        const paymentId = parameters.payment_id;
-
-        if (!paymentId) {
+        if (Number.isNaN(paymentId)) {
             return {
-                status: 400,
-                message: "Please specify a payment id"
-            }
+                statusCode: 400,
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ error: "Please specify a valid payment id" })
+            };
         }
 
-        const supabase = await getSupabase(SUPABASE_SECRET_ID, REGION);
-        const args = { p_payment_id: paymentId };
-        const response = callPostgresFunction('remove_payment', args, supabase);
+        const paymentExists = await query(
+            `
+            SELECT 1
+            FROM "payments"
+            WHERE payment_id = $1
+            `,
+            [paymentId]
+        );
 
-        return response;
+        if (paymentExists.rowCount === 0) {
+            return {
+                statusCode: 404,
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ error: "Could not remove payment: ID not found" })
+            };
+        }
+
+        await query(
+            `
+            DELETE FROM "submitted_payments"
+            WHERE payment_id = $1
+            `,
+            [paymentId]
+        );
+
+        await query(
+            `
+            DELETE FROM "assigned_payments"
+            WHERE payment_id = $1
+            `,
+            [paymentId]
+        );
+
+        const result = await query(
+            `
+            DELETE FROM "payments"
+            WHERE payment_id = $1
+            RETURNING *
+            `,
+            [paymentId]
+        );
+
+        const data = result.rows[0];
+
+        return {
+            statusCode: 200,
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                message: "Payment removed successfully",
+                data
+            })
+        };
 
     } catch (err) {
+        console.error("removePayment error:", err);
+
         return {
             statusCode: 500,
             headers: { "Content-Type": "application/json" },

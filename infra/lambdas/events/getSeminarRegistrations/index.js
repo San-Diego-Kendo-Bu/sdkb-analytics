@@ -1,15 +1,12 @@
-const { getSupabase } = require("../../shared_utils/supabase");
+const { query } = require("../../shared_utils/db");
 
-const SUPABASE_SECRET_ID = process.env.SUPABASE_SECRET_ID;
-const SEMINAR_REGISTRATION_TABLE = "SeminarRegistrations";
-const REGION = process.env.AWS_REGION;
+const SEMINAR_REGISTRATION_TABLE = "seminar_registrations";
 
-const SEMINAR_FIELDS = ["event_id", "member_id", "registered_date"];
+const SEMINAR_FIELDS = ["event_id", "member_id", "registration_date"];
 
 exports.handler = async (event) => {
-
     try {
-        const parameters = event.headers;
+        const parameters = JSON.parse(event.body || "{}");
         const payload = {};
 
         for (const field of SEMINAR_FIELDS) {
@@ -18,18 +15,17 @@ exports.handler = async (event) => {
             }
         }
 
-        const supabase = await getSupabase(SUPABASE_SECRET_ID, REGION);
-        const response = (Object.keys(payload).length === 0) ?
-            await supabase.from(SEMINAR_REGISTRATION_TABLE).select("*") :
-            await supabase.from(SEMINAR_REGISTRATION_TABLE).select("*").match(payload);
+        const keys = Object.keys(payload);
 
-        if (response.error) {
-            return {
-                statusCode: 500,
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ error: response.error }),
-            };
-        }
+        const sql =
+            keys.length === 0
+                ? `SELECT * FROM ${SEMINAR_REGISTRATION_TABLE}`
+                : `SELECT * FROM ${SEMINAR_REGISTRATION_TABLE} WHERE ` +
+                  keys.map((key, index) => `${key} = $${index + 1}`).join(" AND ");
+
+        const values = keys.map((key) => payload[key]);
+
+        const result = await query(sql, values);
 
         return {
             statusCode: 200,
@@ -38,13 +34,15 @@ exports.handler = async (event) => {
                 "Access-Control-Allow-Origin": "*"
             },
             body: JSON.stringify({
-                message: "Registrations(s) retrieved successfully.",
-                payload: payload,
-                body: response.data,
+                message: "Registration(s) retrieved successfully.",
+                payload,
+                body: result.rows,
             })
         };
 
     } catch (err) {
+        console.error("getSeminarRegistrations error:", err);
+
         return {
             statusCode: 500,
             headers: { "Content-Type": "application/json" },

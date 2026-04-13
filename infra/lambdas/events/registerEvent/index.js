@@ -1,23 +1,19 @@
-const { getSupabase } = require("../../shared_utils/supabase");
+const { query } = require("../../shared_utils/db");
 const { verifyMemberExists } = require("../../shared_utils/members");
 
-const SUPABASE_SECRET_ID = process.env.SUPABASE_SECRET_ID;
-const TOURNAMENT_REGISTRATION_TABLE = "TournamentRegistrations";
-const SHINSA_REGISTRATION_TABLE = "ShinsaRegistrations";
-const SEMINAR_REGISTRATION_TABLE = "SeminarRegistrations";
-const REGION = process.env.AWS_REGION;
+const TOURNAMENT_REGISTRATION_TABLE = "tournament_registrations";
+const SHINSA_REGISTRATION_TABLE = "shinsa_registrations";
+const SEMINAR_REGISTRATION_TABLE = "seminar_registrations";
 
 exports.handler = async (event) => {
-
     try {
-        const parameters = JSON.parse(event.body);
+        const parameters = JSON.parse(event.body || "{}");
+
         const configType = parameters.config_type;
         const eventId = parameters.event_id;
         const memberId = parameters.member_id;
-        const registered_date = parameters.registered_date;
-        const supabase = await getSupabase(SUPABASE_SECRET_ID, REGION);
+        const registeredDate = parameters.registration_date;
 
-        // check if this member_id is in the members database
         const memberExists = await verifyMemberExists(memberId);
         if (!memberExists) {
             return {
@@ -32,74 +28,117 @@ exports.handler = async (event) => {
             const division = parameters.division;
             const doingTeams = parameters.doing_teams;
 
-            const response = await supabase.from(TOURNAMENT_REGISTRATION_TABLE).insert({
-                event_id: eventId,
-                member_id: memberId,
-                registered_date: registered_date,
-                shinpanning: shinpanning,
-                division: division,
-                doing_teams: doingTeams
-            });
+            const result = await query(
+                `
+                INSERT INTO ${TOURNAMENT_REGISTRATION_TABLE} (
+                    event_id,
+                    member_id,
+                    registration_date,
+                    shinpanning,
+                    division,
+                    doing_teams
+                )
+                VALUES ($1, $2, $3, $4, $5, $6)
+                RETURNING
+                    event_id,
+                    member_id,
+                    registration_date,
+                    shinpanning,
+                    division,
+                    doing_teams
+                `,
+                [eventId, memberId, registeredDate, shinpanning, division, doingTeams]
+            );
 
-            if (response.error) {
-                return {
-                    statusCode: 500,
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ error: response.error })
-                };
-            }
-        } else if (configType === "shinsa") {
-            const testing_for = parameters.testing_for;
-
-            const response = await supabase.from(SHINSA_REGISTRATION_TABLE).insert({
-                event_id: eventId,
-                member_id: memberId,
-                registered_date: registered_date,
-                testing_for: testing_for
-            });
-
-            if (response.error) {
-                return {
-                    statusCode: 500,
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ error: response.error })
-                };
-            }
-        } else if (configType === "seminar") {
-            const response = await supabase.from(SEMINAR_REGISTRATION_TABLE).insert({
-                event_id: eventId,
-                member_id: memberId,
-                registered_date: registered_date
-            });
-
-            if (response.error) {
-                return {
-                    statusCode: 500,
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ error: response.error })
-                };
-            }
-        } else {
             return {
-                statusCode: 400,
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ error: "Invalid config_type" })
+                statusCode: 200,
+                headers: {
+                    "Content-Type": "application/json",
+                    "Access-Control-Allow-Origin": "*"
+                },
+                body: JSON.stringify({
+                    message: "Registered Event Successfully",
+                    config_type: configType,
+                    data: result.rows[0],
+                })
+            };
+        }
+
+        if (configType === "shinsa") {
+            const testingFor = parameters.testing_for;
+
+            const result = await query(
+                `
+                INSERT INTO ${SHINSA_REGISTRATION_TABLE} (
+                    event_id,
+                    member_id,
+                    registration_date,
+                    testing_for
+                )
+                VALUES ($1, $2, $3, $4)
+                RETURNING
+                    event_id,
+                    member_id,
+                    registration_date,
+                    testing_for
+                `,
+                [eventId, memberId, registeredDate, testingFor]
+            );
+
+            return {
+                statusCode: 200,
+                headers: {
+                    "Content-Type": "application/json",
+                    "Access-Control-Allow-Origin": "*"
+                },
+                body: JSON.stringify({
+                    message: "Registered Event Successfully",
+                    config_type: configType,
+                    data: result.rows[0],
+                })
+            };
+        }
+
+        if (configType === "seminar") {
+            const result = await query(
+                `
+                INSERT INTO ${SEMINAR_REGISTRATION_TABLE} (
+                    event_id,
+                    member_id,
+                    registration_date
+                )
+                VALUES ($1, $2, $3)
+                RETURNING
+                    event_id,
+                    member_id,
+                    registration_date
+                `,
+                [eventId, memberId, registeredDate]
+            );
+
+            return {
+                statusCode: 200,
+                headers: {
+                    "Content-Type": "application/json",
+                    "Access-Control-Allow-Origin": "*"
+                },
+                body: JSON.stringify({
+                    message: "Registered Event Successfully",
+                    config_type: configType,
+                    data: result.rows[0],
+                })
             };
         }
 
         return {
-            statusCode: 200,
-            headers: {
-                "Content-Type": "application/json",
-                "Access-Control-Allow-Origin": "*"
-            },
-            body: JSON.stringify({
-                message: "Registered Event Successfully",
-                request_parameters: parameters,
-            })
+            statusCode: 400,
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ error: "Invalid config_type" })
         };
 
     } catch (err) {
+        console.error("registerEvent error:", err);
+
         return {
             statusCode: 500,
             headers: { "Content-Type": "application/json" },
