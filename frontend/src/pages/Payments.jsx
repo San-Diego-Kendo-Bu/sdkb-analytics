@@ -4,11 +4,47 @@
 
 import { fetchPayments } from "../js/payments/paymentManager";
 import PaymentEntry from "../react_components/PaymentEntry";
-import paymentStyles from '../../css/paymentpage.module.css';
 import { useEffect, useState } from "react";
+
+import { tzToMMDDYYY } from "../js/shared/dateTools";
+
+import paymentStyles from '../../css/paymentpage.module.css';
+import entryTableStyles from '../../css/entrytable.module.css';
+
+const dummy = [
+    {
+        payment_id : 0,
+        title: "2025 Dojo Glorious Membership Fee",
+        created_at: "2026-04-05T19:09:52.000Z",
+        due_date: "2025-11-30T00:00:00.000Z",
+        payment_value: 50
+    },
+    {
+        payment_id : 1,
+        title: "i kendo it",
+        created_at: "2026-04-05T19:04:51.000Z",
+        due_date: "2025-11-30T00:00:00.000Z",
+        payment_value: 50
+    },
+    {
+        payment_id : 2,
+        title: "2025 Dojo Glorious Membership Fee",
+        created_at: "2026-04-05T19:21:25.000Z",
+        due_date: "2025-11-30T00:00:00.000Z",
+        payment_value: 50
+    },
+    {
+        payment_id : 3,
+        title: "Overdue no assignments or submissions",
+        created_at: "2026-04-12T19:32:34.000Z",
+        due_date: "2025-12-12T00:00:00.000Z",
+        payment_value: 10
+    }
+];
 
 function Payments(){
     const [payments, setPayments] = useState(null);
+    const MAX_TITLE_LENGTH = 30;
     /**
      * No dependency array: the effect runs after every render 
      * Dependency array is empty ([]), it runs once on mount; 
@@ -22,28 +58,30 @@ function Payments(){
         }
         
         startFetching();
-        // return () => {
-        // Cleanup function (optional)
-        // };
     }, []);
 
     return (
         <>
             <h1>PAYMENTS</h1>
-            <button onClick={()=>{setPayments(fetchPayments)}}>Refresh</button>
             {payments ? 
                 <table>
                 <thead>
                     <tr>
-                        <th className={paymentStyles.mediumcell}>Title</th>
-                        <th className={paymentStyles.mediumcell}>Created</th>
-                        <th className={paymentStyles.mediumcell}>Due</th>
+                        <th className={paymentStyles.longcell}>Title</th>
+                        <th className={paymentStyles.longcell}>Created</th>
+                        <th className={paymentStyles.longcell}>Due</th>
                         <th className={paymentStyles.shortcell}>Value</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody className={entryTableStyles.tableBody}>
                     {payments.map(p => (
-                        <PaymentEntry key={p.payment_id} title={p.title} created_at={p.created_at} due_date={p.due_date} payment_value={p.payment_value}/>
+                        <PaymentEntry 
+                            key={p.payment_id} 
+                            title={p.title.length <= MAX_TITLE_LENGTH ? p.title : (p.title.substring(0, MAX_TITLE_LENGTH) + "...")} 
+                            created_at={tzToMMDDYYY(p.created_at)} 
+                            due_date={tzToMMDDYYY(p.due_date)} 
+                            payment_value={p.payment_value}
+                        />
                     ))}
                 </tbody>
             </table> : <p>Fetching Payments...</p>
