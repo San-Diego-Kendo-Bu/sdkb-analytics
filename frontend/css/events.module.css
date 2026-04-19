@@ -1,0 +1,264 @@
+.page {
+  padding: 2%;
+  background-color: #1a1a2e;
+  min-height: 100vh;
+  color: #fff;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1.5rem;
+}
+
+.title {
+  font-size: 1.6rem;
+  font-weight: 700;
+  margin: 0 0 0.2rem 0;
+}
+
+.count {
+  color: #aaa;
+  font-size: 0.9rem;
+}
+
+.headerRight {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.search {
+  background: #2a2a3e;
+  border: 1px solid #444;
+  border-radius: 6px;
+  color: #fff;
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+  width: 260px;
+}
+
+.search::placeholder { color: #888; }
+.search:focus { outline: none; border-color: #666; }
+
+.newBtn {
+  background: #fff;
+  color: #1a1a2e;
+  border: none;
+  border-radius: 6px;
+  padding: 0.5rem 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
+
+.newBtn:hover { background: #ddd; }
+
+.filters {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+  align-items: center;
+}
+
+.filtersLabel {
+  color: #aaa;
+  font-size: 0.9rem;
+  margin-right: 0.25rem;
+}
+
+.filterBtn {
+  background: transparent;
+  border: 1px solid #444;
+  border-radius: 20px;
+  color: #ccc;
+  padding: 0.3rem 1rem;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: all 0.2s;
+}
+
+.filterBtn:hover { border-color: #aaa; color: #fff; }
+
+.filterActive {
+  background: #fff;
+  color: #1a1a2e;
+  border-color: #fff;
+  font-weight: 600;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.card {
+  background: #2a2a3e;
+  border-radius: 10px;
+  padding: 1.25rem 1.5rem;
+  display: flex;
+  gap: 1.25rem;
+  align-items: flex-start;
+}
+
+.dateBadge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 48px;
+  padding-top: 0.1rem;
+}
+
+.dateDay {
+  font-size: 1.8rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.dateMonth {
+  font-size: 0.75rem;
+  color: #aaa;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.cardBody { flex: 1; }
+
+.cardTop {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.cardTitle { font-weight: 600; font-size: 1rem; }
+
+.badge {
+  font-size: 0.75rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 12px;
+  color: #fff;
+  font-weight: 500;
+}
+
+.typeBadge {
+  font-size: 0.75rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 12px;
+  background: #3a3a52;
+  color: #ccc;
+}
+
+.cardDesc {
+  color: #bbb;
+  font-size: 0.875rem;
+  margin: 0 0 0.3rem 0;
+}
+
+.cardMeta {
+  color: #888;
+  font-size: 0.8rem;
+  margin: 0 0 0.75rem 0;
+}
+
+.cardActions { display: flex; gap: 0.5rem; }
+
+.editBtn {
+  background: transparent;
+  border: 1px solid #555;
+  color: #ccc;
+  border-radius: 6px;
+  padding: 0.25rem 0.75rem;
+  cursor: pointer;
+  font-size: 0.8rem;
+  transition: border-color 0.2s, color 0.2s;
+}
+
+.editBtn:hover { border-color: #aaa; color: #fff; }
+
+.deleteBtn {
+  background: transparent;
+  border: 1px solid #555;
+  color: #ccc;
+  border-radius: 6px;
+  padding: 0.25rem 0.75rem;
+  cursor: pointer;
+  font-size: 0.8rem;
+  transition: border-color 0.2s, color 0.2s;
+}
+
+.deleteBtn:hover { border-color: #d32f2f; color: #d32f2f; }
+
+.formBox {
+  background: #2a2a3e;
+  border-radius: 10px;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-width: 480px;
+}
+
+.formTitle {
+  font-weight: 600;
+  font-size: 1rem;
+  margin: 0 0 0.25rem 0;
+}
+
+.input {
+  background: #1a1a2e;
+  border: 1px solid #444;
+  border-radius: 6px;
+  color: #fff;
+  padding: 0.4rem 0.75rem;
+  font-size: 0.875rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.input:focus { outline: none; border-color: #666; }
+
+.label {
+  color: #aaa;
+  font-size: 0.8rem;
+  margin-bottom: -0.4rem;
+}
+
+.formActions { display: flex; gap: 0.5rem; margin-top: 0.25rem; }
+
+.saveBtn {
+  background: #fff;
+  color: #1a1a2e;
+  border: none;
+  border-radius: 6px;
+  padding: 0.4rem 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 0.875rem;
+}
+
+.saveBtn:hover { background: #ddd; }
+
+.cancelBtn {
+  background: transparent;
+  border: 1px solid #555;
+  color: #ccc;
+  border-radius: 6px;
+  padding: 0.4rem 1rem;
+  cursor: pointer;
+  font-size: 0.875rem;
+}
+
+.cancelBtn:hover { border-color: #aaa; color: #fff; }
+
+.empty {
+  color: #888;
+  text-align: center;
+  padding: 3rem 0;
+  font-size: 0.95rem;
+}

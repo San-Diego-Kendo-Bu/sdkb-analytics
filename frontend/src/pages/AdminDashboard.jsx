@@ -59,7 +59,7 @@ function AdminDashboard({setPage}) {
           color={palettes.pink}
           width={cardWidth}
           height={cardHeight}
-          onClick={()=>{console.log("Events");}}
+          onClick={()=>setPage("Events")}
           />
         </div>
       </div>
