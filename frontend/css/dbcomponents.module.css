@@ -1,0 +1,37 @@
+.tableBody td{
+    border-width: 1px;
+    border-style: solid;
+    border-color: transparent transparent black transparent;
+}
+
+.tableBody tr{
+    height: 3rem;
+}
+
+.dbForm {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    width: 400px;
+    border-style: solid;
+    border-color: rgb(162, 162, 162);
+    padding: 2%;
+    border-width: 2px;
+    border-radius: 2%;
+}
+.dbForm input[type="submit"]{
+    width: 5rem;
+}
+.dbForm input[type="text"]{
+    width: 15rem;
+}
+.dbForm input[type="number"]{
+    width: 4rem;
+}
+.dbForm input[type="datetime-local"]{
+    width: 15rem;
+}
+.dbForm label{
+    display: flex;
+    flex-direction: column;
+}

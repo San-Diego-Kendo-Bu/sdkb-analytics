@@ -1,15 +1,12 @@
-/**
- * TODO: component isn't updating after fetchPayments promise resolves. Gotta fix that somehow.
- */
-
-import { fetchPayments } from "../js/payments/paymentManager";
-import PaymentEntry from "../react_components/PaymentEntry";
+import { rdsRead } from "../js/shared/rdsTools";
 import { useEffect, useState } from "react";
-
 import { tzToMMDDYYY } from "../js/shared/dateTools";
 
+import PaymentEntry from "../react_components/PaymentEntry";
+import DbForm from "../react_components/DbForm";
+
 import paymentStyles from '../../css/paymentpage.module.css';
-import entryTableStyles from '../../css/entrytable.module.css';
+import dbComponentsStyles from '../../css/dbcomponents.module.css';
 
 const dummy = [
     {
@@ -50,19 +47,25 @@ function Payments(){
      * Dependency array is empty ([]), it runs once on mount; 
      * Dependency array is provided, it runs only when those values change.
      */
-    useEffect(async () => {
-        async function startFetching(){ // TODO: handle errors
-            const response = await fetchPayments();
-            const data = response.data;
-            setPayments(data);
-        }
+    // useEffect(() => {
+    //     async function startFetching(){ // TODO: handle errors
+    //         const response = await rdsRead('GET', 'payments');
+    //         const data = response ? response.data : null;
+    //         setPayments(data);
+    //     }
         
-        startFetching();
-    }, []);
-
+    //     startFetching();
+    // }, []);
+    useEffect(()=>{
+        function simulateFetch(){
+            setPayments(dummy);
+        }
+        simulateFetch();
+    },[]);
     return (
         <>
-            <h1>PAYMENTS</h1>
+            <h1>Payments</h1>
+            <DbForm />
             {payments ? 
                 <table>
                 <thead>
@@ -73,7 +76,7 @@ function Payments(){
                         <th className={paymentStyles.shortcell}>Value</th>
                     </tr>
                 </thead>
-                <tbody className={entryTableStyles.tableBody}>
+                <tbody className={dbComponentsStyles.tableBody}>
                     {payments.map(p => (
                         <PaymentEntry 
                             key={p.payment_id} 

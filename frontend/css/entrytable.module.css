@@ -1,9 +1,0 @@
-.tableBody td{
-    border-width: 1px;
-    border-style: solid;
-    border-color: transparent transparent black transparent;
-}
-
-.tableBody tr{
-    height: 3rem;
-}
