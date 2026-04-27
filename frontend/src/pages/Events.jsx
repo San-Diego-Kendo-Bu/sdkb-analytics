@@ -1,45 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import styles from '../../css/events.module.css';
-// import { rdsRead, rdsWrite } from '../js/shared/rdsTools';
+import { userManager } from '../js/cognitoManager';
 
-const DUMMY_EVENTS = [
-  {
-    event_id: 1,
-    title: 'Q1 review webinar',
-    description: 'Quarterly results and roadmap preview.',
-    start_datetime: '2026-03-10T14:00:00Z',
-    end_datetime: '2026-03-10T15:00:00Z',
-    location: 'Online',
-    type: 'Webinar',
-  },
-  {
-    event_id: 2,
-    title: 'Dev conference 2026',
-    description: 'Three-day developer conference with keynotes.',
-    start_datetime: '2026-04-19T08:30:00Z',
-    end_datetime: '2026-04-21T17:00:00Z',
-    location: 'Convention Center',
-    type: 'Conference',
-  },
-  {
-    event_id: 3,
-    title: 'Product design workshop',
-    description: 'Hands-on session exploring new design methods.',
-    start_datetime: '2026-04-22T09:00:00Z',
-    end_datetime: '2026-04-23T17:00:00Z',
-    location: 'Room 4B',
-    type: 'Workshop',
-  },
-  {
-    event_id: 4,
-    title: 'Summer kickoff party',
-    description: 'Annual summer gathering for all staff.',
-    start_datetime: '2026-06-15T18:00:00Z',
-    end_datetime: '2026-06-15T22:00:00Z',
-    location: 'Rooftop Terrace',
-    type: 'Networking',
-  },
-];
+const EVENTS_API = 'https://qh3c0tz6s9.execute-api.us-east-2.amazonaws.com/events';
 
 const STATUS_COLORS = {
   Past: '#6c757d',
@@ -99,13 +62,18 @@ function EventForm({ form, setForm, onSave, onCancel, title }) {
       <label className={styles.label}>Start</label>
       <input className={styles.input} type="datetime-local" value={form.start_datetime}
         onChange={e => setForm(f => ({ ...f, start_datetime: e.target.value }))} />
-      <label className={styles.label}>End (optional)</label>
+      <label className={styles.label}>End</label>
       <input className={styles.input} type="datetime-local" value={form.end_datetime}
         onChange={e => setForm(f => ({ ...f, end_datetime: e.target.value }))} />
       <input className={styles.input} placeholder="Location" value={form.location}
         onChange={e => setForm(f => ({ ...f, location: e.target.value }))} />
-      <input className={styles.input} placeholder="Type (e.g. Workshop)" value={form.type}
-        onChange={e => setForm(f => ({ ...f, type: e.target.value }))} />
+      <select className={styles.input} value={form.type}
+        onChange={e => setForm(f => ({ ...f, type: e.target.value }))}>
+        <option value="">Select type</option>
+        <option value="tournament">Tournament</option>
+        <option value="shinsa">Shinsa</option>
+        <option value="seminar">Seminar</option>
+      </select>
       <div className={styles.formActions}>
         <button className={styles.saveBtn} onClick={onSave}>Save</button>
         <button className={styles.cancelBtn} onClick={onCancel}>Cancel</button>
@@ -115,17 +83,31 @@ function EventForm({ form, setForm, onSave, onCancel, title }) {
 }
 
 function Events() {
-  const [events, setEvents] = useState(DUMMY_EVENTS);
+  const [events, setEvents] = useState([]);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('All');
   const [showNew, setShowNew] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [newForm, setNewForm] = useState(EMPTY_FORM);
   const [editForm, setEditForm] = useState(EMPTY_FORM);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // useEffect(() => {
-  //   rdsRead('GET', 'events').then(data => { if (data) setEvents(data); });
-  // }, []);
+  useEffect(() => {
+    fetch(EVENTS_API)
+      .then(res => { if (!res.ok) throw new Error(`HTTP ${res.status}`); return res.json(); })
+      .then(data => setEvents(data.body.map(e => ({
+          event_id: e.event_id,
+          title: e.event_name,
+          description: '',
+          start_datetime: e.event_date,
+          end_datetime: e.event_deadline,
+          location: e.event_location,
+          type: e.event_type,
+        }))))
+      .catch(err => setError(err.message))
+      .finally(() => setLoading(false));
+  }, []);
 
   const filtered = events.filter(ev => {
     const status = getStatus(ev.start_datetime, ev.end_datetime);
@@ -137,16 +119,34 @@ function Events() {
   });
 
   function handleCreate() {
-    const created = {
-      event_id: Date.now(),
-      ...newForm,
-      start_datetime: toIso(newForm.start_datetime),
-      end_datetime: toIso(newForm.end_datetime),
+    const payload = {
+      event_name: newForm.title,
+      event_type: newForm.type,
+      event_date: toIso(newForm.start_datetime),
+      event_location: newForm.location,
+      event_deadline: toIso(newForm.end_datetime),
+      created_at: new Date().toISOString().replace(/\.\d{3}Z$/, 'Z'),
     };
-    setEvents(prev => [...prev, created]);
+    userManager.getUser().then(user => fetch(EVENTS_API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${user.id_token}` },
+      body: JSON.stringify(payload),
+    }))
+      .then(res => { if (!res.ok) throw new Error(`HTTP ${res.status}`); return res.json(); })
+      .then(() => fetch(EVENTS_API))
+      .then(res => res.json())
+      .then(data => setEvents(data.body.map(e => ({
+        event_id: e.event_id,
+        title: e.event_name,
+        description: '',
+        start_datetime: e.event_date,
+        end_datetime: e.event_deadline,
+        location: e.event_location,
+        type: e.event_type,
+      }))))
+      .catch(err => setError(err.message));
     setShowNew(false);
     setNewForm(EMPTY_FORM);
-    // rdsWrite('POST', 'events', newForm);
   }
 
   function handleEditOpen(ev) {
@@ -174,8 +174,16 @@ function Events() {
   }
 
   function handleDelete(id) {
-    setEvents(prev => prev.filter(e => e.event_id !== id));
-    // rdsWrite('DELETE', `events/${id}`, {});
+    userManager.getUser().then(user =>
+      fetch(EVENTS_API, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${user.id_token}` },
+        body: JSON.stringify({ event_id: id }),
+      })
+    )
+      .then(res => { if (!res.ok) throw new Error(`HTTP ${res.status}`); })
+      .then(() => setEvents(prev => prev.filter(e => e.event_id !== id)))
+      .catch(err => setError(err.message));
   }
 
   return (
@@ -222,7 +230,9 @@ function Events() {
       </div>
 
       <div className={styles.list}>
-        {filtered.length === 0 && <p className={styles.empty}>No events found.</p>}
+        {loading && <p className={styles.empty}>Loading events...</p>}
+        {error && <p className={styles.empty}>Error: {error}</p>}
+        {!loading && !error && filtered.length === 0 && <p className={styles.empty}>No events found.</p>}
         {filtered.map(ev => {
           const status = getStatus(ev.start_datetime, ev.end_datetime);
           const { day, month } = formatDateBadge(ev.start_datetime);
