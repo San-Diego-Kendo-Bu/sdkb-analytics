@@ -59,10 +59,10 @@ function EventForm({ form, setForm, onSave, onCancel, title }) {
         onChange={e => setForm(f => ({ ...f, title: e.target.value }))} />
       <input className={styles.input} placeholder="Description" value={form.description}
         onChange={e => setForm(f => ({ ...f, description: e.target.value }))} />
-      <label className={styles.label}>Start</label>
+      <label className={styles.label}>Event Date</label>
       <input className={styles.input} type="datetime-local" value={form.start_datetime}
         onChange={e => setForm(f => ({ ...f, start_datetime: e.target.value }))} />
-      <label className={styles.label}>End</label>
+      <label className={styles.label}>Sign Up Deadline</label>
       <input className={styles.input} type="datetime-local" value={form.end_datetime}
         onChange={e => setForm(f => ({ ...f, end_datetime: e.target.value }))} />
       <input className={styles.input} placeholder="Location" value={form.location}
@@ -162,15 +162,34 @@ function Events() {
   }
 
   function handleEditSave() {
-    setEvents(prev =>
-      prev.map(e =>
-        e.event_id === editingId
-          ? { ...e, ...editForm, start_datetime: toIso(editForm.start_datetime), end_datetime: toIso(editForm.end_datetime) }
-          : e
-      )
-    );
+    const payload = {
+      event_id: editingId,
+      event_name: editForm.title,
+      event_type: editForm.type,
+      event_date: toIso(editForm.start_datetime),
+      event_deadline: toIso(editForm.end_datetime),
+      event_location: editForm.location,
+    };
+    console.log('PATCH payload:', payload);
     setEditingId(null);
-    // rdsWrite('PATCH', `events/${editingId}`, editForm);
+    userManager.getUser()
+      .then(user => fetch(EVENTS_API, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${user.id_token}` },
+        body: JSON.stringify(payload),
+      }))
+      .then(res => { if (!res.ok) return res.json().then(b => { throw new Error(b.message || b.error || `HTTP ${res.status}`); }); return fetch(EVENTS_API); })
+      .then(res => res.json())
+      .then(data => setEvents(data.body.map(e => ({
+        event_id: e.event_id,
+        title: e.event_name,
+        description: '',
+        start_datetime: e.event_date,
+        end_datetime: e.event_deadline,
+        location: e.event_location,
+        type: e.event_type,
+      }))))
+      .catch(err => setError(err.message));
   }
 
   function handleDelete(id) {
