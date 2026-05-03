@@ -262,3 +262,52 @@
   padding: 3rem 0;
   font-size: 0.95rem;
 }
+
+.configSection {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin: 0.5rem 0 0.75rem 0;
+  padding: 0.6rem 0.75rem;
+  background: #1e1e32;
+  border-radius: 8px;
+  border-left: 3px solid #4a4a6a;
+}
+
+.configRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+}
+
+.configLabel {
+  color: #888;
+  min-width: 80px;
+  flex-shrink: 0;
+}
+
+.configTags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+.configTag {
+  background: #3a3a52;
+  color: #ccc;
+  border-radius: 10px;
+  padding: 0.15rem 0.55rem;
+  font-size: 0.75rem;
+}
+
+.configBoolTrue {
+  color: #28a745;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.configBoolFalse {
+  color: #6c757d;
+  font-size: 0.75rem;
+}

@@ -3,6 +3,7 @@ import styles from '../../css/events.module.css';
 import { userManager } from '../js/cognitoManager';
 
 const EVENTS_API = 'https://qh3c0tz6s9.execute-api.us-east-2.amazonaws.com/events';
+const CONFIGURE_API = 'https://qh3c0tz6s9.execute-api.us-east-2.amazonaws.com/events/configure';
 
 const STATUS_COLORS = {
   Past: '#6c757d',
@@ -11,6 +12,7 @@ const STATUS_COLORS = {
 };
 
 const EMPTY_FORM = { title: '', description: '', start_datetime: '', end_datetime: '', location: '', type: '' };
+const EMPTY_CONFIG = { shinpan_needed: false, event_deadline: '', divisions: '', teams_included: false, shinsa_levels: '', seminar_guests: '', bring_your_lunch: false };
 
 function getStatus(start, end) {
   const now = new Date();
@@ -82,6 +84,54 @@ function EventForm({ form, setForm, onSave, onCancel, title }) {
   );
 }
 
+function ConfigureForm({ eventType, form, setForm, onSave, onCancel }) {
+  return (
+    <div className={styles.formBox}>
+      <p className={styles.formTitle}>Configure {eventType}</p>
+
+      {eventType === 'tournament' && (
+        <>
+          <label className={styles.label}>Divisions (comma-separated)</label>
+          <input className={styles.input} placeholder="e.g. kyu, yudansha" value={form.divisions}
+            onChange={e => setForm(f => ({ ...f, divisions: e.target.value }))} />
+          <label className={styles.label}>Sign Up Deadline</label>
+          <input className={styles.input} type="datetime-local" value={form.event_deadline}
+            onChange={e => setForm(f => ({ ...f, event_deadline: e.target.value }))} />
+          <label className={styles.label}><input type="checkbox" checked={form.shinpan_needed}
+            onChange={e => setForm(f => ({ ...f, shinpan_needed: e.target.checked }))} /> Shinpan needed</label>
+          <label className={styles.label}><input type="checkbox" checked={form.teams_included}
+            onChange={e => setForm(f => ({ ...f, teams_included: e.target.checked }))} /> Teams included</label>
+        </>
+      )}
+
+      {eventType === 'shinsa' && (
+        <>
+          <label className={styles.label}>Shinsa Levels (comma-separated)</label>
+          <input className={styles.input} placeholder="e.g. 1dan, 2dan" value={form.shinsa_levels}
+            onChange={e => setForm(f => ({ ...f, shinsa_levels: e.target.value }))} />
+          <label className={styles.label}><input type="checkbox" checked={form.shinpan_needed}
+            onChange={e => setForm(f => ({ ...f, shinpan_needed: e.target.checked }))} /> Shinpan needed</label>
+        </>
+      )}
+
+      {eventType === 'seminar' && (
+        <>
+          <label className={styles.label}>Seminar Guests (comma-separated)</label>
+          <input className={styles.input} placeholder="e.g. ariga, kunimoto" value={form.seminar_guests}
+            onChange={e => setForm(f => ({ ...f, seminar_guests: e.target.value }))} />
+          <label className={styles.label}><input type="checkbox" checked={form.bring_your_lunch}
+            onChange={e => setForm(f => ({ ...f, bring_your_lunch: e.target.checked }))} /> Bring your lunch</label>
+        </>
+      )}
+
+      <div className={styles.formActions}>
+        <button className={styles.saveBtn} onClick={onSave}>Save</button>
+        <button className={styles.cancelBtn} onClick={onCancel}>Cancel</button>
+      </div>
+    </div>
+  );
+}
+
 function Events() {
   const [events, setEvents] = useState([]);
   const [search, setSearch] = useState('');
@@ -92,11 +142,15 @@ function Events() {
   const [editForm, setEditForm] = useState(EMPTY_FORM);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [configuringId, setConfiguringId] = useState(null);
+  const [configForm, setConfigForm] = useState(EMPTY_CONFIG);
+  const [configs, setConfigs] = useState({});
 
   useEffect(() => {
     fetch(EVENTS_API)
       .then(res => { if (!res.ok) throw new Error(`HTTP ${res.status}`); return res.json(); })
-      .then(data => setEvents(data.body.map(e => ({
+      .then(data => {
+        const evs = data.body.map(e => ({
           event_id: e.event_id,
           title: e.event_name,
           description: '',
@@ -104,7 +158,24 @@ function Events() {
           end_datetime: e.event_deadline,
           location: e.event_location,
           type: e.event_type,
-        }))))
+        }));
+        setEvents(evs);
+        return evs;
+      })
+      .then(evs =>
+        Promise.all(
+          evs.map(ev =>
+            fetch(`${CONFIGURE_API}?event_id=${ev.event_id}`)
+              .then(r => r.json())
+              .then(r => ({ id: ev.event_id, data: r.data ?? null }))
+              .catch(() => ({ id: ev.event_id, data: null }))
+          )
+        ).then(results => {
+          const map = {};
+          results.forEach(r => { map[r.id] = r.data; });
+          setConfigs(map);
+        })
+      )
       .catch(err => setError(err.message))
       .finally(() => setLoading(false));
   }, []);
@@ -192,6 +263,43 @@ function Events() {
       .catch(err => setError(err.message));
   }
 
+  function handleConfigureOpen(ev) {
+    setConfiguringId(ev.event_id);
+    const existing = configs[ev.event_id];
+    if (existing && ev.type === 'tournament') {
+      setConfigForm({ ...EMPTY_CONFIG, shinpan_needed: existing.shinpan_needed ?? false, divisions: existing.divisions?.join(', ') ?? '', teams_included: existing.teams_included ?? false, event_deadline: toInputValue(ev.end_datetime) });
+    } else if (existing && ev.type === 'shinsa') {
+      setConfigForm({ ...EMPTY_CONFIG, shinpan_needed: existing.shinpan_needed ?? false, shinsa_levels: existing.shinsa_levels?.join(', ') ?? '' });
+    } else if (existing && ev.type === 'seminar') {
+      setConfigForm({ ...EMPTY_CONFIG, seminar_guests: existing.seminar_guests?.join(', ') ?? '', bring_your_lunch: existing.bring_your_lunch ?? false });
+    } else {
+      setConfigForm({ ...EMPTY_CONFIG, event_deadline: toInputValue(ev.end_datetime) });
+    }
+  }
+
+  function handleConfigureSave(ev) {
+    let payload = { event_id: parseInt(ev.event_id, 10) };
+    if (ev.type === 'tournament') {
+      payload = { ...payload, shinpan_needed: configForm.shinpan_needed, event_deadline: toIso(configForm.event_deadline), divisions: configForm.divisions.split(',').map(s => s.trim()).filter(Boolean), teams_included: configForm.teams_included };
+    } else if (ev.type === 'shinsa') {
+      payload = { ...payload, shinpan_needed: configForm.shinpan_needed, shinsa_levels: configForm.shinsa_levels.split(',').map(s => s.trim()).filter(Boolean) };
+    } else if (ev.type === 'seminar') {
+      payload = { ...payload, seminar_guests: configForm.seminar_guests.split(',').map(s => s.trim()).filter(Boolean), bring_your_lunch: configForm.bring_your_lunch };
+    }
+    setConfiguringId(null);
+    userManager.getUser()
+      .then(user => fetch(CONFIGURE_API, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${user.id_token}` },
+        body: JSON.stringify(payload),
+      }))
+      .then(res => { if (!res.ok) return res.json().then(b => { throw new Error(b.message || b.error || `HTTP ${res.status}`); }); })
+      .then(() => fetch(`${CONFIGURE_API}?event_id=${ev.event_id}`))
+      .then(r => r.json())
+      .then(r => setConfigs(prev => ({ ...prev, [ev.event_id]: r.data ?? null })))
+      .catch(err => setError(err.message));
+  }
+
   function handleDelete(id) {
     userManager.getUser().then(user =>
       fetch(EVENTS_API, {
@@ -257,6 +365,7 @@ function Events() {
           const { day, month } = formatDateBadge(ev.start_datetime);
           const dateRange = formatDateRange(ev.start_datetime, ev.end_datetime, ev.location);
           const isEditing = editingId === ev.event_id;
+          const isConfiguring = configuringId === ev.event_id;
 
           return (
             <div key={ev.event_id} className={styles.card}>
@@ -273,6 +382,14 @@ function Events() {
                     onSave={handleEditSave}
                     onCancel={() => setEditingId(null)}
                   />
+                ) : isConfiguring ? (
+                  <ConfigureForm
+                    eventType={ev.type}
+                    form={configForm}
+                    setForm={setConfigForm}
+                    onSave={() => handleConfigureSave(ev)}
+                    onCancel={() => setConfiguringId(null)}
+                  />
                 ) : (
                   <>
                     <div className={styles.cardTop}>
@@ -284,9 +401,67 @@ function Events() {
                     </div>
                     <p className={styles.cardDesc}>{ev.description}</p>
                     <p className={styles.cardMeta}>{dateRange}</p>
+                    {configs[ev.event_id] && (() => {
+                      const cfg = configs[ev.event_id];
+                      return (
+                        <div className={styles.configSection}>
+                          {ev.type === 'tournament' && (<>
+                            {cfg.divisions?.length > 0 && (
+                              <div className={styles.configRow}>
+                                <span className={styles.configLabel}>Divisions</span>
+                                <div className={styles.configTags}>{cfg.divisions.map(d => <span key={d} className={styles.configTag}>{d}</span>)}</div>
+                              </div>
+                            )}
+                            {cfg.teams_included != null && (
+                              <div className={styles.configRow}>
+                                <span className={styles.configLabel}>Teams</span>
+                                <span className={cfg.teams_included ? styles.configBoolTrue : styles.configBoolFalse}>{cfg.teams_included ? 'Yes' : 'No'}</span>
+                              </div>
+                            )}
+                            {cfg.shinpan_needed != null && (
+                              <div className={styles.configRow}>
+                                <span className={styles.configLabel}>Shinpan</span>
+                                <span className={cfg.shinpan_needed ? styles.configBoolTrue : styles.configBoolFalse}>{cfg.shinpan_needed ? 'Yes' : 'No'}</span>
+                              </div>
+                            )}
+                          </>)}
+                          {ev.type === 'shinsa' && (<>
+                            {cfg.shinsa_levels?.length > 0 && (
+                              <div className={styles.configRow}>
+                                <span className={styles.configLabel}>Levels</span>
+                                <div className={styles.configTags}>{cfg.shinsa_levels.map(l => <span key={l} className={styles.configTag}>{l}</span>)}</div>
+                              </div>
+                            )}
+                            {cfg.shinpan_needed != null && (
+                              <div className={styles.configRow}>
+                                <span className={styles.configLabel}>Shinpan</span>
+                                <span className={cfg.shinpan_needed ? styles.configBoolTrue : styles.configBoolFalse}>{cfg.shinpan_needed ? 'Yes' : 'No'}</span>
+                              </div>
+                            )}
+                          </>)}
+                          {ev.type === 'seminar' && (<>
+                            {cfg.seminar_guests?.length > 0 && (
+                              <div className={styles.configRow}>
+                                <span className={styles.configLabel}>Guests</span>
+                                <div className={styles.configTags}>{cfg.seminar_guests.map(g => <span key={g} className={styles.configTag}>{g}</span>)}</div>
+                              </div>
+                            )}
+                            {cfg.bring_your_lunch != null && (
+                              <div className={styles.configRow}>
+                                <span className={styles.configLabel}>Bring lunch</span>
+                                <span className={cfg.bring_your_lunch ? styles.configBoolTrue : styles.configBoolFalse}>{cfg.bring_your_lunch ? 'Yes' : 'No'}</span>
+                              </div>
+                            )}
+                          </>)}
+                        </div>
+                      );
+                    })()}
                     <div className={styles.cardActions}>
-                      <button className={styles.editBtn} onClick={() => { handleEditOpen(ev); setShowNew(false); }}>
+                      <button className={styles.editBtn} onClick={() => { handleEditOpen(ev); setShowNew(false); setConfiguringId(null); }}>
                         Edit
+                      </button>
+                      <button className={styles.editBtn} onClick={() => { handleConfigureOpen(ev); setShowNew(false); setEditingId(null); }}>
+                        Configure
                       </button>
                       <button className={styles.deleteBtn} onClick={() => handleDelete(ev.event_id)}>
                         Delete

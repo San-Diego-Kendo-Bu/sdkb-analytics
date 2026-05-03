@@ -204,6 +204,12 @@ export class ServiceStack extends Stack {
       ...commonNodejs,
     });
 
+    const getEventConfigLambda = new NodejsFunction(this, "GetEventConfigLambda", {
+      entry: path.join(__dirname, "../../lambdas/events/getEventConfig/index.js"),
+      handler: "handler",
+      ...commonNodejs,
+    });
+
     const getEventLambda = new NodejsFunction(this, "GetEventLambda", {
       entry: path.join(__dirname, "../../lambdas/events/getEvents/index.js"),
       handler: "handler",
@@ -238,6 +244,7 @@ export class ServiceStack extends Stack {
     props.databaseStack.grantDatabaseAccess(unassignPaymentLambda);
     props.databaseStack.grantDatabaseAccess(updateAsgnPaymentLambda);
     props.databaseStack.grantDatabaseAccess(configureEventLambda);
+    props.databaseStack.grantDatabaseAccess(getEventConfigLambda);
     props.databaseStack.grantDatabaseAccess(createEventLambda);
     props.databaseStack.grantDatabaseAccess(getEventLambda);
     props.databaseStack.grantDatabaseAccess(updateEventLambda);
@@ -495,6 +502,11 @@ export class ServiceStack extends Stack {
       methods: [HttpMethod.POST],
       integration: new HttpLambdaIntegration("EventsConfigureInt", configureEventLambda),
       ...(auth ? { authorizer: auth } : {}),
+    });
+    httpApi.addRoutes({
+      path: "/events/configure",
+      methods: [HttpMethod.GET],
+      integration: new HttpLambdaIntegration("EventsGetConfigInt", getEventConfigLambda),
     });
     httpApi.addRoutes({
       path: "/events",
