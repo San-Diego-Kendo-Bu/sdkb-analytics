@@ -57,6 +57,10 @@ exports.handler = async (event) => {
                     teams_included
                 )
                 VALUES ($1, $2, $3, $4)
+                ON CONFLICT (event_id) DO UPDATE SET
+                    shinpan_needed = EXCLUDED.shinpan_needed,
+                    divisions = EXCLUDED.divisions,
+                    teams_included = EXCLUDED.teams_included
                 RETURNING event_id, shinpan_needed, divisions, teams_included
                 `,
                 [eventId, shinpanNeeded, divisions, teamsIncluded]
@@ -86,6 +90,8 @@ exports.handler = async (event) => {
                     shinsa_levels
                 )
                 VALUES ($1, $2)
+                ON CONFLICT (event_id) DO UPDATE SET
+                    shinsa_levels = EXCLUDED.shinsa_levels
                 RETURNING event_id, shinsa_levels
                 `,
                 [eventId, shinsaLevels]
@@ -117,6 +123,9 @@ exports.handler = async (event) => {
                     bring_your_lunch
                 )
                 VALUES ($1, $2, $3)
+                ON CONFLICT (event_id) DO UPDATE SET
+                    seminar_guests = EXCLUDED.seminar_guests,
+                    bring_your_lunch = EXCLUDED.bring_your_lunch
                 RETURNING event_id, seminar_guests, bring_your_lunch
                 `,
                 [eventId, seminarGuests, bringYourLunch]
