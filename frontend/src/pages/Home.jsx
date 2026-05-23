@@ -5,6 +5,7 @@ import * as buttonLogic from '../js/buttonLogic.js';
 import { userManager } from '../js/cognitoManager.js';
 import AdminDashboard from './AdminDashboard.jsx';
 import AdminControl from './AdminControl.jsx';
+import EventsSignup from './EventsSignup.jsx';
 
 const BASE_TABS = ['Nafudakake', 'Pay', 'Events'];
 
@@ -19,8 +20,11 @@ const Content = ({ activeTab }) => {
   if (activeTab === 'Nafudakake') {
     return null;
   }
-  if(activeTab === 'Admin Control'){
+  if (activeTab === 'Admin Control') {
     return <AdminControl />;
+  }
+  if (activeTab === 'Events') {
+    return <EventsSignup />;
   }
   return <Placeholder title={activeTab} />;
 };
