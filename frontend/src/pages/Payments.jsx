@@ -63,9 +63,11 @@ function Payments(){
         simulateFetch();
     },[]);
     return (
-        <>
-            <h1>Payments</h1>
-            <DbForm />
+        <div className={paymentStyles.page}>
+            <div className={paymentStyles.header}>
+                <h2 className={paymentStyles.title}>Payments</h2>
+            </div>
+            <DbForm className={paymentStyles.list}/>
             {payments ? 
                 <table>
                 <thead>
@@ -90,7 +92,7 @@ function Payments(){
             </table> : <p>Fetching Payments...</p>
             }
 
-        </>
+        </div>
     );
 }
 export default Payments;

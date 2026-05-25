@@ -8,6 +8,18 @@
     height: 3rem;
 }
 
+.newBtn {
+  background: #fff;
+  color: #1a1a2e;
+  border: none;
+  border-radius: 6px;
+  padding: 0.5rem 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
+
 .dbForm {
     display: flex;
     flex-direction: column;

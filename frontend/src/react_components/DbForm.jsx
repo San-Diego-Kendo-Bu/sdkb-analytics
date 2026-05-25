@@ -13,7 +13,7 @@ function DbForm(){
     }
 
     return(<>
-        <button onClick={toggleForm}>Add Payment</button>
+        <button className={dbComponentsStyles.newBtn} onClick={toggleForm}>Add Payment</button>
         {!toggled ? null : 
         <form className={dbComponentsStyles.dbForm} onSubmit={printForm}>
             <label>
