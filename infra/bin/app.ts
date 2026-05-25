@@ -35,6 +35,7 @@ STAGES.forEach((stage) => {
     membersAuthorizer: identityStack.membersAuthorizer, // if you have one
     userPool: identityStack.userPool,
     stripeSecret: secretsStack.stripeSecret,
+    stripeSecretPk: secretsStack.stripeSecret_pk,
     membersTableArn: stage.membersTableArn,
     configTableArn: stage.configTableArn,
     databaseStack

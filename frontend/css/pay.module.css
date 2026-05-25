@@ -1,0 +1,150 @@
+.container {
+  max-width: 700px;
+  margin: 0 auto;
+}
+
+.card {
+  background: #fff;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  padding: 20px 24px;
+  margin-bottom: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.cardInfo {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.cardInfo strong {
+  flex: 1 1 auto;
+  font-size: 1rem;
+}
+
+.amount {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #198754;
+}
+
+.due {
+  font-size: 0.875rem;
+  color: #6c757d;
+}
+
+.status {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 2px 8px;
+  border-radius: 12px;
+  background: #e2f0d9;
+  color: #198754;
+}
+
+.overdue {
+  background: #fde8e8;
+  color: #dc3545;
+}
+
+.payBtn {
+  background-color: #0d6efd;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 20px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+.payBtn:hover:not(:disabled) {
+  background-color: #0b5ed7;
+}
+
+.payBtn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.stripeForm {
+  border-top: 1px solid #dee2e6;
+  padding-top: 16px;
+}
+
+.cardElementWrapper {
+  border: 1px solid #ced4da;
+  border-radius: 6px;
+  padding: 12px 14px;
+  margin-bottom: 12px;
+  background: #fff;
+}
+
+.formActions {
+  display: flex;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.confirmBtn {
+  background-color: #198754;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 20px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+.confirmBtn:hover:not(:disabled) {
+  background-color: #157347;
+}
+
+.confirmBtn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.cancelBtn {
+  background-color: transparent;
+  color: #6c757d;
+  border: 1px solid #6c757d;
+  border-radius: 6px;
+  padding: 8px 20px;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.cancelBtn:hover:not(:disabled) {
+  background-color: #f8f9fa;
+}
+
+.cancelBtn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.fieldError {
+  color: #dc3545;
+  font-size: 0.85rem;
+  margin-top: 6px;
+}
+
+.toast {
+  position: fixed;
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #198754;
+  color: #fff;
+  padding: 10px 24px;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  z-index: 1000;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
