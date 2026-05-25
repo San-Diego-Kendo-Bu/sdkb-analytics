@@ -2,10 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { renderTable, layoutShelf, setupEventListeners } from '../js/nafudaManager.js';
 
 import * as buttonLogic from '../js/buttonLogic.js';
+import { userManager } from '../js/cognitoManager.js';
 import AdminDashboard from './AdminDashboard.jsx';
 import AdminControl from './AdminControl.jsx';
+import EventsSignup from './EventsSignup.jsx';
 
-const tabs = ['Nafudakake', 'Pay', 'Events', 'Admin Control'];
+const BASE_TABS = ['Nafudakake', 'Pay', 'Events'];
 
 const Placeholder = ({ title }) => (
   <div className='p-4 bg-white border rounded shadow-sm text-center text-muted'>
@@ -18,14 +20,42 @@ const Content = ({ activeTab }) => {
   if (activeTab === 'Nafudakake') {
     return null;
   }
-  if(activeTab === 'Admin Control'){
+  if (activeTab === 'Admin Control') {
     return <AdminControl />;
+  }
+  if (activeTab === 'Events') {
+    return <EventsSignup />;
   }
   return <Placeholder title={activeTab} />;
 };
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('Nafudakake');
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    async function checkAdmin() {
+      const user = await userManager.getUser();
+      if (!user || user.expired) return;
+      try {
+        const res = await fetch('https://qh3c0tz6s9.execute-api.us-east-2.amazonaws.com/admins', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${user.id_token}`
+          }
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        setIsAdmin(!!data.isAdmin);
+      } catch {
+        // not admin
+      }
+    }
+    checkAdmin();
+  }, []);
+
+  const tabs = isAdmin ? [...BASE_TABS, 'Admin Control'] : BASE_TABS;
 
   useEffect(() => {
     const nafudakakeContent = document.getElementById('nafudakake-content');

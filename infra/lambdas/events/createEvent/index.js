@@ -43,6 +43,27 @@ exports.handler = async (event) => {
         const eventDate = parameters.event_date;
         const eventDeadline = parameters.event_deadline;
         const eventLocation = parameters.event_location;
+        const paymentId = parameters.payment_id ? parseInt(parameters.payment_id, 10) : null;
+
+        if (!paymentId) {
+            return {
+                statusCode: 400,
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ error: "payment_id is required to create an event." }),
+            };
+        }
+
+        const conflict = await query(
+            `SELECT event_id FROM ${EVENTS_TABLE} WHERE payment_id = $1 LIMIT 1`,
+            [paymentId]
+        );
+        if (conflict.rowCount > 0) {
+            return {
+                statusCode: 409,
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ error: `payment_id ${paymentId} is already linked to event ${conflict.rows[0].event_id}.` }),
+            };
+        }
 
         const result = await query(
             `
@@ -53,9 +74,10 @@ exports.handler = async (event) => {
                 event_type,
                 event_deadline,
                 created_at,
-                event_location
+                event_location,
+                payment_id
             )
-            VALUES ($1, $2, $3, $4, $5, $6, $7)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
             RETURNING
                 event_id,
                 event_date,
@@ -63,7 +85,8 @@ exports.handler = async (event) => {
                 event_type,
                 event_deadline,
                 created_at,
-                event_location
+                event_location,
+                payment_id
             `,
             [
                 newEventId,
@@ -73,6 +96,7 @@ exports.handler = async (event) => {
                 eventDeadline,
                 createdAt,
                 eventLocation,
+                paymentId,
             ]
         );
 

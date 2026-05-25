@@ -311,3 +311,39 @@
   color: #6c757d;
   font-size: 0.75rem;
 }
+
+.signupBtn {
+  background: #0d6efd;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 0.3rem 1rem;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 600;
+  transition: background 0.2s;
+}
+
+.signupBtn:hover { background: #0b5ed7; }
+.signupBtn:disabled { background: #444; cursor: not-allowed; }
+
+.toast {
+  position: fixed;
+  bottom: 1.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #157347;
+  color: #fff;
+  padding: 0.6rem 1.4rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  z-index: 1000;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+
+.fieldError {
+  color: #e05252;
+  font-size: 0.8rem;
+  margin-top: -0.25rem;
+}

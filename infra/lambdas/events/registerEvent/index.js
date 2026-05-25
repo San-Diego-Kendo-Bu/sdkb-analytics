@@ -1,5 +1,6 @@
 const { query } = require("../../shared_utils/db");
 const { verifyMemberExists } = require("../../shared_utils/members");
+const { getCurrentTimeUTC } = require("../../shared_utils/dates");
 
 const TOURNAMENT_REGISTRATION_TABLE = "tournament_registrations";
 const SHINSA_REGISTRATION_TABLE = "shinsa_registrations";
@@ -23,6 +24,8 @@ exports.handler = async (event) => {
             };
         }
 
+        let registrationData;
+
         if (configType === "tournament") {
             const shinpanning = parameters.shinpanning;
             const division = parameters.division;
@@ -31,109 +34,79 @@ exports.handler = async (event) => {
             const result = await query(
                 `
                 INSERT INTO ${TOURNAMENT_REGISTRATION_TABLE} (
-                    event_id,
-                    member_id,
-                    registration_date,
-                    shinpanning,
-                    division,
-                    doing_teams
+                    event_id, member_id, registration_date, shinpanning, division, doing_teams
                 )
                 VALUES ($1, $2, $3, $4, $5, $6)
-                RETURNING
-                    event_id,
-                    member_id,
-                    registration_date,
-                    shinpanning,
-                    division,
-                    doing_teams
+                RETURNING event_id, member_id, registration_date, shinpanning, division, doing_teams
                 `,
                 [eventId, memberId, registeredDate, shinpanning, division, doingTeams]
             );
+            registrationData = result.rows[0];
 
-            return {
-                statusCode: 200,
-                headers: {
-                    "Content-Type": "application/json",
-                    "Access-Control-Allow-Origin": "*"
-                },
-                body: JSON.stringify({
-                    message: "Registered Event Successfully",
-                    config_type: configType,
-                    data: result.rows[0],
-                })
-            };
-        }
-
-        if (configType === "shinsa") {
+        } else if (configType === "shinsa") {
             const testingFor = parameters.testing_for;
 
             const result = await query(
                 `
                 INSERT INTO ${SHINSA_REGISTRATION_TABLE} (
-                    event_id,
-                    member_id,
-                    registration_date,
-                    testing_for
+                    event_id, member_id, registration_date, testing_for
                 )
                 VALUES ($1, $2, $3, $4)
-                RETURNING
-                    event_id,
-                    member_id,
-                    registration_date,
-                    testing_for
+                RETURNING event_id, member_id, registration_date, testing_for
                 `,
                 [eventId, memberId, registeredDate, testingFor]
             );
+            registrationData = result.rows[0];
 
-            return {
-                statusCode: 200,
-                headers: {
-                    "Content-Type": "application/json",
-                    "Access-Control-Allow-Origin": "*"
-                },
-                body: JSON.stringify({
-                    message: "Registered Event Successfully",
-                    config_type: configType,
-                    data: result.rows[0],
-                })
-            };
-        }
-
-        if (configType === "seminar") {
+        } else if (configType === "seminar") {
             const result = await query(
                 `
                 INSERT INTO ${SEMINAR_REGISTRATION_TABLE} (
-                    event_id,
-                    member_id,
-                    registration_date
+                    event_id, member_id, registration_date
                 )
                 VALUES ($1, $2, $3)
-                RETURNING
-                    event_id,
-                    member_id,
-                    registration_date
+                RETURNING event_id, member_id, registration_date
                 `,
                 [eventId, memberId, registeredDate]
             );
+            registrationData = result.rows[0];
 
+        } else {
             return {
-                statusCode: 200,
-                headers: {
-                    "Content-Type": "application/json",
-                    "Access-Control-Allow-Origin": "*"
-                },
-                body: JSON.stringify({
-                    message: "Registered Event Successfully",
-                    config_type: configType,
-                    data: result.rows[0],
-                })
+                statusCode: 400,
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ error: "Invalid config_type" })
             };
         }
 
+        // Assign member to the event's linked payment if one exists
+        const eventResult = await query(
+            `SELECT payment_id FROM events WHERE event_id = $1 LIMIT 1`,
+            [eventId]
+        );
+        const paymentId = eventResult.rows[0]?.payment_id;
+        if (paymentId) {
+            await query(
+                `
+                INSERT INTO assigned_payments (member_id, payment_id, assigned_on, due_status)
+                VALUES ($1, $2, $3, $4)
+                ON CONFLICT DO NOTHING
+                `,
+                [memberId, paymentId, getCurrentTimeUTC(), "due"]
+            );
+        }
+
         return {
-            statusCode: 400,
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ error: "Invalid config_type" })
+            statusCode: 200,
+            headers: {
+                "Content-Type": "application/json",
+                "Access-Control-Allow-Origin": "*"
+            },
+            body: JSON.stringify({
+                message: "Registered Event Successfully",
+                config_type: configType,
+                data: registrationData,
+            })
         };
 
     } catch (err) {
