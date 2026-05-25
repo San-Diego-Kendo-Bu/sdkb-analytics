@@ -53,9 +53,9 @@ exports.handler = async (event) => {
         }
         const customerId = members[0].customer_id;
 
-        // Get payment_value from PostgreSQL
+        // Get payment details from PostgreSQL
         const paymentResult = await query(
-            `SELECT payment_value FROM payments WHERE payment_id = $1 LIMIT 1`,
+            `SELECT payment_value, overdue_penalty, due_date FROM payments WHERE payment_id = $1 LIMIT 1`,
             [paymentId]
         );
         if (paymentResult.rowCount === 0) {
@@ -66,7 +66,10 @@ exports.handler = async (event) => {
             };
         }
 
-        const amountCents = Math.round(parseFloat(paymentResult.rows[0].payment_value) * 100);
+        const { payment_value, overdue_penalty, due_date } = paymentResult.rows[0];
+        const isOverdue = due_date && new Date() > new Date(due_date);
+        const total = parseFloat(payment_value) + (isOverdue ? parseFloat(overdue_penalty ?? 0) : 0);
+        const amountCents = Math.round(total * 100);
 
         const [secretObj, pkObj] = await Promise.all([
             getSecretValue(SECRET_ID),
