@@ -2,8 +2,11 @@ import { useState, useEffect } from 'react';
 import styles from '../../css/events.module.css';
 import { userManager } from '../js/cognitoManager';
 
-const EVENTS_API = 'https://qh3c0tz6s9.execute-api.us-east-2.amazonaws.com/events';
-const CONFIGURE_API = 'https://qh3c0tz6s9.execute-api.us-east-2.amazonaws.com/events/configure';
+const BASE_URL = 'https://qh3c0tz6s9.execute-api.us-east-2.amazonaws.com';
+const EVENTS_API = `${BASE_URL}/events`;
+const CONFIGURE_API = `${BASE_URL}/events/configure`;
+const PAYMENTS_API = `${BASE_URL}/payments`;
+const SUBMITTED_PAYMENTS_API = `${BASE_URL}/submittedpayments`;
 
 const STATUS_COLORS = {
   Past: '#6c757d',
@@ -11,7 +14,7 @@ const STATUS_COLORS = {
   Upcoming: '#0d6efd',
 };
 
-const EMPTY_FORM = { title: '', description: '', start_datetime: '', end_datetime: '', location: '', type: '' };
+const EMPTY_FORM = { title: '', description: '', start_datetime: '', end_datetime: '', location: '', type: '', payment_id: '' };
 const EMPTY_CONFIG = { shinpan_needed: false, event_deadline: '', divisions: '', teams_included: false, shinsa_levels: '', seminar_guests: '', bring_your_lunch: false };
 
 function getStatus(start, end) {
@@ -53,7 +56,7 @@ function toIso(inputValue) {
   return inputValue ? inputValue + ':00Z' : null;
 }
 
-function EventForm({ form, setForm, onSave, onCancel, title }) {
+function EventForm({ form, setForm, onSave, onCancel, title, availablePayments = [] }) {
   return (
     <div className={styles.formBox}>
       <p className={styles.formTitle}>{title}</p>
@@ -75,6 +78,16 @@ function EventForm({ form, setForm, onSave, onCancel, title }) {
         <option value="tournament">Tournament</option>
         <option value="shinsa">Shinsa</option>
         <option value="seminar">Seminar</option>
+      </select>
+      <label className={styles.label}>Payment (required)</label>
+      <select className={styles.input} value={form.payment_id}
+        onChange={e => setForm(f => ({ ...f, payment_id: e.target.value }))}>
+        <option value="">Select payment</option>
+        {availablePayments.map(p => (
+          <option key={p.payment_id} value={p.payment_id}>
+            {p.title} (#{p.payment_id})
+          </option>
+        ))}
       </select>
       <div className={styles.formActions}>
         <button className={styles.saveBtn} onClick={onSave}>Save</button>
@@ -145,6 +158,20 @@ function Events() {
   const [configuringId, setConfiguringId] = useState(null);
   const [configForm, setConfigForm] = useState(EMPTY_CONFIG);
   const [configs, setConfigs] = useState({});
+  const [payments, setPayments] = useState([]);
+  const [submittedPaymentIds, setSubmittedPaymentIds] = useState(new Set());
+  const [changingPaymentEventId, setChangingPaymentEventId] = useState(null);
+  const [changePaymentValue, setChangePaymentValue] = useState('');
+
+  useEffect(() => {
+    Promise.all([
+      fetch(PAYMENTS_API).then(r => r.json()).catch(() => ({ data: [] })),
+      fetch(SUBMITTED_PAYMENTS_API).then(r => r.json()).catch(() => ({ data: [] })),
+    ]).then(([paymentsData, sbmtData]) => {
+      setPayments(paymentsData.data || []);
+      setSubmittedPaymentIds(new Set((sbmtData.data || []).map(p => p.payment_id)));
+    });
+  }, []);
 
   useEffect(() => {
     fetch(EVENTS_API)
@@ -158,6 +185,7 @@ function Events() {
           end_datetime: e.event_deadline,
           location: e.event_location,
           type: e.event_type,
+          payment_id: e.payment_id ?? null,
         }));
         setEvents(evs);
         return evs;
@@ -189,7 +217,38 @@ function Events() {
     return matchFilter && matchSearch;
   });
 
+  const linkedPaymentIds = new Set(events.map(e => e.payment_id).filter(Boolean));
+  const baseAvailablePayments = payments.filter(p =>
+    !submittedPaymentIds.has(p.payment_id) && !linkedPaymentIds.has(p.payment_id)
+  );
+
+  function getPaymentsForEvent(eventId) {
+    const ev = events.find(e => e.event_id === eventId);
+    const ownPayment = ev?.payment_id ? payments.find(p => p.payment_id === ev.payment_id) : null;
+    if (ownPayment && !baseAvailablePayments.some(p => p.payment_id === ownPayment.payment_id)) {
+      return [...baseAvailablePayments, ownPayment];
+    }
+    return baseAvailablePayments;
+  }
+
+  function mapEvent(e) {
+    return {
+      event_id: e.event_id,
+      title: e.event_name,
+      description: '',
+      start_datetime: e.event_date,
+      end_datetime: e.event_deadline,
+      location: e.event_location,
+      type: e.event_type,
+      payment_id: e.payment_id ?? null,
+    };
+  }
+
   function handleCreate() {
+    if (!newForm.payment_id) {
+      setError('A payment must be linked to create an event.');
+      return;
+    }
     const payload = {
       event_name: newForm.title,
       event_type: newForm.type,
@@ -197,24 +256,17 @@ function Events() {
       event_location: newForm.location,
       event_deadline: toIso(newForm.end_datetime),
       created_at: new Date().toISOString().replace(/\.\d{3}Z$/, 'Z'),
+      payment_id: parseInt(newForm.payment_id, 10),
     };
     userManager.getUser().then(user => fetch(EVENTS_API, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${user.id_token}` },
       body: JSON.stringify(payload),
     }))
-      .then(res => { if (!res.ok) throw new Error(`HTTP ${res.status}`); return res.json(); })
+      .then(res => { if (!res.ok) return res.json().then(b => { throw new Error(b.error || `HTTP ${res.status}`); }); return res.json(); })
       .then(() => fetch(EVENTS_API))
       .then(res => res.json())
-      .then(data => setEvents(data.body.map(e => ({
-        event_id: e.event_id,
-        title: e.event_name,
-        description: '',
-        start_datetime: e.event_date,
-        end_datetime: e.event_deadline,
-        location: e.event_location,
-        type: e.event_type,
-      }))))
+      .then(data => setEvents(data.body.map(mapEvent)))
       .catch(err => setError(err.message));
     setShowNew(false);
     setNewForm(EMPTY_FORM);
@@ -229,10 +281,15 @@ function Events() {
       end_datetime: toInputValue(ev.end_datetime),
       location: ev.location,
       type: ev.type,
+      payment_id: ev.payment_id ?? '',
     });
   }
 
   function handleEditSave() {
+    if (!editForm.payment_id) {
+      setError('A payment must be linked to the event.');
+      return;
+    }
     const payload = {
       event_id: editingId,
       event_name: editForm.title,
@@ -240,8 +297,8 @@ function Events() {
       event_date: toIso(editForm.start_datetime),
       event_deadline: toIso(editForm.end_datetime),
       event_location: editForm.location,
+      payment_id: parseInt(editForm.payment_id, 10),
     };
-    console.log('PATCH payload:', payload);
     setEditingId(null);
     userManager.getUser()
       .then(user => fetch(EVENTS_API, {
@@ -251,16 +308,24 @@ function Events() {
       }))
       .then(res => { if (!res.ok) return res.json().then(b => { throw new Error(b.message || b.error || `HTTP ${res.status}`); }); return fetch(EVENTS_API); })
       .then(res => res.json())
-      .then(data => setEvents(data.body.map(e => ({
-        event_id: e.event_id,
-        title: e.event_name,
-        description: '',
-        start_datetime: e.event_date,
-        end_datetime: e.event_deadline,
-        location: e.event_location,
-        type: e.event_type,
-      }))))
+      .then(data => setEvents(data.body.map(mapEvent)))
       .catch(err => setError(err.message));
+  }
+
+  function handleChangePaymentSave(ev) {
+    if (!changePaymentValue) return;
+    userManager.getUser()
+      .then(user => fetch(EVENTS_API, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${user.id_token}` },
+        body: JSON.stringify({ event_id: ev.event_id, payment_id: parseInt(changePaymentValue, 10) }),
+      }))
+      .then(res => { if (!res.ok) return res.json().then(b => { throw new Error(b.error || `HTTP ${res.status}`); }); })
+      .then(() => setEvents(prev => prev.map(e =>
+        e.event_id === ev.event_id ? { ...e, payment_id: parseInt(changePaymentValue, 10) } : e
+      )))
+      .catch(err => setError(err.message))
+      .finally(() => { setChangingPaymentEventId(null); setChangePaymentValue(''); });
   }
 
   function handleConfigureOpen(ev) {
@@ -340,6 +405,7 @@ function Events() {
           setForm={setNewForm}
           onSave={handleCreate}
           onCancel={() => setShowNew(false)}
+          availablePayments={baseAvailablePayments}
         />
       )}
 
@@ -381,6 +447,7 @@ function Events() {
                     setForm={setEditForm}
                     onSave={handleEditSave}
                     onCancel={() => setEditingId(null)}
+                    availablePayments={getPaymentsForEvent(editingId)}
                   />
                 ) : isConfiguring ? (
                   <ConfigureForm
@@ -456,11 +523,65 @@ function Events() {
                         </div>
                       );
                     })()}
+                    <div className={styles.configSection} style={{ marginTop: '0.5rem' }}>
+                      <div className={styles.configRow}>
+                        <span className={styles.configLabel}>Payment</span>
+                        {changingPaymentEventId === ev.event_id ? (
+                          <>
+                            <select
+                              className={styles.input}
+                              style={{ flex: 1, marginRight: '0.5rem' }}
+                              value={changePaymentValue}
+                              onChange={e => setChangePaymentValue(e.target.value)}
+                            >
+                              <option value="">Select payment</option>
+                              {getPaymentsForEvent(ev.event_id).map(p => (
+                                <option key={p.payment_id} value={p.payment_id}>
+                                  {p.title} (#{p.payment_id})
+                                </option>
+                              ))}
+                            </select>
+                            <button
+                              className={styles.saveBtn}
+                              style={{ padding: '0.2rem 0.6rem', fontSize: '0.75rem' }}
+                              onClick={() => handleChangePaymentSave(ev)}
+                              disabled={!changePaymentValue}
+                            >Save</button>
+                            <button
+                              className={styles.cancelBtn}
+                              style={{ padding: '0.2rem 0.6rem', fontSize: '0.75rem', marginLeft: '0.25rem' }}
+                              onClick={() => { setChangingPaymentEventId(null); setChangePaymentValue(''); }}
+                            >Cancel</button>
+                          </>
+                        ) : (
+                          <>
+                            {ev.payment_id ? (
+                              <span className={styles.configTag}>
+                                {payments.find(p => p.payment_id === ev.payment_id)?.title ?? `#${ev.payment_id}`}
+                                {' '}(#{ev.payment_id})
+                              </span>
+                            ) : (
+                              <span className={styles.configBoolFalse}>None</span>
+                            )}
+                            <button
+                              className={styles.editBtn}
+                              style={{ marginLeft: '0.5rem', padding: '0.15rem 0.5rem', fontSize: '0.75rem' }}
+                              onClick={() => {
+                                setChangingPaymentEventId(ev.event_id);
+                                setChangePaymentValue(ev.payment_id ? String(ev.payment_id) : '');
+                                setEditingId(null);
+                                setConfiguringId(null);
+                              }}
+                            >Change</button>
+                          </>
+                        )}
+                      </div>
+                    </div>
                     <div className={styles.cardActions}>
-                      <button className={styles.editBtn} onClick={() => { handleEditOpen(ev); setShowNew(false); setConfiguringId(null); }}>
+                      <button className={styles.editBtn} onClick={() => { handleEditOpen(ev); setShowNew(false); setConfiguringId(null); setChangingPaymentEventId(null); }}>
                         Edit
                       </button>
-                      <button className={styles.editBtn} onClick={() => { handleConfigureOpen(ev); setShowNew(false); setEditingId(null); }}>
+                      <button className={styles.editBtn} onClick={() => { handleConfigureOpen(ev); setShowNew(false); setEditingId(null); setChangingPaymentEventId(null); }}>
                         Configure
                       </button>
                       <button className={styles.deleteBtn} onClick={() => handleDelete(ev.event_id)}>

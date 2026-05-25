@@ -88,6 +88,20 @@ exports.handler = async (event) => {
             };
         }
 
+        if (payload.payment_id) {
+            const conflict = await query(
+                `SELECT event_id FROM ${EVENTS_TABLE} WHERE payment_id = $1 AND event_id != $2 LIMIT 1`,
+                [payload.payment_id, eventId]
+            );
+            if (conflict.rowCount > 0) {
+                return {
+                    statusCode: 409,
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ error: `payment_id ${payload.payment_id} is already linked to event ${conflict.rows[0].event_id}.` }),
+                };
+            }
+        }
+
         const updateKeys = Object.keys(payload);
 
         const setClause = updateKeys

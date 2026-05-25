@@ -75,6 +75,19 @@ exports.handler = async (event) => {
             };
         }
 
+        // Remove the member's assigned payment for this event if one exists
+        const eventResult = await query(
+            `SELECT payment_id FROM events WHERE event_id = $1 LIMIT 1`,
+            [eventId]
+        );
+        const paymentId = eventResult.rows[0]?.payment_id;
+        if (paymentId) {
+            await query(
+                `DELETE FROM assigned_payments WHERE member_id = $1 AND payment_id = $2`,
+                [memberId, paymentId]
+            );
+        }
+
         return {
             statusCode: 200,
             headers: {
