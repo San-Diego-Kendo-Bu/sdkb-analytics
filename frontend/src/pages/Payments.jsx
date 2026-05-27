@@ -65,7 +65,10 @@ function Payments(){
     return (
         <div className={paymentStyles.page}>
             <div className={paymentStyles.header}>
-                <h2 className={paymentStyles.title}>Payments</h2>
+                <header>
+                    <h2 className={paymentStyles.title}>Payments</h2>
+                    <span className={paymentStyles.count}>{payments ? payments.length : 0} payments</span>
+                </header>
             </div>
             <DbForm className={paymentStyles.list}/>
             {payments ? 
