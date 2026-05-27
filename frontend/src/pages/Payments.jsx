@@ -41,7 +41,7 @@ const dummy = [
 
 function Payments(){
     const [payments, setPayments] = useState(null);
-    const MAX_TITLE_LENGTH = 30;
+    const MAX_TITLE_LENGTH = 60;
     /**
      * No dependency array: the effect runs after every render 
      * Dependency array is empty ([]), it runs once on mount; 
@@ -72,16 +72,7 @@ function Payments(){
             </div>
             <DbForm className={paymentStyles.list}/>
             {payments ? 
-                <table>
-                <thead>
-                    <tr>
-                        <th className={paymentStyles.longcell}>Title</th>
-                        <th className={paymentStyles.longcell}>Created</th>
-                        <th className={paymentStyles.longcell}>Due</th>
-                        <th className={paymentStyles.shortcell}>Value</th>
-                    </tr>
-                </thead>
-                <tbody className={dbComponentsStyles.tableBody}>
+                <div className={dbComponentsStyles.tableBody}>
                     {payments.map(p => (
                         <PaymentEntry 
                             key={p.payment_id} 
@@ -91,8 +82,8 @@ function Payments(){
                             payment_value={p.payment_value}
                         />
                     ))}
-                </tbody>
-            </table> : <p>Fetching Payments...</p>
+                </div>
+            : <p>Fetching Payments...</p>
             }
 
         </div>

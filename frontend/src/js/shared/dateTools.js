@@ -35,3 +35,22 @@ export function tzToMMDDYYY(tzString){
         ${hours < 10 ? '0' + hours : hours}:${minutes < 10 ? '0' + minutes : minutes}
     `;
 }
+
+export function extractDate(tzString){
+    const date = new Date(tzString);
+    const month = date.getMonth() + 1;
+    const day = date.getDate();
+    const year = date.getFullYear();
+    return {
+        year: year,
+        month: month < 10 ? '0' + month : month,
+        day: day < 10 ? '0' + day : day,
+        hours: date.getHours(),
+        minutes: date.getMinutes()
+    };
+}
+
+export function getMonthAbreviation(monthNumber){
+    const monthAbreviations = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    return monthAbreviations[monthNumber - 1] || '';
+}
