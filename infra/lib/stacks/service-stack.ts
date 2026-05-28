@@ -30,6 +30,7 @@ import { get } from "http";
 export interface ServiceStackProps extends StackProps {
   membersAuthorizer?: IHttpRouteAuthorizer;   // attach to protected routes if provided
   stripeSecret: ISecret;
+  stripeSecretPk: ISecret;
   membersTableArn: string;
   configTableArn: string;
   userPool: IUserPool;
@@ -192,6 +193,16 @@ export class ServiceStack extends Stack {
       ...commonNodejs,
     });
 
+    const createPaymentIntentLambda = new NodejsFunction(this, "CreatePaymentIntentLambda", {
+      entry: path.join(__dirname, "../../lambdas/payments/createPaymentIntent/index.js"),
+      handler: "handler",
+      ...commonNodejs,
+      environment: {
+        SECRET_ID: props.stripeSecret.secretName,
+        PK_SECRET_ID: props.stripeSecretPk.secretName,
+      },
+    });
+
     const createEventLambda = new NodejsFunction(this, "CreateEventLambda", {
       entry: path.join(__dirname, "../../lambdas/events/createEvent/index.js"),
       handler: "handler",
@@ -258,11 +269,14 @@ export class ServiceStack extends Stack {
     props.databaseStack.grantDatabaseAccess(submitPaymentLambda);
     props.databaseStack.grantDatabaseAccess(removeSbmtPaymentLambda);
     props.databaseStack.grantDatabaseAccess(clearOvrPaymentsLambda);
+    props.databaseStack.grantDatabaseAccess(createPaymentIntentLambda);
 
 
     // ---- Secrets access (same as your IamStack)
     props.stripeSecret.grantRead(createMemberLambda);
     props.stripeSecret.grantRead(removeMemberLambda);
+    props.stripeSecret.grantRead(createPaymentIntentLambda);
+    props.stripeSecretPk.grantRead(createPaymentIntentLambda);
 
     // ---- DynamoDB policies (same as your IamStack)
     const members = props.membersTableArn;
@@ -336,6 +350,11 @@ export class ServiceStack extends Stack {
     }));
 
     submitPaymentLambda.role?.addToPrincipalPolicy(new iam.PolicyStatement({
+      actions: ["dynamodb:Query"],
+      resources: [members],
+    }));
+
+    createPaymentIntentLambda.role?.addToPrincipalPolicy(new iam.PolicyStatement({
       actions: ["dynamodb:Query"],
       resources: [members],
     }));
@@ -435,6 +454,11 @@ export class ServiceStack extends Stack {
       path: "/payments",
       methods: [HttpMethod.GET],
       integration: new HttpLambdaIntegration("PaymentsGetInt", getPaymentLambda),
+    });
+    httpApi.addRoutes({
+      path: "/payments/intent",
+      methods: [HttpMethod.POST],
+      integration: new HttpLambdaIntegration("PaymentsIntentPostInt", createPaymentIntentLambda),
     });
 
     // Assigned Payments

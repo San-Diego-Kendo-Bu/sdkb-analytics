@@ -7,12 +7,16 @@ export interface SecretsStackProps extends StackProps {}
 export class SecretsStack extends Stack {
 
   public readonly stripeSecret: ISecret;
+  public readonly stripeSecret_pk: ISecret;
 
   constructor(scope: Construct, id: string, props: SecretsStackProps) {
     super(scope, id, props);
 
     this.stripeSecret = Secret.fromSecretNameV2(
       this, "StripeSecret", "test/stripe"
+    );
+    this.stripeSecret_pk = Secret.fromSecretNameV2(
+      this, "StripeSecretPK", "test/stripe-pk"
     );
   }
 }
