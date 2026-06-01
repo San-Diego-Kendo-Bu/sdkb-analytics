@@ -130,6 +130,13 @@
   padding-top: 0.1rem;
 }
 
+.dueDateLabel{
+  font-size: 0.75rem;
+  color: #aaa;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
 .dateDay {
   font-size: 1.8rem;
   font-weight: 700;
