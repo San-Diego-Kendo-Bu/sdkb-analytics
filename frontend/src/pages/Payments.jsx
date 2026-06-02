@@ -14,6 +14,7 @@ const dummy = [
         title: "2025 Dojo Glorious Membership Fee",
         created_at: "2026-04-05T19:09:52.000Z",
         due_date: "2025-11-30T00:00:00.000Z",
+        overdue_value: 60,
         payment_value: 50
     },
     {
@@ -21,7 +22,8 @@ const dummy = [
         title: "i kendo it",
         created_at: "2026-04-05T19:04:51.000Z",
         due_date: "2025-11-30T00:00:00.000Z",
-        payment_value: 50
+        payment_value: 50,
+        overdue_value: 55.23
     },
     {
         payment_id : 2,
@@ -47,21 +49,21 @@ function Payments(){
      * Dependency array is empty ([]), it runs once on mount; 
      * Dependency array is provided, it runs only when those values change.
      */
-    useEffect(() => {
-        async function startFetching(){ // TODO: handle errors
-            const response = await rdsRead('GET', 'payments');
-            const data = response ? response.data : null;
-            setPayments(data);
-        }
-        
-        startFetching();
-    }, []);
-    // useEffect(()=>{
-    //     function simulateFetch(){
-    //         setPayments(dummy);
+    // useEffect(() => {
+    //     async function startFetching(){ // TODO: handle errors
+    //         const response = await rdsRead('GET', 'payments');
+    //         const data = response ? response.data : null;
+    //         setPayments(data);
     //     }
-    //     simulateFetch();
-    // },[]);
+        
+    //     startFetching();
+    // }, []);
+    useEffect(()=>{
+        function simulateFetch(){
+            setPayments(dummy);
+        }
+        simulateFetch();
+    },[]);
     return (
         <div className={paymentStyles.page}>
             <div className={paymentStyles.header}>
@@ -80,6 +82,7 @@ function Payments(){
                             created_at={tzToMMDDYYY(p.created_at)} 
                             due_date={tzToMMDDYYY(p.due_date)} 
                             payment_value={p.payment_value}
+                            overdue_value={p.overdue_value}
                         />
                     ))}
                 </div>

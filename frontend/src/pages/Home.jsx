@@ -29,7 +29,7 @@ const Content = ({ activeTab }) => {
   if (activeTab === 'Events') {
     return <EventsSignup />;
   }
-  if (activeTab === 'Payments') 
+  if (activeTab === 'Pay') 
   {
     return <Payments />
   }
