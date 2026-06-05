@@ -79,21 +79,27 @@ exports.handler = async (event) => {
             };
         }
 
-        // Assign member to the event's linked payment if one exists
+        // Assign member to the event's linked payment if one exists and they haven't already paid it
         const eventResult = await query(
             `SELECT payment_id FROM events WHERE event_id = $1 LIMIT 1`,
             [eventId]
         );
         const paymentId = eventResult.rows[0]?.payment_id;
         if (paymentId) {
-            await query(
-                `
-                INSERT INTO assigned_payments (member_id, payment_id, assigned_on, due_status)
-                VALUES ($1, $2, $3, $4)
-                ON CONFLICT DO NOTHING
-                `,
-                [memberId, paymentId, getCurrentTimeUTC(), "due"]
+            const alreadyPaid = await query(
+                `SELECT 1 FROM submitted_payments WHERE member_id = $1 AND payment_id = $2 LIMIT 1`,
+                [memberId, paymentId]
             );
+            if (alreadyPaid.rowCount === 0) {
+                await query(
+                    `
+                    INSERT INTO assigned_payments (member_id, payment_id, assigned_on, due_status)
+                    VALUES ($1, $2, $3, $4)
+                    ON CONFLICT DO NOTHING
+                    `,
+                    [memberId, paymentId, getCurrentTimeUTC(), "due"]
+                );
+            }
         }
 
         return {
