@@ -1,0 +1,253 @@
+.container {
+  padding: 4px 0;
+}
+
+/* ---- Tabs ---- */
+.tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 20px;
+  border-bottom: 2px solid #dee2e6;
+  padding-bottom: 0;
+}
+
+.tab {
+  background: none;
+  border: none;
+  padding: 8px 18px;
+  font-size: 0.9rem;
+  color: #6c757d;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.tab:hover {
+  color: #212529;
+}
+
+.activeTab {
+  color: #0d6efd;
+  border-bottom-color: #0d6efd;
+  font-weight: 600;
+}
+
+/* ---- Event bins ---- */
+.binGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+}
+
+.eventBin {
+  border: 1.5px solid;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+
+.eventHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  flex-wrap: wrap;
+}
+
+.typeBadge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 2px 8px;
+  border-radius: 10px;
+  white-space: nowrap;
+}
+
+.eventName {
+  font-size: 0.9rem;
+  font-weight: 600;
+  flex: 1;
+}
+
+.eventDate {
+  font-size: 0.78rem;
+  color: #6c757d;
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+.memberList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.memberRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 14px;
+  border-top: 1px solid #f0f0f0;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+
+.memberRow:hover {
+  background: #f8f9fa;
+}
+
+.memberName {
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.detailHint {
+  font-size: 0.78rem;
+  color: #6c757d;
+  text-align: right;
+}
+
+/* ---- Payment bins ---- */
+.paymentSection {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.paymentBin {
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+
+.paymentHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: #f8f9fa;
+  border-bottom: 1px solid #dee2e6;
+  flex-wrap: wrap;
+}
+
+.paymentValue {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #198754;
+}
+
+.paymentDue {
+  font-size: 0.8rem;
+  color: #6c757d;
+  margin-left: auto;
+}
+
+.paymentGroup {
+  padding: 10px 16px;
+  border-top: 1px solid #f0f0f0;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.groupLabel {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 2px 8px;
+  border-radius: 10px;
+  white-space: nowrap;
+  align-self: center;
+}
+
+.memberTags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.memberTag {
+  font-size: 0.8rem;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-weight: 500;
+}
+
+/* ---- Modal ---- */
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1050;
+}
+
+.modalBox {
+  background: #fff;
+  border-radius: 10px;
+  width: 100%;
+  max-width: 420px;
+  padding: 24px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+  position: relative;
+}
+
+.modalHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.modalName {
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.modalEvent {
+  font-size: 0.85rem;
+  color: #6c757d;
+  margin-top: 2px;
+}
+
+.modalClose {
+  background: none;
+  border: none;
+  font-size: 1rem;
+  color: #6c757d;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0 0 0 12px;
+}
+
+.modalClose:hover {
+  color: #212529;
+}
+
+.detailGrid {
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  row-gap: 10px;
+  margin: 0;
+}
+
+.detailKey {
+  font-size: 0.85rem;
+  color: #6c757d;
+  font-weight: 500;
+}
+
+.detailVal {
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin: 0;
+}
