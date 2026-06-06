@@ -41,42 +41,38 @@ const dummy = [
 
 function Payments(){
     const [payments, setPayments] = useState(null);
-    const MAX_TITLE_LENGTH = 30;
+    const MAX_TITLE_LENGTH = 60;
     /**
      * No dependency array: the effect runs after every render 
      * Dependency array is empty ([]), it runs once on mount; 
      * Dependency array is provided, it runs only when those values change.
      */
-    // useEffect(() => {
-    //     async function startFetching(){ // TODO: handle errors
-    //         const response = await rdsRead('GET', 'payments');
-    //         const data = response ? response.data : null;
-    //         setPayments(data);
-    //     }
-        
-    //     startFetching();
-    // }, []);
-    useEffect(()=>{
-        function simulateFetch(){
-            setPayments(dummy);
+    useEffect(() => {
+        async function startFetching(){ // TODO: handle errors
+            const response = await rdsRead('GET', 'payments');
+            const data = response ? response.data : null;
+            setPayments(data);
         }
-        simulateFetch();
-    },[]);
+        
+        startFetching();
+    }, []);
+    // useEffect(()=>{
+    //     function simulateFetch(){
+    //         setPayments(dummy);
+    //     }
+    //     simulateFetch();
+    // },[]);
     return (
-        <>
-            <h1>Payments</h1>
-            <DbForm />
+        <div className={paymentStyles.page}>
+            <div className={paymentStyles.header}>
+                <header>
+                    <h2 className={paymentStyles.title}>Payments</h2>
+                    <span className={paymentStyles.count}>{payments ? payments.length : 0} payments</span>
+                </header>
+            </div>
+            <DbForm className={paymentStyles.list}/>
             {payments ? 
-                <table>
-                <thead>
-                    <tr>
-                        <th className={paymentStyles.longcell}>Title</th>
-                        <th className={paymentStyles.longcell}>Created</th>
-                        <th className={paymentStyles.longcell}>Due</th>
-                        <th className={paymentStyles.shortcell}>Value</th>
-                    </tr>
-                </thead>
-                <tbody className={dbComponentsStyles.tableBody}>
+                <div className={paymentStyles.list}>
                     {payments.map(p => (
                         <PaymentEntry 
                             key={p.payment_id} 
@@ -86,11 +82,11 @@ function Payments(){
                             payment_value={p.payment_value}
                         />
                     ))}
-                </tbody>
-            </table> : <p>Fetching Payments...</p>
+                </div>
+            : <p>Fetching Payments...</p>
             }
 
-        </>
+        </div>
     );
 }
 export default Payments;

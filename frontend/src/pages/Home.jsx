@@ -6,6 +6,7 @@ import { userManager } from '../js/cognitoManager.js';
 import AdminDashboard from './AdminDashboard.jsx';
 import AdminControl from './AdminControl.jsx';
 import EventsSignup from './EventsSignup.jsx';
+import Payments from './Payments.jsx';
 import Pay from './Pay.jsx';
 
 const BASE_TABS = ['Nafudakake', 'Pay', 'Events'];
@@ -26,6 +27,10 @@ const Content = ({ activeTab }) => {
   }
   if (activeTab === 'Events') {
     return <EventsSignup />;
+  }
+  if (activeTab === 'Payments') 
+  {
+    return <Payments />
   }
   if (activeTab === 'Pay') {
     return <Pay />;
