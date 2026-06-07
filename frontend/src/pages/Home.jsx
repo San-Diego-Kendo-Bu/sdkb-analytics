@@ -8,8 +8,9 @@ import AdminControl from './AdminControl.jsx';
 import EventsSignup from './EventsSignup.jsx';
 import Payments from './Payments.jsx';
 import Pay from './Pay.jsx';
+import AnnouncementsView from './AnnouncementsView.jsx';
 
-const BASE_TABS = ['Nafudakake', 'Pay', 'Events'];
+const BASE_TABS = ['Nafudakake', 'Pay', 'Events', 'Announcements'];
 
 const Placeholder = ({ title }) => (
   <div className='p-4 bg-white border rounded shadow-sm text-center text-muted'>
@@ -34,6 +35,9 @@ const Content = ({ activeTab }) => {
   }
   if (activeTab === 'Pay') {
     return <Pay />;
+  }
+  if (activeTab === 'Announcements') {
+    return <AnnouncementsView />;
   }
   return <Placeholder title={activeTab} />;
 };

@@ -2,6 +2,7 @@ import AdminDashboard from "./AdminDashboard";
 import Payments from "./Payments";
 import Members from "./Members";
 import Events from "./Events";
+import Announcements from "./Announcements";
 
 import { useState } from "react";
 
@@ -17,6 +18,9 @@ function AdminControl(){
             break;
         case "Events":
             component = <Events/>;
+            break;
+        case "Announcements":
+            component = <Announcements/>;
             break;
         default:
             component = <AdminDashboard setPage={setPage}/>;
