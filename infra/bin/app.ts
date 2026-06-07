@@ -36,6 +36,7 @@ STAGES.forEach((stage) => {
     userPool: identityStack.userPool,
     stripeSecret: secretsStack.stripeSecret,
     stripeSecretPk: secretsStack.stripeSecret_pk,
+    gmailSecret: secretsStack.gmailSecret,
     membersTableArn: stage.membersTableArn,
     configTableArn: stage.configTableArn,
     databaseStack

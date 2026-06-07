@@ -117,4 +117,4 @@ async function getMemberIdByToken(claims) {
 
 }
 
-module.exports = { getMemberById, getMembersByEmail, verifyMemberExists, getAllMemberIds, getMemberIdByToken };
+module.exports = { getMemberById, getMembersByEmail, verifyMemberExists, getAllMembers, getAllMemberIds, getMemberIdByToken };

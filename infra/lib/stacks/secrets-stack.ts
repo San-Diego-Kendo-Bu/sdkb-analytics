@@ -8,6 +8,7 @@ export class SecretsStack extends Stack {
 
   public readonly stripeSecret: ISecret;
   public readonly stripeSecret_pk: ISecret;
+  public readonly gmailSecret: ISecret;
 
   constructor(scope: Construct, id: string, props: SecretsStackProps) {
     super(scope, id, props);
@@ -17,6 +18,9 @@ export class SecretsStack extends Stack {
     );
     this.stripeSecret_pk = Secret.fromSecretNameV2(
       this, "StripeSecretPK", "test/stripe-pk"
+    );
+    this.gmailSecret = Secret.fromSecretNameV2(
+      this, "GmailSecret", "club/gmail"
     );
   }
 }

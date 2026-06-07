@@ -91,6 +91,7 @@ export class DatabaseStack extends Stack {
       entry: path.join(__dirname, "../../lambdas/rds/dbWriter/index.js"),
       handler: "handler",
       ...commonNodejs,
+      bundling: { ...commonNodejs.bundling, externalModules: ["pg-native"] },
       timeout: Duration.seconds(30),
       runtime: lambda.Runtime.NODEJS_18_X,
       environment: {

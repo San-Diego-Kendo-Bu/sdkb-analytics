@@ -24,6 +24,7 @@ import { IUserPool } from "aws-cdk-lib/aws-cognito";
 
 import * as scheduler from 'aws-cdk-lib/aws-scheduler'; // https://docs.aws.amazon.com/cdk/api/v2/docs/aws-cdk-lib.aws_scheduler-readme.html
 import * as targets from 'aws-cdk-lib/aws-scheduler-targets'
+import * as s3 from "aws-cdk-lib/aws-s3";
 import { DatabaseStack } from "./database-stack";
 import { get } from "http";
 
@@ -31,6 +32,7 @@ export interface ServiceStackProps extends StackProps {
   membersAuthorizer?: IHttpRouteAuthorizer;   // attach to protected routes if provided
   stripeSecret: ISecret;
   stripeSecretPk: ISecret;
+  gmailSecret: ISecret;
   membersTableArn: string;
   configTableArn: string;
   userPool: IUserPool;
@@ -245,6 +247,46 @@ export class ServiceStack extends Stack {
       ...commonNodejs,
     });
 
+    // ---- Newsletter S3 bucket
+    const newsletterBucket = new s3.Bucket(this, "NewsletterBucket", {
+      blockPublicAccess: new s3.BlockPublicAccess({
+        blockPublicAcls: true,
+        blockPublicPolicy: false,
+        ignorePublicAcls: true,
+        restrictPublicBuckets: false,
+      }),
+      cors: [{
+        allowedMethods: [s3.HttpMethods.PUT, s3.HttpMethods.GET],
+        allowedOrigins: ["*"],
+        allowedHeaders: ["*"],
+        maxAge: 3000,
+      }],
+    });
+
+    newsletterBucket.addToResourcePolicy(new iam.PolicyStatement({
+      effect: iam.Effect.ALLOW,
+      principals: [new iam.AnyPrincipal()],
+      actions: ["s3:GetObject"],
+      resources: [`${newsletterBucket.bucketArn}/*`],
+    }));
+
+    // ---- Announcement Lambdas
+    const getUploadUrlLambda = new NodejsFunction(this, "GetUploadUrlLambda", {
+      entry: path.join(__dirname, "../../lambdas/announcements/getUploadUrl/index.js"),
+      handler: "handler",
+      ...commonNodejs,
+      environment: { NEWSLETTER_BUCKET_NAME: newsletterBucket.bucketName },
+    });
+
+    const sendAnnouncementLambda = new NodejsFunction(this, "SendAnnouncementLambda", {
+      entry: path.join(__dirname, "../../lambdas/announcements/sendAnnouncement/index.js"),
+      handler: "handler",
+      ...commonNodejs,
+      bundling: { ...commonNodejs.bundling, nodeModules: ["nodemailer"] },
+      timeout: Duration.seconds(60),
+      environment: { GMAIL_SECRET_ID: props.gmailSecret.secretName },
+    });
+
     props.databaseStack.grantDatabaseAccess(broadcastPaymentLambda);
     props.databaseStack.grantDatabaseAccess(createPaymentLambda);
     props.databaseStack.grantDatabaseAccess(getPaymentLambda);
@@ -358,6 +400,14 @@ export class ServiceStack extends Stack {
       actions: ["dynamodb:Query"],
       resources: [members],
     }));
+
+    newsletterBucket.grantPut(getUploadUrlLambda);
+
+    sendAnnouncementLambda.role?.addToPrincipalPolicy(new iam.PolicyStatement({
+      actions: ["dynamodb:Scan"],
+      resources: [members],
+    }));
+    props.gmailSecret.grantRead(sendAnnouncementLambda);
 
     createEventLambda.role?.addToPrincipalPolicy(new iam.PolicyStatement({
       actions: ["dynamodb:UpdateItem"],
@@ -562,6 +612,20 @@ export class ServiceStack extends Stack {
       path: "/events",
       methods: [HttpMethod.DELETE],
       integration: new HttpLambdaIntegration("EventsDeleteInt", removeEventLambda),
+      ...(auth ? { authorizer: auth } : {}),
+    });
+
+    // Announcements
+    httpApi.addRoutes({
+      path: "/announcements/upload-url",
+      methods: [HttpMethod.GET],
+      integration: new HttpLambdaIntegration("AnnouncementsUploadUrlInt", getUploadUrlLambda),
+      ...(auth ? { authorizer: auth } : {}),
+    });
+    httpApi.addRoutes({
+      path: "/announcements/send",
+      methods: [HttpMethod.POST],
+      integration: new HttpLambdaIntegration("AnnouncementsSendInt", sendAnnouncementLambda),
       ...(auth ? { authorizer: auth } : {}),
     });
 
