@@ -271,6 +271,12 @@ export class ServiceStack extends Stack {
     }));
 
     // ---- Announcement Lambdas
+    const getAnnouncementsLambda = new NodejsFunction(this, "GetAnnouncementsLambda", {
+      entry: path.join(__dirname, "../../lambdas/announcements/getAnnouncements/index.js"),
+      handler: "handler",
+      ...commonNodejs,
+    });
+
     const getUploadUrlLambda = new NodejsFunction(this, "GetUploadUrlLambda", {
       entry: path.join(__dirname, "../../lambdas/announcements/getUploadUrl/index.js"),
       handler: "handler",
@@ -283,6 +289,7 @@ export class ServiceStack extends Stack {
       handler: "handler",
       ...commonNodejs,
       bundling: { ...commonNodejs.bundling, nodeModules: ["nodemailer"] },
+      memorySize: 512,
       timeout: Duration.seconds(60),
       environment: { GMAIL_SECRET_ID: props.gmailSecret.secretName },
     });
@@ -312,6 +319,8 @@ export class ServiceStack extends Stack {
     props.databaseStack.grantDatabaseAccess(removeSbmtPaymentLambda);
     props.databaseStack.grantDatabaseAccess(clearOvrPaymentsLambda);
     props.databaseStack.grantDatabaseAccess(createPaymentIntentLambda);
+    props.databaseStack.grantDatabaseAccess(getAnnouncementsLambda);
+    props.databaseStack.grantDatabaseAccess(sendAnnouncementLambda);
 
 
     // ---- Secrets access (same as your IamStack)
@@ -616,6 +625,11 @@ export class ServiceStack extends Stack {
     });
 
     // Announcements
+    httpApi.addRoutes({
+      path: "/announcements",
+      methods: [HttpMethod.GET],
+      integration: new HttpLambdaIntegration("AnnouncementsGetInt", getAnnouncementsLambda),
+    });
     httpApi.addRoutes({
       path: "/announcements/upload-url",
       methods: [HttpMethod.GET],

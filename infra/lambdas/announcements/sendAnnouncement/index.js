@@ -1,6 +1,7 @@
 const { SecretsManagerClient, GetSecretValueCommand } = require("@aws-sdk/client-secrets-manager");
 const { getAllMembers } = require("../../shared_utils/members");
 const { normalizeGroups } = require("../../shared_utils/normalize_claim");
+const { query } = require("../../shared_utils/db");
 const nodemailer = require("nodemailer");
 
 const REGION = process.env.AWS_REGION;
@@ -68,23 +69,35 @@ exports.handler = async (event) => {
         let failed = 0;
         const failures = [];
 
-        for (const email of emails) {
-            try {
-                await transporter.sendMail({
+        const BATCH_SIZE = 10;
+        for (let i = 0; i < emails.length; i += BATCH_SIZE) {
+            const batch = emails.slice(i, i + BATCH_SIZE);
+            const results = await Promise.allSettled(
+                batch.map(email => transporter.sendMail({
                     from: `SDKB Portal <${gmailUser}>`,
                     to: email,
                     subject,
                     html: htmlBody,
                     text: textBody,
                     attachments,
-                });
-                sent++;
-            } catch (err) {
-                console.error(`Failed to send to ${email}:`, err.message);
-                failures.push(email);
-                failed++;
-            }
+                }))
+            );
+            results.forEach((r, idx) => {
+                if (r.status === 'fulfilled') {
+                    sent++;
+                } else {
+                    console.error(`Failed to send to ${batch[idx]}:`, r.reason?.message);
+                    failures.push(batch[idx]);
+                    failed++;
+                }
+            });
         }
+
+        await query(
+            `INSERT INTO announcements (announcement_id, subject, body, pdf_url, created_at)
+             VALUES ($1, $2, $3, $4, NOW())`,
+            [Date.now(), subject, body, pdf_url ?? null]
+        );
 
         return {
             statusCode: 200,

@@ -84,3 +84,11 @@ CREATE TABLE IF NOT EXISTS config (
     counter_title TEXT PRIMARY KEY,
     counter_value BIGINT NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS announcements (
+    announcement_id BIGINT PRIMARY KEY,
+    subject TEXT NOT NULL,
+    body TEXT NOT NULL,
+    pdf_url TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
