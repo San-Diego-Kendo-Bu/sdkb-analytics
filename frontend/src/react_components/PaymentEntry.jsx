@@ -33,12 +33,6 @@ function PaymentEntry({id,title,created_at,due_date,payment_value,overdue_value}
             </div>
 
         </div>
-        {/* <tr>
-            <td className={paymentStyles.longcell}>{title}</td>
-            <td className={paymentStyles.longcell}>{created_at}</td>
-            <td className={paymentStyles.longcell}>{due_date}</td>
-            <td className={paymentStyles.longcell}>{payment_value}</td>
-        </tr> */}
     </div>
     );
 }
