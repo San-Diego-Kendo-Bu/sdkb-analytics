@@ -49,21 +49,21 @@ function Payments(){
      * Dependency array is empty ([]), it runs once on mount; 
      * Dependency array is provided, it runs only when those values change.
      */
-    // useEffect(() => {
-    //     async function startFetching(){ // TODO: handle errors
-    //         const response = await rdsRead('GET', 'payments');
-    //         const data = response ? response.data : null;
-    //         setPayments(data);
-    //     }
-        
-    //     startFetching();
-    // }, []);
-    useEffect(()=>{
-        function simulateFetch(){
-            setPayments(dummy);
+    useEffect(() => {
+        async function startFetching(){ // TODO: handle errors
+            const response = await rdsRead('GET', 'payments');
+            const data = response ? response.data : null;
+            setPayments(data);
         }
-        simulateFetch();
-    },[]);
+        
+        startFetching();
+    }, []);
+    // useEffect(()=>{
+    //     function simulateFetch(){
+    //         setPayments(dummy);
+    //     }
+    //     simulateFetch();
+    // },[]);
     return (
         <div className={paymentStyles.page}>
             <div className={paymentStyles.header}>
