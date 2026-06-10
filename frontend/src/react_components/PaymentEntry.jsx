@@ -1,14 +1,14 @@
 import paymentStyles from '../../css/paymentpage.module.css';
 import {extractDate, getMonthAbreviation} from '/src/js/shared/dateTools';
-function PaymentEntry({id,title,created_at,due_date,payment_value,overdue_value}){
-    
+function PaymentEntry({id,title,created_at,due_date,payment_value,overdue_penalty}){
+
     const dueDateObj = extractDate(due_date);
     const createdAtObj = extractDate(created_at);
     const monthAbreviation = getMonthAbreviation(dueDateObj.month);
-    const amountDue = payment_value.toFixed(2);
-    const lateFee = (overdue_value && overdue_value > 0) 
-        ? (((overdue_value / payment_value) - 1) * 100).toFixed(2) 
-        : undefined; 
+    const numPayment = Number(payment_value);
+    const numPenalty = overdue_penalty != null ? Number(overdue_penalty) : null;
+    const amountDue = numPayment.toFixed(2);
+
     return(
     <div className={paymentStyles.card}>
         <div className={paymentStyles.dateBadge}>
@@ -21,9 +21,9 @@ function PaymentEntry({id,title,created_at,due_date,payment_value,overdue_value}
                 <span className={paymentStyles.cardValue}>${amountDue}</span>
                 <span className={paymentStyles.configLabel}>{title}</span>
             </div>
-            {lateFee ?
+            {overdue_penalty != null && overdue_penalty > 0 ?
                 <div className={paymentStyles.configRow}>
-                    <span className={paymentStyles.cardLateFee}>{lateFee}% Late Fee</span>
+                    <span className={paymentStyles.cardLateFee}>Additional ${overdue_penalty} if late</span>
                 </div>
                 : null
             }
