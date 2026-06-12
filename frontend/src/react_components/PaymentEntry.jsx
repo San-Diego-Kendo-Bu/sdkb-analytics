@@ -1,10 +1,13 @@
 import paymentStyles from '../../css/paymentpage.module.css';
 import {extractDate, getMonthAbreviation} from '/src/js/shared/dateTools';
-function PaymentEntry({id,title,created_at,due_date,payment_value}){
-    
+function PaymentEntry({id,title,created_at,due_date,payment_value,overdue_penalty}){
+
     const dueDateObj = extractDate(due_date);
     const createdAtObj = extractDate(created_at);
     const monthAbreviation = getMonthAbreviation(dueDateObj.month);
+    const numPayment = Number(payment_value);
+    const numPenalty = overdue_penalty != null ? Number(overdue_penalty) : null;
+    const amountDue = numPayment.toFixed(2);
 
     return(
     <div className={paymentStyles.card}>
@@ -15,19 +18,21 @@ function PaymentEntry({id,title,created_at,due_date,payment_value}){
         </div>
         <div className={paymentStyles.cardBody}>
             <div className={paymentStyles.cardTop}>
-                <span className={paymentStyles.cardTitle}>${payment_value}</span>
+                <span className={paymentStyles.cardValue}>${amountDue}</span>
                 <span className={paymentStyles.configLabel}>{title}</span>
             </div>
+            {overdue_penalty != null && overdue_penalty > 0 ?
+                <div className={paymentStyles.configRow}>
+                    <span className={paymentStyles.cardLateFee}>Additional ${overdue_penalty} if late</span>
+                </div>
+                : null
+            }
+
             <div className={paymentStyles.configRow}>
                 <span className={paymentStyles.cardMeta}>Created: {createdAtObj.day} {getMonthAbreviation(createdAtObj.month)} {createdAtObj.year}</span>
             </div>
+
         </div>
-        {/* <tr>
-            <td className={paymentStyles.longcell}>{title}</td>
-            <td className={paymentStyles.longcell}>{created_at}</td>
-            <td className={paymentStyles.longcell}>{due_date}</td>
-            <td className={paymentStyles.longcell}>{payment_value}</td>
-        </tr> */}
     </div>
     );
 }
