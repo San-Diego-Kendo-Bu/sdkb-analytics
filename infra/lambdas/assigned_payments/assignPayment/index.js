@@ -31,7 +31,7 @@ exports.handler = async (event) => {
         const memberId = parseInt(payload['member_id'], 10);
         const paymentId = parseInt(payload['payment_id'], 10);
         const assignedOn = getCurrentTimeUTC();
-        const status = "due";
+        const status = parameters['due_status'] === 'overdue' ? 'overdue' : 'due';
 
         const memberFound = await verifyMemberExists(memberId);
         if (!memberFound) {

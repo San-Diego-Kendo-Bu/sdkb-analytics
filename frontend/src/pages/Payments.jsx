@@ -5,6 +5,8 @@ import styles from '../../css/paymentpage.module.css';
 
 const BASE_URL = 'https://qh3c0tz6s9.execute-api.us-east-2.amazonaws.com';
 const PAYMENTS_API = `${BASE_URL}/payments`;
+const MEMBERS_API = `${BASE_URL}/members`;
+const ASSIGNED_PAYMENTS_API = `${BASE_URL}/assignedpayments`;
 
 const EMPTY_FORM = { title: '', payment_value: '', due_date: '', overdue_penalty: '' };
 
@@ -41,6 +43,7 @@ function PaymentForm({ form, setForm, onSave, onCancel, title }) {
 
 function Payments() {
   const [payments, setPayments] = useState([]);
+  const [members, setMembers] = useState([]);
   const [search, setSearch] = useState('');
   const [showNew, setShowNew] = useState(false);
   const [editingId, setEditingId] = useState(null);
@@ -48,6 +51,14 @@ function Payments() {
   const [editForm, setEditForm] = useState(EMPTY_FORM);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [assigningId, setAssigningId] = useState(null);
+  const [assignMemberId, setAssignMemberId] = useState('');
+  const [toast, setToast] = useState('');
+
+  function showToast(msg) {
+    setToast(msg);
+    setTimeout(() => setToast(''), 3000);
+  }
 
   function mapPayment(p) {
     return {
@@ -61,9 +72,14 @@ function Payments() {
   }
 
   useEffect(() => {
-    fetch(PAYMENTS_API)
-      .then(res => { if (!res.ok) throw new Error(`HTTP ${res.status}`); return res.json(); })
-      .then(data => setPayments((data.data ?? []).map(mapPayment)))
+    Promise.all([
+      fetch(PAYMENTS_API).then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); }),
+      fetch(MEMBERS_API).then(r => r.json()).catch(() => ({ items: [] })),
+    ])
+      .then(([paymentsData, membersData]) => {
+        setPayments((paymentsData.data ?? []).map(mapPayment));
+        setMembers(membersData.items ?? []);
+      })
       .catch(err => setError(err.message))
       .finally(() => setLoading(false));
   }, []);
@@ -130,6 +146,27 @@ function Payments() {
       .then(res => { if (!res.ok) return res.json().then(b => { throw new Error(b.message || b.error || `HTTP ${res.status}`); }); return fetch(PAYMENTS_API); })
       .then(res => res.json())
       .then(data => setPayments((data.data ?? []).map(mapPayment)))
+      .catch(err => setError(err.message));
+  }
+
+  function handleAssign(payment) {
+    if (!assignMemberId) return;
+    const today = new Date();
+    const dueDate = payment.due_date ? new Date(payment.due_date) : null;
+    const due_status = dueDate && today > dueDate ? 'overdue' : 'due';
+    const selectedMemberId = assignMemberId;
+    const member = members.find(m => String(m.member_id) === String(selectedMemberId));
+    const memberName = member ? `${member.first_name} ${member.last_name}` : `Member #${selectedMemberId}`;
+    setAssigningId(null);
+    setAssignMemberId('');
+    userManager.getUser()
+      .then(user => fetch(ASSIGNED_PAYMENTS_API, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${user.id_token}` },
+        body: JSON.stringify({ member_id: parseInt(selectedMemberId, 10), payment_id: payment.payment_id, due_status }),
+      }))
+      .then(res => { if (!res.ok) return res.json().then(b => { throw new Error(b.error || b.message || `HTTP ${res.status}`); }); })
+      .then(() => showToast(`Payment assigned to ${memberName} successfully!`))
       .catch(err => setError(err.message));
   }
 
@@ -201,20 +238,42 @@ function Payments() {
                     payment_value={p.payment_value}
                     overdue_penalty={p.overdue_penalty}
                   />
-                  <div className={styles.cardActions} style={{ paddingLeft: '1.5rem', paddingBottom: '0.75rem', marginTop: '-0.5rem' }}>
-                    <button className={styles.editBtn} onClick={() => { handleEditOpen(p); setShowNew(false); }}>
+                  <div className={styles.cardActions} style={{ paddingLeft: '1.5rem', paddingBottom: '0.75rem', marginTop: '-0.5rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                    <button className={styles.editBtn} onClick={() => { handleEditOpen(p); setShowNew(false); setAssigningId(null); }}>
                       Edit
+                    </button>
+                    <button className={styles.editBtn} onClick={() => { setAssigningId(id => id === p.payment_id ? null : p.payment_id); setAssignMemberId(''); setEditingId(null); setShowNew(false); }}>
+                      Assign
                     </button>
                     <button className={styles.deleteBtn} onClick={() => handleDelete(p.payment_id)}>
                       Delete
                     </button>
                   </div>
+                  {assigningId === p.payment_id && (
+                    <div className={styles.formBox} style={{ margin: '0 0 0.75rem 1.5rem' }}>
+                      <p className={styles.formTitle}>Assign to Member</p>
+                      <select className={styles.input} value={assignMemberId} onChange={e => setAssignMemberId(e.target.value)}>
+                        <option value="">Select member</option>
+                        {members.map(m => (
+                          <option key={m.member_id} value={m.member_id}>
+                            {m.first_name} {m.last_name} (#{m.member_id})
+                          </option>
+                        ))}
+                      </select>
+                      <div className={styles.formActions}>
+                        <button className={styles.saveBtn} onClick={() => handleAssign(p)} disabled={!assignMemberId}>Assign</button>
+                        <button className={styles.cancelBtn} onClick={() => { setAssigningId(null); setAssignMemberId(''); }}>Cancel</button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
           );
         })}
       </div>
+
+      {toast && <div className={styles.toast}>{toast}</div>}
     </div>
   );
 }
