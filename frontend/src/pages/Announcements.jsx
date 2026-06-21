@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react';
 import { userManager } from '../js/cognitoManager';
+import { isOffHours, OFF_HOURS_MSG } from '../js/offHours';
 
 const BASE_URL          = 'https://qh3c0tz6s9.execute-api.us-east-2.amazonaws.com';
 const UPLOAD_URL_API    = `${BASE_URL}/announcements/upload-url`;
@@ -59,6 +60,7 @@ export default function Announcements() {
 
   async function handleSend(e) {
     e.preventDefault();
+    if (isOffHours()) { setError(OFF_HOURS_MSG); return; }
     if (!subject.trim() || !body.trim()) {
       setError('Subject and message are required.');
       return;

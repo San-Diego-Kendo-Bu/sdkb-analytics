@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import styles from '../../css/events.module.css';
 import { userManager } from '../js/cognitoManager';
+import { isOffHours, OFF_HOURS_MSG } from '../js/offHours';
 
 const BASE_URL = 'https://qh3c0tz6s9.execute-api.us-east-2.amazonaws.com';
 const EVENTS_API = `${BASE_URL}/events`;
@@ -270,6 +271,7 @@ function EventsSignup() {
   }
 
   async function handleSignUpSubmit(ev, extra) {
+    if (isOffHours()) { showToast(OFF_HOURS_MSG); return; }
     setSubmitting(true);
     try {
       const memberId = await resolveMemberId();
@@ -305,6 +307,7 @@ function EventsSignup() {
   }
 
   async function handleUnregister(ev) {
+    if (isOffHours()) { showToast(OFF_HOURS_MSG); return; }
     setSubmitting(true);
     try {
       const memberId = await resolveMemberId();

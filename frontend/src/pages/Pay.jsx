@@ -3,6 +3,7 @@ import { loadStripe } from '@stripe/stripe-js';
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { userManager } from '../js/cognitoManager';
 import styles from '../../css/pay.module.css';
+import { isOffHours, OFF_HOURS_MSG } from '../js/offHours';
 
 const BASE_URL = 'https://qh3c0tz6s9.execute-api.us-east-2.amazonaws.com';
 const MEMBERS_API = `${BASE_URL}/members`;
@@ -129,6 +130,7 @@ export default function Pay() {
   useEffect(() => { loadPayments(); }, []);
 
   async function handlePayClick(payment) {
+    if (isOffHours()) { showToast(OFF_HOURS_MSG); return; }
     setPayingId(payment.payment_id);
     setStripeData(null);
     setLoadingIntent(true);

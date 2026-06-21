@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { userManager } from '../js/cognitoManager';
 import PaymentEntry from '../react_components/PaymentEntry';
 import styles from '../../css/paymentpage.module.css';
+import { isOffHours, OFF_HOURS_MSG } from '../js/offHours';
 
 const BASE_URL = 'https://qh3c0tz6s9.execute-api.us-east-2.amazonaws.com';
 const PAYMENTS_API = `${BASE_URL}/payments`;
@@ -89,6 +90,7 @@ function Payments() {
   );
 
   function handleCreate() {
+    if (isOffHours()) { setError(OFF_HOURS_MSG); return; }
     if (!newForm.title || !newForm.payment_value || !newForm.due_date) {
       setError('Title, amount, and due date are required.');
       return;
@@ -125,6 +127,7 @@ function Payments() {
   }
 
   function handleEditSave() {
+    if (isOffHours()) { setError(OFF_HOURS_MSG); return; }
     if (!editForm.title || !editForm.payment_value || !editForm.due_date) {
       setError('Title, amount, and due date are required.');
       return;
@@ -150,6 +153,7 @@ function Payments() {
   }
 
   function handleAssign(payment) {
+    if (isOffHours()) { setError(OFF_HOURS_MSG); return; }
     if (!assignMemberId) return;
     const today = new Date();
     const dueDate = payment.due_date ? new Date(payment.due_date) : null;
@@ -171,6 +175,7 @@ function Payments() {
   }
 
   function handleDelete(id) {
+    if (isOffHours()) { setError(OFF_HOURS_MSG); return; }
     userManager.getUser()
       .then(user => fetch(PAYMENTS_API, {
         method: 'DELETE',

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import styles from '../../css/events.module.css';
 import { userManager } from '../js/cognitoManager';
+import { isOffHours, OFF_HOURS_MSG } from '../js/offHours';
 
 const BASE_URL = 'https://qh3c0tz6s9.execute-api.us-east-2.amazonaws.com';
 const EVENTS_API = `${BASE_URL}/events`;
@@ -245,6 +246,7 @@ function Events() {
   }
 
   function handleCreate() {
+    if (isOffHours()) { setError(OFF_HOURS_MSG); return; }
     if (!newForm.payment_id) {
       setError('A payment must be linked to create an event.');
       return;
@@ -286,6 +288,7 @@ function Events() {
   }
 
   function handleEditSave() {
+    if (isOffHours()) { setError(OFF_HOURS_MSG); return; }
     if (!editForm.payment_id) {
       setError('A payment must be linked to the event.');
       return;
@@ -313,6 +316,7 @@ function Events() {
   }
 
   function handleChangePaymentSave(ev) {
+    if (isOffHours()) { setError(OFF_HOURS_MSG); return; }
     if (!changePaymentValue) return;
     userManager.getUser()
       .then(user => fetch(EVENTS_API, {
@@ -343,6 +347,7 @@ function Events() {
   }
 
   function handleConfigureSave(ev) {
+    if (isOffHours()) { setError(OFF_HOURS_MSG); return; }
     let payload = { event_id: parseInt(ev.event_id, 10) };
     if (ev.type === 'tournament') {
       payload = { ...payload, shinpan_needed: configForm.shinpan_needed, event_deadline: toIso(configForm.event_deadline), divisions: configForm.divisions.split(',').map(s => s.trim()).filter(Boolean), teams_included: configForm.teams_included };
@@ -366,6 +371,7 @@ function Events() {
   }
 
   function handleDelete(id) {
+    if (isOffHours()) { setError(OFF_HOURS_MSG); return; }
     userManager.getUser().then(user =>
       fetch(EVENTS_API, {
         method: 'DELETE',
