@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react';
+import { isOffHours } from '../js/offHours';
+import OffHoursCard from '../react_components/OffHoursCard';
 
 const BASE_URL = 'https://qh3c0tz6s9.execute-api.us-east-2.amazonaws.com';
 
@@ -79,6 +81,7 @@ export default function AnnouncementsView() {
   const [error, setError] = useState('');
 
   useEffect(() => {
+    if (isOffHours()) { setLoading(false); return; }
     fetch(`${BASE_URL}/announcements`)
       .then(r => r.json())
       .then(d => setAnnouncements(d.announcements ?? []))
@@ -87,6 +90,7 @@ export default function AnnouncementsView() {
   }, []);
 
   if (loading) return <p className="text-muted p-3">Loading announcements...</p>;
+  if (isOffHours()) return <OffHoursCard />;
   if (error) return <p className="text-danger p-3">{error}</p>;
   if (announcements.length === 0) return <p className="text-muted p-3">No announcements yet.</p>;
 

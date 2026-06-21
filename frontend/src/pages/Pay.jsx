@@ -4,6 +4,7 @@ import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-
 import { userManager } from '../js/cognitoManager';
 import styles from '../../css/pay.module.css';
 import { isOffHours, OFF_HOURS_MSG } from '../js/offHours';
+import OffHoursCard from '../react_components/OffHoursCard';
 
 const BASE_URL = 'https://qh3c0tz6s9.execute-api.us-east-2.amazonaws.com';
 const MEMBERS_API = `${BASE_URL}/members`;
@@ -127,7 +128,7 @@ export default function Pay() {
     setLoading(false);
   }
 
-  useEffect(() => { loadPayments(); }, []);
+  useEffect(() => { if (!isOffHours()) loadPayments(); else setLoading(false); }, []);
 
   async function handlePayClick(payment) {
     if (isOffHours()) { showToast(OFF_HOURS_MSG); return; }
@@ -176,9 +177,8 @@ export default function Pay() {
     setSubmitting(false);
   }
 
-  if (loading) {
-    return <p className="text-muted p-4">Loading your payments...</p>;
-  }
+  if (loading) return <p className="text-muted p-4">Loading your payments...</p>;
+  if (isOffHours()) return <OffHoursCard />;
 
   return (
     <div className={styles.container}>

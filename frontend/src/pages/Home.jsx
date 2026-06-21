@@ -6,7 +6,6 @@ import { userManager } from '../js/cognitoManager.js';
 import AdminDashboard from './AdminDashboard.jsx';
 import AdminControl from './AdminControl.jsx';
 import EventsSignup from './EventsSignup.jsx';
-import Payments from './Payments.jsx';
 import Pay from './Pay.jsx';
 import AnnouncementsView from './AnnouncementsView.jsx';
 
@@ -28,10 +27,6 @@ const Content = ({ activeTab }) => {
   }
   if (activeTab === 'Events') {
     return <EventsSignup />;
-  }
-  if (activeTab === 'Pay') 
-  {
-    return <Payments />
   }
   if (activeTab === 'Pay') {
     return <Pay />;
@@ -58,8 +53,9 @@ export default function App() {
             'Authorization': `Bearer ${user.id_token}`
           }
         });
-        if (!res.ok) return;
         const data = await res.json();
+        console.log('[checkAdmin] status:', res.status, '| email:', user.profile?.email, '| isAdmin:', !!data.isAdmin);
+        if (!res.ok) return;
         setIsAdmin(!!data.isAdmin);
       } catch {
         // not admin

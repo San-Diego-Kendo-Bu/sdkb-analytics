@@ -3,6 +3,7 @@ import { userManager } from '../js/cognitoManager';
 import PaymentEntry from '../react_components/PaymentEntry';
 import styles from '../../css/paymentpage.module.css';
 import { isOffHours, OFF_HOURS_MSG } from '../js/offHours';
+import OffHoursCard from '../react_components/OffHoursCard';
 
 const BASE_URL = 'https://qh3c0tz6s9.execute-api.us-east-2.amazonaws.com';
 const PAYMENTS_API = `${BASE_URL}/payments`;
@@ -73,6 +74,7 @@ function Payments() {
   }
 
   useEffect(() => {
+    if (isOffHours()) { setLoading(false); return; }
     Promise.all([
       fetch(PAYMENTS_API).then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); }),
       fetch(MEMBERS_API).then(r => r.json()).catch(() => ({ items: [] })),
@@ -219,8 +221,9 @@ function Payments() {
 
       <div className={styles.list}>
         {loading && <p className={styles.empty}>Loading payments...</p>}
-        {error && <p className={styles.empty}>Error: {error}</p>}
-        {!loading && !error && filtered.length === 0 && <p className={styles.empty}>No payments found.</p>}
+        {!loading && isOffHours() && <OffHoursCard />}
+        {!isOffHours() && error && <p className={styles.empty}>Error: {error}</p>}
+        {!loading && !error && !isOffHours() && filtered.length === 0 && <p className={styles.empty}>No payments found.</p>}
         {filtered.map(p => {
           const isEditing = editingId === p.payment_id;
           return (

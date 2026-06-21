@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import styles from '../../css/events.module.css';
 import { userManager } from '../js/cognitoManager';
 import { isOffHours, OFF_HOURS_MSG } from '../js/offHours';
+import OffHoursCard from '../react_components/OffHoursCard';
 
 const BASE_URL = 'https://qh3c0tz6s9.execute-api.us-east-2.amazonaws.com';
 const EVENTS_API = `${BASE_URL}/events`;
@@ -175,6 +176,7 @@ function Events() {
   }, []);
 
   useEffect(() => {
+    if (isOffHours()) { setLoading(false); return; }
     fetch(EVENTS_API)
       .then(res => { if (!res.ok) throw new Error(`HTTP ${res.status}`); return res.json(); })
       .then(data => {
@@ -430,7 +432,8 @@ function Events() {
 
       <div className={styles.list}>
         {loading && <p className={styles.empty}>Loading events...</p>}
-        {error && <p className={styles.empty}>Error: {error}</p>}
+        {!loading && isOffHours() && <OffHoursCard />}
+        {!isOffHours() && error && <p className={styles.empty}>Error: {error}</p>}
         {!loading && !error && filtered.length === 0 && <p className={styles.empty}>No events found.</p>}
         {filtered.map(ev => {
           const status = getStatus(ev.start_datetime, ev.end_datetime);
