@@ -1,6 +1,6 @@
 import paymentStyles from '../../css/paymentpage.module.css';
 import {extractDate, getMonthAbreviation} from '/src/js/shared/dateTools';
-function PaymentEntry({id,title,created_at,due_date,payment_value,overdue_penalty}){
+function PaymentEntry({id,title,created_at,due_date,payment_value,overdue_penalty,actions}){
 
     const dueDateObj = extractDate(due_date);
     const createdAtObj = extractDate(created_at);
@@ -32,6 +32,7 @@ function PaymentEntry({id,title,created_at,due_date,payment_value,overdue_penalt
                 <span className={paymentStyles.cardMeta}>Created: {createdAtObj.day} {getMonthAbreviation(createdAtObj.month)} {createdAtObj.year}</span>
             </div>
 
+            {actions && <div className={paymentStyles.cardActions} style={{ marginTop: '0.75rem' }}>{actions}</div>}
         </div>
     </div>
     );

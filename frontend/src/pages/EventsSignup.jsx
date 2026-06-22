@@ -11,18 +11,14 @@ const MEMBERS_API = `${BASE_URL}/members`;
 const REGISTER_API = `${BASE_URL}/events/register`;
 
 const STATUS_COLORS = {
+  Active: '#28a745',
   Past: '#6c757d',
-  Ongoing: '#28a745',
-  Upcoming: '#0d6efd',
 };
 
 function getStatus(start, end) {
   const now = new Date();
-  const s = new Date(start);
-  const e = end ? new Date(end) : s;
-  if (now < s) return 'Upcoming';
-  if (now > e) return 'Past';
-  return 'Ongoing';
+  const e = end ? new Date(end) : new Date(start);
+  return now > e ? 'Past' : 'Active';
 }
 
 function formatDateBadge(iso) {
@@ -228,12 +224,14 @@ function EventsSignup() {
       .finally(() => setLoading(false));
   }, []);
 
-  const filtered = events.filter(ev => {
-    const status = getStatus(ev.start_datetime, ev.end_datetime);
-    const matchFilter = filter === 'All' || status === filter;
-    const matchSearch = ev.title.toLowerCase().includes(search.toLowerCase());
-    return matchFilter && matchSearch;
-  });
+  const filtered = events
+    .filter(ev => {
+      const status = getStatus(ev.start_datetime, ev.end_datetime);
+      const matchFilter = filter === 'All' || status === filter;
+      const matchSearch = ev.title.toLowerCase().includes(search.toLowerCase());
+      return matchFilter && matchSearch;
+    })
+    .sort((a, b) => new Date(b.start_datetime) - new Date(a.start_datetime));
 
   function showToast(msg) {
     setToast(msg);
@@ -353,7 +351,7 @@ function EventsSignup() {
 
       <div className={styles.filters}>
         <span className={styles.filtersLabel}>Filter:</span>
-        {['All', 'Upcoming', 'Ongoing', 'Past'].map(f => (
+        {['All', 'Active', 'Past'].map(f => (
           <button
             key={f}
             className={`${styles.filterBtn} ${filter === f ? styles.filterActive : ''}`}

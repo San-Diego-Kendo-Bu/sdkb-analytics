@@ -47,6 +47,7 @@ function Payments() {
   const [payments, setPayments] = useState([]);
   const [members, setMembers] = useState([]);
   const [search, setSearch] = useState('');
+  const [filter, setFilter] = useState('All');
   const [showNew, setShowNew] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [newForm, setNewForm] = useState(EMPTY_FORM);
@@ -87,9 +88,13 @@ function Payments() {
       .finally(() => setLoading(false));
   }, []);
 
-  const filtered = payments.filter(p =>
-    p.title.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = payments
+    .filter(p => {
+      const isPast = p.due_date ? new Date() > new Date(p.due_date) : false;
+      const matchFilter = filter === 'All' || (filter === 'Past' ? isPast : !isPast);
+      return matchFilter && p.title.toLowerCase().includes(search.toLowerCase());
+    })
+    .sort((a, b) => new Date(b.due_date) - new Date(a.due_date));
 
   function handleCreate() {
     if (isOffHours()) { setError(OFF_HOURS_MSG); return; }
@@ -176,6 +181,31 @@ function Payments() {
       .catch(err => setError(err.message));
   }
 
+  async function handleBroadcast(payment) {
+    if (isOffHours()) { setError(OFF_HOURS_MSG); return; }
+    if (!members.length) { setError('No members loaded.'); return; }
+    const today = new Date();
+    const dueDate = payment.due_date ? new Date(payment.due_date) : null;
+    const due_status = dueDate && today > dueDate ? 'overdue' : 'due';
+    setAssigningId(null);
+    setAssignMemberId('');
+    const user = await userManager.getUser();
+    const headers = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${user.id_token}` };
+    const results = await Promise.allSettled(
+      members.map(m => fetch(ASSIGNED_PAYMENTS_API, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ member_id: m.member_id, payment_id: payment.payment_id, due_status }),
+      }).then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); }))
+    );
+    const succeeded = results.filter(r => r.status === 'fulfilled').length;
+    const failed = results.length - succeeded;
+    showToast(failed > 0
+      ? `Assigned to ${succeeded} members (${failed} already assigned or failed).`
+      : `Payment broadcast to all ${succeeded} members!`
+    );
+  }
+
   function handleDelete(id) {
     if (isOffHours()) { setError(OFF_HOURS_MSG); return; }
     userManager.getUser()
@@ -207,6 +237,17 @@ function Payments() {
             + New payment
           </button>
         </div>
+      </div>
+
+      <div className={styles.filters}>
+        <span className={styles.filtersLabel}>Filter:</span>
+        {['All', 'Active', 'Past'].map(f => (
+          <button
+            key={f}
+            className={`${styles.filterBtn} ${filter === f ? styles.filterActive : ''}`}
+            onClick={() => setFilter(f)}
+          >{f}</button>
+        ))}
       </div>
 
       {showNew && (
@@ -245,18 +286,12 @@ function Payments() {
                     due_date={p.due_date}
                     payment_value={p.payment_value}
                     overdue_penalty={p.overdue_penalty}
+                    actions={<>
+                      <button className={styles.editBtn} onClick={() => { handleEditOpen(p); setShowNew(false); setAssigningId(null); }}>Edit</button>
+                      <button className={styles.editBtn} onClick={() => { setAssigningId(id => id === p.payment_id ? null : p.payment_id); setAssignMemberId(''); setEditingId(null); setShowNew(false); }}>Assign</button>
+                      <button className={styles.deleteBtn} onClick={() => handleDelete(p.payment_id)}>Delete</button>
+                    </>}
                   />
-                  <div className={styles.cardActions} style={{ paddingLeft: '1.5rem', paddingBottom: '0.75rem', marginTop: '-0.5rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-                    <button className={styles.editBtn} onClick={() => { handleEditOpen(p); setShowNew(false); setAssigningId(null); }}>
-                      Edit
-                    </button>
-                    <button className={styles.editBtn} onClick={() => { setAssigningId(id => id === p.payment_id ? null : p.payment_id); setAssignMemberId(''); setEditingId(null); setShowNew(false); }}>
-                      Assign
-                    </button>
-                    <button className={styles.deleteBtn} onClick={() => handleDelete(p.payment_id)}>
-                      Delete
-                    </button>
-                  </div>
                   {assigningId === p.payment_id && (
                     <div className={styles.formBox} style={{ margin: '0 0 0.75rem 1.5rem' }}>
                       <p className={styles.formTitle}>Assign to Member</p>
@@ -270,6 +305,7 @@ function Payments() {
                       </select>
                       <div className={styles.formActions}>
                         <button className={styles.saveBtn} onClick={() => handleAssign(p)} disabled={!assignMemberId}>Assign</button>
+                        <button className={styles.saveBtn} onClick={() => handleBroadcast(p)} style={{ background: '#4a4a8a' }}>Assign to All</button>
                         <button className={styles.cancelBtn} onClick={() => { setAssigningId(null); setAssignMemberId(''); }}>Cancel</button>
                       </div>
                     </div>

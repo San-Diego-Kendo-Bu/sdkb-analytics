@@ -16,6 +16,16 @@ async function getGmailCredentials() {
     return { user: obj.GMAIL_USER, pass: obj.GMAIL_APP_PASSWORD };
 }
 
+function getFilenameFromUrl(url) {
+    try {
+        const segment = decodeURIComponent(new URL(url).pathname.split("/").pop() ?? "attachment");
+        const dashIdx = segment.indexOf("-");
+        return dashIdx >= 0 ? segment.slice(dashIdx + 1) : segment;
+    } catch {
+        return "attachment";
+    }
+}
+
 exports.handler = async (event) => {
     const claims =
         event.requestContext?.authorizer?.jwt?.claims ??
@@ -26,7 +36,7 @@ exports.handler = async (event) => {
     if (!isAdmin) return { statusCode: 403, body: "Forbidden" };
 
     try {
-        const { subject, body, pdf_url } = JSON.parse(event.body || "{}");
+        const { subject, body, attachment_urls, pdf_url } = JSON.parse(event.body || "{}");
 
         if (!subject || !body) {
             return {
@@ -35,6 +45,11 @@ exports.handler = async (event) => {
                 body: JSON.stringify({ error: "subject and body are required" }),
             };
         }
+
+        // Accept new attachment_urls array or fall back to legacy pdf_url
+        const urls = Array.isArray(attachment_urls) && attachment_urls.length
+            ? attachment_urls
+            : pdf_url ? [pdf_url] : [];
 
         const { user: gmailUser, pass: gmailPass } = await getGmailCredentials();
 
@@ -46,11 +61,21 @@ exports.handler = async (event) => {
         const members = await getAllMembers();
         const emails = [...new Set(members.map((m) => m.email).filter(Boolean))];
 
-        let pdfBuffer = null;
-        if (pdf_url) {
-            const resp = await fetch(pdf_url);
-            if (resp.ok) pdfBuffer = Buffer.from(await resp.arrayBuffer());
-        }
+        const attachments = (
+            await Promise.all(
+                urls.map(async (url) => {
+                    try {
+                        const resp = await fetch(url);
+                        if (!resp.ok) return null;
+                        const contentType = resp.headers.get("content-type") ?? "application/octet-stream";
+                        const content = Buffer.from(await resp.arrayBuffer());
+                        return { filename: getFilenameFromUrl(url), content, contentType };
+                    } catch {
+                        return null;
+                    }
+                })
+            )
+        ).filter(Boolean);
 
         const escapedBody = body
             .replace(/&/g, "&amp;")
@@ -60,10 +85,6 @@ exports.handler = async (event) => {
 
         const htmlBody = `<p>${escapedBody}</p>`;
         const textBody = body;
-
-        const attachments = pdfBuffer
-            ? [{ filename: "newsletter.pdf", content: pdfBuffer, contentType: "application/pdf" }]
-            : [];
 
         let sent = 0;
         let failed = 0;
@@ -83,7 +104,7 @@ exports.handler = async (event) => {
                 }))
             );
             results.forEach((r, idx) => {
-                if (r.status === 'fulfilled') {
+                if (r.status === "fulfilled") {
                     sent++;
                 } else {
                     console.error(`Failed to send to ${batch[idx]}:`, r.reason?.message);
@@ -93,10 +114,13 @@ exports.handler = async (event) => {
             });
         }
 
+        // Store as JSON array in pdf_url column; old plain-string rows remain readable
+        const dbPdfUrl = urls.length > 0 ? JSON.stringify(urls) : null;
+
         await query(
             `INSERT INTO announcements (announcement_id, subject, body, pdf_url, created_at)
              VALUES ($1, $2, $3, $4, NOW())`,
-            [Date.now(), subject, body, pdf_url ?? null]
+            [Date.now(), subject, body, dbPdfUrl]
         );
 
         return {

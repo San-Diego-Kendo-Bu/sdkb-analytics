@@ -1,9 +1,28 @@
-.page-header{
+.admin-dashboard {
+  background: #1a1a2e;
+  min-height: 100vh;
+  color: #fff;
+}
+
+.page-header {
   margin-bottom: 2%;
 }
 
-.admin-dashboard .container{
-    display: flex;
-    justify-content: center;
-    gap: 5%;
+.page-header h1 {
+  color: #fff;
+  font-size: 1.6rem;
+  font-weight: 700;
+}
+
+.page-header p {
+  color: #aaa;
+  font-size: 0.95rem;
+  margin: 0;
+}
+
+.admin-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(2, auto);
+  gap: 1.25rem;
+  justify-content: center;
 }

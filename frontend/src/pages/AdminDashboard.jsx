@@ -13,18 +13,18 @@ function AdminDashboard({setPage}) {
     green : { r : 49, g : 168, b : 75, a: 1 },
   };
 
-  const cardWidth = 390;
-  const cardHeight = 210;
+  const cardWidth = 300;
+  const cardHeight = 170;
   return (
     <div className='admin-dashboard'>
       <div style={{padding:"2%"}}>
         <header className='page-header'>
           <h1>Quick Actions</h1>
-          <p> Common tasks and management tools</p>
+          <p>Common tasks and management tools</p>
         </header>
-        <div className='admin-dashboard container'>
-          <DashboardCard 
-          title='Payments' 
+        <div className='admin-cards-grid'>
+          <DashboardCard
+          title='Payments'
           description='Review payment history and analytics'
           icon={MdPayment}
           color={palettes.green}
@@ -32,8 +32,8 @@ function AdminDashboard({setPage}) {
           height={cardHeight}
           onClick={()=>setPage("Payments")}
           />
-          <DashboardCard 
-          title='Announcements' 
+          <DashboardCard
+          title='Announcements'
           description='Edit and organize announcements'
           icon={MdOutlineAnnouncement}
           color={palettes.orange}
@@ -41,10 +41,8 @@ function AdminDashboard({setPage}) {
           height={cardHeight}
           onClick={() => setPage("Announcements")}
           />
-        </div>
-        <div className='container'>
-          <DashboardCard 
-          title='Members' 
+          <DashboardCard
+          title='Members'
           description='View and manage member accounts'
           icon={MdManageAccounts}
           color={palettes.blue}
@@ -52,8 +50,8 @@ function AdminDashboard({setPage}) {
           height={cardHeight}
           onClick={()=>setPage("Members")}
           />
-          <DashboardCard 
-          title='Events' 
+          <DashboardCard
+          title='Events'
           description='Edit and organize events'
           icon={MdEditCalendar}
           color={palettes.pink}
