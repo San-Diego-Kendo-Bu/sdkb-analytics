@@ -3,6 +3,8 @@ import { loadStripe } from '@stripe/stripe-js';
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { userManager } from '../js/cognitoManager';
 import styles from '../../css/pay.module.css';
+import { isOffHours, OFF_HOURS_MSG } from '../js/offHours';
+import OffHoursCard from '../react_components/OffHoursCard';
 
 const BASE_URL = 'https://qh3c0tz6s9.execute-api.us-east-2.amazonaws.com';
 const MEMBERS_API = `${BASE_URL}/members`;
@@ -19,6 +21,8 @@ const STRIPE_APPEARANCE = {
     fontSizeBase: '15px',
   },
 };
+
+const COMPLETED_PAGE_SIZE = 3;
 
 function PaymentForm({ onSuccess, onCancel, submitting, setSubmitting }) {
   const stripe = useStripe();
@@ -66,12 +70,16 @@ function PaymentForm({ onSuccess, onCancel, submitting, setSubmitting }) {
 
 export default function Pay() {
   const [assignedPayments, setAssignedPayments] = useState([]);
+  const [completedPayments, setCompletedPayments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [payingId, setPayingId] = useState(null);
   const [stripeData, setStripeData] = useState(null);
   const [loadingIntent, setLoadingIntent] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [toast, setToast] = useState('');
+  const [showCompleted, setShowCompleted] = useState(false);
+  const [completedSearch, setCompletedSearch] = useState('');
+  const [completedPage, setCompletedPage] = useState(0);
   const memberIdRef = useRef(null);
 
   function showToast(msg) {
@@ -101,17 +109,20 @@ export default function Pay() {
         return;
       }
 
-      const [assignedRes, paymentsRes] = await Promise.all([
+      const [assignedRes, paymentsRes, submittedRes] = await Promise.all([
         fetch(ASSIGNED_PAYMENTS_API),
         fetch(PAYMENTS_API),
+        fetch(SUBMIT_PAYMENT_API),
       ]);
-      const [assignedData, paymentsData] = await Promise.all([
+      const [assignedData, paymentsData, submittedData] = await Promise.all([
         assignedRes.json(),
         paymentsRes.json(),
+        submittedRes.json(),
       ]);
 
       const allAssigned = assignedData.data ?? [];
       const allPayments = paymentsData.data ?? [];
+      const allSubmitted = submittedData.data ?? [];
 
       const paymentMap = Object.fromEntries(allPayments.map(p => [String(p.payment_id), p]));
 
@@ -119,16 +130,25 @@ export default function Pay() {
         .filter(a => Number(a.member_id) === Number(memberId))
         .map(a => ({ ...a, ...paymentMap[String(a.payment_id)] }));
 
+      const myCompleted = allSubmitted
+        .filter(s => Number(s.member_id) === Number(memberId))
+        .map(s => ({ ...s, ...paymentMap[String(s.payment_id)] }))
+        .sort((a, b) => new Date(b.submitted_on) - new Date(a.submitted_on));
+
       setAssignedPayments(mine);
+      setCompletedPayments(myCompleted);
     } catch (err) {
       console.error('loadPayments error:', err);
     }
     setLoading(false);
   }
 
-  useEffect(() => { loadPayments(); }, []);
+  useEffect(() => { if (!isOffHours()) loadPayments(); else setLoading(false); }, []);
+
+  useEffect(() => { setCompletedPage(0); }, [completedSearch]);
 
   async function handlePayClick(payment) {
+    if (isOffHours()) { showToast(OFF_HOURS_MSG); return; }
     setPayingId(payment.payment_id);
     setStripeData(null);
     setLoadingIntent(true);
@@ -174,41 +194,65 @@ export default function Pay() {
     setSubmitting(false);
   }
 
-  if (loading) {
-    return <p className="text-muted p-4">Loading your payments...</p>;
-  }
+  const filteredCompleted = completedPayments.filter(p =>
+    (p.title ?? '').toLowerCase().includes(completedSearch.toLowerCase())
+  );
+  const totalPages = Math.ceil(filteredCompleted.length / COMPLETED_PAGE_SIZE);
+  const pageItems = filteredCompleted.slice(
+    completedPage * COMPLETED_PAGE_SIZE,
+    (completedPage + 1) * COMPLETED_PAGE_SIZE
+  );
+
+  if (loading) return <div className={styles.page}><p className={styles.loadingText}>Loading your payments...</p></div>;
+  if (isOffHours()) return <OffHoursCard />;
 
   return (
+    <div className={styles.page}>
     <div className={styles.container}>
-      <h4 className="mb-3">My Payments</h4>
+      <h2 className={styles.heading}>My Payments</h2>
 
       {assignedPayments.length === 0 ? (
-        <div className="p-4 bg-white border rounded shadow-sm text-center text-muted">
-          <p className="mb-0">No pending payments.</p>
+        <div className={styles.emptyCard}>
+          <p>No pending payments.</p>
         </div>
       ) : (
         assignedPayments.map(p => {
           const isThisOne = payingId === p.payment_id;
-          const isOverdue = p.due_date ? new Date() > new Date(p.due_date) : p.due_status === 'overdue';
+          const isOverdue = p.due_date ? new Date().toISOString().slice(0, 10) > p.due_date.slice(0, 10) : p.due_status === 'overdue';
           const statusLabel = isOverdue ? 'overdue' : 'due';
+
+          const base = Number(p.payment_value ?? 0);
+          const penalty = isOverdue && p.overdue_penalty ? Number(p.overdue_penalty) : 0;
+          const total = base + penalty;
 
           return (
             <div key={p.payment_id} className={styles.card}>
               <div className={styles.cardInfo}>
                 <strong>{p.title ?? `Payment #${p.payment_id}`}</strong>
-                <span className={styles.amount}>${Number(p.payment_value ?? 0).toFixed(2)}</span>
+                <span className={`${styles.status} ${isOverdue ? styles.overdue : ''}`}>
+                  {statusLabel}
+                </span>
+              </div>
+              <div className={styles.amountRow}>
+                {isOverdue && penalty > 0 ? (
+                  <>
+                    <span className={styles.totalAmount}>${total.toFixed(2)} total</span>
+                    <span className={styles.amountBreakdown}>
+                      ${base.toFixed(2)} base + ${penalty.toFixed(2)} overdue penalty
+                    </span>
+                  </>
+                ) : (
+                  <span className={styles.amount}>${base.toFixed(2)}</span>
+                )}
                 {p.due_date && (
                   <span className={styles.due}>
                     Due: {new Date(p.due_date).toLocaleDateString('en-US', { timeZone: 'UTC' })}
                   </span>
                 )}
-                <span className={`${styles.status} ${isOverdue ? styles.overdue : ''}`}>
-                  {statusLabel}
-                </span>
               </div>
 
               {isThisOne && loadingIntent && (
-                <p className="text-muted mb-0">Loading payment form...</p>
+                <p className={styles.loadingInline}>Loading payment form...</p>
               )}
 
               {isThisOne && stripeData && (
@@ -239,7 +283,72 @@ export default function Pay() {
         })
       )}
 
+      {/* Completed Payments */}
+      <div className={styles.completedSection}>
+        <button
+          className={styles.completedToggle}
+          onClick={() => setShowCompleted(s => !s)}
+        >
+          <span>{showCompleted ? '▲' : '▼'}</span>
+          Completed Payments ({completedPayments.length})
+        </button>
+
+        {showCompleted && (
+          <div className={styles.completedBody}>
+            <input
+              className={styles.completedSearch}
+              placeholder="Search by payment title..."
+              value={completedSearch}
+              onChange={e => setCompletedSearch(e.target.value)}
+            />
+
+            {filteredCompleted.length === 0 ? (
+              <p className={styles.emptyCompleted}>No completed payments found.</p>
+            ) : (
+              <>
+                {pageItems.map(p => (
+                  <div key={p.payment_id} className={styles.completedCard}>
+                    <div className={styles.completedCardInfo}>
+                      <strong>{p.title ?? `Payment #${p.payment_id}`}</strong>
+                      {p.overdue && <span className={styles.overdueTag}>Late</span>}
+                    </div>
+                    <div className={styles.completedCardMeta}>
+                      <span>${Number(p.total_paid ?? 0).toFixed(2)} paid</span>
+                      <span>·</span>
+                      <span>{new Date(p.submitted_on).toLocaleDateString('en-US', { timeZone: 'UTC' })}</span>
+                    </div>
+                  </div>
+                ))}
+
+                {filteredCompleted.length > COMPLETED_PAGE_SIZE && (
+                  <div className={styles.pagination}>
+                    <button
+                      className={styles.pageBtn}
+                      onClick={() => setCompletedPage(p => p - 1)}
+                      disabled={completedPage === 0}
+                    >
+                      ← Prev
+                    </button>
+                    <span className={styles.pageInfo}>
+                      {completedPage + 1} / {totalPages}
+                    </span>
+                    <button
+                      className={styles.pageBtn}
+                      onClick={() => setCompletedPage(p => p + 1)}
+                      disabled={completedPage >= totalPages - 1}
+                    >
+                      Next →
+                    </button>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        )}
+      </div>
+
       {toast && <div className={styles.toast}>{toast}</div>}
+    </div>
     </div>
   );
 }

@@ -24,6 +24,25 @@ exports.handler = async (event) => {
             };
         }
 
+        const eventRow = await query(
+            `SELECT event_date FROM events WHERE event_id = $1 LIMIT 1`,
+            [eventId]
+        );
+        if (eventRow.rowCount === 0) {
+            return {
+                statusCode: 404,
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ error: "Event not found" })
+            };
+        }
+        if (new Date() >= new Date(eventRow.rows[0].event_date)) {
+            return {
+                statusCode: 400,
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ error: "Registration is closed: the event has already started." })
+            };
+        }
+
         let registrationData;
 
         if (configType === "tournament") {

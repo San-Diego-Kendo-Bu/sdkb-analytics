@@ -7,7 +7,8 @@ const FIELDS = [
     "created_at",
     "due_date",
     "payment_value",
-    "overdue_penalty"
+    "overdue_penalty",
+    "is_dojo_due"
 ];
 
 exports.handler = async (event) => {
@@ -102,8 +103,9 @@ exports.handler = async (event) => {
                 created_at = COALESCE($2, created_at),
                 due_date = COALESCE($3, due_date),
                 payment_value = COALESCE($4, payment_value),
-                overdue_penalty = COALESCE($5, overdue_penalty)
-            WHERE payment_id = $6
+                overdue_penalty = COALESCE($5, overdue_penalty),
+                is_dojo_due = COALESCE($6, is_dojo_due)
+            WHERE payment_id = $7
             RETURNING *
             `,
             [
@@ -112,6 +114,7 @@ exports.handler = async (event) => {
                 payload.due_date,
                 payload.payment_value,
                 payload.overdue_penalty,
+                payload.is_dojo_due,
                 paymentId
             ]
         );

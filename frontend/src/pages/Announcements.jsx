@@ -1,20 +1,40 @@
 import { useState, useRef } from 'react';
 import { userManager } from '../js/cognitoManager';
+import { isOffHours, OFF_HOURS_MSG } from '../js/offHours';
 
-const BASE_URL          = 'https://qh3c0tz6s9.execute-api.us-east-2.amazonaws.com';
-const UPLOAD_URL_API    = `${BASE_URL}/announcements/upload-url`;
-const SEND_API          = `${BASE_URL}/announcements/send`;
+const BASE_URL       = 'https://qh3c0tz6s9.execute-api.us-east-2.amazonaws.com';
+const UPLOAD_URL_API = `${BASE_URL}/announcements/upload-url`;
+const SEND_API       = `${BASE_URL}/announcements/send`;
+
+const inputStyle = {
+  background: '#1a1a2e',
+  border: '1px solid #444',
+  borderRadius: 6,
+  color: '#fff',
+  padding: '0.4rem 0.75rem',
+  fontSize: '0.875rem',
+  width: '100%',
+  boxSizing: 'border-box',
+  outline: 'none',
+};
+
+const labelStyle = {
+  display: 'block',
+  color: '#aaa',
+  fontSize: '0.8rem',
+  marginBottom: '0.35rem',
+  fontWeight: 600,
+};
 
 export default function Announcements() {
-  const [subject, setSubject]       = useState('');
-  const [body, setBody]             = useState('');
-  const [pdfUrl, setPdfUrl]         = useState(null);
-  const [pdfName, setPdfName]       = useState(null);
-  const [uploadingPdf, setUploadingPdf] = useState(false);
-  const [sending, setSending]       = useState(false);
-  const [result, setResult]         = useState(null);
-  const [error, setError]           = useState('');
-  const fileInputRef                = useRef(null);
+  const [subject, setSubject]         = useState('');
+  const [body, setBody]               = useState('');
+  const [attachments, setAttachments] = useState([]);
+  const [uploading, setUploading]     = useState(false);
+  const [sending, setSending]         = useState(false);
+  const [result, setResult]           = useState(null);
+  const [error, setError]             = useState('');
+  const fileInputRef                  = useRef(null);
 
   async function getToken() {
     const user = await userManager.getUser();
@@ -22,43 +42,48 @@ export default function Announcements() {
   }
 
   async function handleFileChange(e) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (file.type !== 'application/pdf') {
-      setError('Only PDF files are supported.');
-      return;
-    }
+    const files = Array.from(e.target.files ?? []);
+    if (!files.length) return;
 
-    setUploadingPdf(true);
+    setUploading(true);
     setError('');
-    setPdfUrl(null);
-    setPdfName(null);
 
-    try {
-      const token = await getToken();
-      const res = await fetch(
-        `${UPLOAD_URL_API}?filename=${encodeURIComponent(file.name)}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to get upload URL');
+    const token = await getToken();
+    const uploaded = [];
 
-      await fetch(data.upload_url, {
-        method: 'PUT',
-        body: file,
-        headers: { 'Content-Type': 'application/pdf' },
-      });
+    for (const file of files) {
+      try {
+        const res = await fetch(
+          `${UPLOAD_URL_API}?filename=${encodeURIComponent(file.name)}&contentType=${encodeURIComponent(file.type || 'application/octet-stream')}`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed to get upload URL');
 
-      setPdfUrl(data.pdf_url);
-      setPdfName(file.name);
-    } catch (err) {
-      setError(`PDF upload failed: ${err.message}`);
+        await fetch(data.upload_url, {
+          method: 'PUT',
+          body: file,
+          headers: { 'Content-Type': file.type || 'application/octet-stream' },
+        });
+
+        uploaded.push({ name: file.name, url: data.pdf_url });
+      } catch (err) {
+        setError(`Upload failed for "${file.name}": ${err.message}`);
+      }
     }
-    setUploadingPdf(false);
+
+    setAttachments(prev => [...prev, ...uploaded]);
+    setUploading(false);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  }
+
+  function handleRemove(index) {
+    setAttachments(prev => prev.filter((_, i) => i !== index));
   }
 
   async function handleSend(e) {
     e.preventDefault();
+    if (isOffHours()) { setError(OFF_HOURS_MSG); return; }
     if (!subject.trim() || !body.trim()) {
       setError('Subject and message are required.');
       return;
@@ -72,19 +97,19 @@ export default function Announcements() {
       const token = await getToken();
       const res = await fetch(SEND_API, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ subject, body, pdf_url: pdfUrl }),
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          subject,
+          body,
+          attachment_urls: attachments.map(a => a.url),
+        }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Send failed');
       setResult(data);
       setSubject('');
       setBody('');
-      setPdfUrl(null);
-      setPdfName(null);
+      setAttachments([]);
       if (fileInputRef.current) fileInputRef.current.value = '';
     } catch (err) {
       setError(err.message);
@@ -92,26 +117,19 @@ export default function Announcements() {
     setSending(false);
   }
 
-  function handleRemovePdf() {
-    setPdfUrl(null);
-    setPdfName(null);
-    if (fileInputRef.current) fileInputRef.current.value = '';
-  }
-
   return (
-    <div style={{ maxWidth: 640 }}>
-      <h4 className="mb-1">Send Announcement</h4>
-      <p className="text-muted mb-4" style={{ fontSize: '0.875rem' }}>
-        Sends an email to all members. Attach a PDF newsletter if needed.
+    <div style={{ background: '#1a1a2e', minHeight: '100vh', padding: '2%', color: '#fff' }}>
+      <h2 style={{ fontSize: '1.6rem', fontWeight: 700, margin: '0 0 0.3rem 0' }}>Send Announcement</h2>
+      <p style={{ color: '#aaa', fontSize: '0.875rem', marginBottom: '1.75rem' }}>
+        Sends an email to all members. Attach files if needed.
       </p>
 
-      <form onSubmit={handleSend}>
-        {/* Subject */}
-        <div className="mb-3">
-          <label className="form-label fw-semibold">Subject</label>
+      <form onSubmit={handleSend} style={{ maxWidth: 560 }}>
+        <div style={{ marginBottom: '1rem' }}>
+          <label style={labelStyle}>Subject</label>
           <input
             type="text"
-            className="form-control"
+            style={inputStyle}
             value={subject}
             onChange={e => setSubject(e.target.value)}
             placeholder="e.g. June Newsletter"
@@ -119,12 +137,10 @@ export default function Announcements() {
           />
         </div>
 
-        {/* Body */}
-        <div className="mb-3">
-          <label className="form-label fw-semibold">Message</label>
+        <div style={{ marginBottom: '1rem' }}>
+          <label style={labelStyle}>Message</label>
           <textarea
-            className="form-control"
-            rows={6}
+            style={{ ...inputStyle, resize: 'vertical', minHeight: 140, fontFamily: 'inherit' }}
             value={body}
             onChange={e => setBody(e.target.value)}
             placeholder="Write your announcement here..."
@@ -132,52 +148,68 @@ export default function Announcements() {
           />
         </div>
 
-        {/* PDF attachment */}
-        <div className="mb-4">
-          <label className="form-label fw-semibold">Newsletter PDF <span className="text-muted fw-normal">(optional)</span></label>
-          <div className="d-flex align-items-center gap-2 flex-wrap">
+        <div style={{ marginBottom: '1.25rem' }}>
+          <label style={labelStyle}>
+            Attachments <span style={{ color: '#666', fontWeight: 400 }}>(optional)</span>
+          </label>
+
+          <div style={{ marginBottom: '0.6rem' }}>
             <button
               type="button"
-              className="btn btn-outline-secondary btn-sm"
               onClick={() => fileInputRef.current?.click()}
-              disabled={uploadingPdf || sending}
+              disabled={uploading || sending}
+              style={{
+                background: 'transparent',
+                border: '1px solid #555',
+                color: '#ccc',
+                borderRadius: 6,
+                padding: '0.3rem 0.85rem',
+                cursor: uploading || sending ? 'not-allowed' : 'pointer',
+                fontSize: '0.85rem',
+              }}
             >
-              {uploadingPdf ? 'Uploading...' : 'Attach PDF'}
+              {uploading ? 'Uploading...' : '+ Add attachment'}
             </button>
             <input
               ref={fileInputRef}
               type="file"
-              accept="application/pdf"
+              accept="image/*,application/pdf"
+              multiple
               style={{ display: 'none' }}
               onChange={handleFileChange}
             />
-            {pdfName && (
-              <span className="d-flex align-items-center gap-1" style={{ fontSize: '0.875rem' }}>
-                <span style={{ color: '#198754' }}>📄 {pdfName}</span>
-                <button
-                  type="button"
-                  onClick={handleRemovePdf}
-                  disabled={sending}
-                  style={{ background: 'none', border: 'none', color: '#dc3545', cursor: 'pointer', padding: '0 4px', fontSize: '1rem', lineHeight: 1 }}
-                >
-                  ✕
-                </button>
-              </span>
-            )}
           </div>
+
+          {attachments.length > 0 && (
+            <ul style={{ listStyle: 'none', margin: 0, padding: 0, fontSize: '0.875rem' }}>
+              {attachments.map((a, i) => (
+                <li key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                  <span style={{ color: '#75b798' }}>📎 {a.name}</span>
+                  <button
+                    type="button"
+                    onClick={() => handleRemove(i)}
+                    disabled={sending}
+                    style={{ background: 'none', border: 'none', color: '#e05252', cursor: 'pointer', padding: '0 4px', fontSize: '1rem', lineHeight: 1 }}
+                  >
+                    ✕
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
 
         {error && (
-          <div className="alert alert-danger py-2 mb-3" style={{ fontSize: '0.875rem' }}>
+          <div style={{ background: '#2a0e0e', border: '1px solid #6b2020', color: '#f5a8a8', borderRadius: 6, padding: '0.5rem 0.75rem', fontSize: '0.875rem', marginBottom: '1rem' }}>
             {error}
           </div>
         )}
 
         {result && (
-          <div className="alert alert-success py-2 mb-3" style={{ fontSize: '0.875rem' }}>
+          <div style={{ background: '#0e2a1a', border: '1px solid #1a5c35', color: '#75b798', borderRadius: 6, padding: '0.5rem 0.75rem', fontSize: '0.875rem', marginBottom: '1rem' }}>
             {result.message}
             {result.failed > 0 && (
-              <div className="mt-1 text-muted" style={{ fontSize: '0.8rem' }}>
+              <div style={{ marginTop: 4, color: '#888', fontSize: '0.8rem' }}>
                 Failed addresses: {result.failures.join(', ')}
               </div>
             )}
@@ -186,8 +218,17 @@ export default function Announcements() {
 
         <button
           type="submit"
-          className="btn btn-primary"
-          disabled={sending || uploadingPdf || !subject.trim() || !body.trim()}
+          disabled={sending || uploading || !subject.trim() || !body.trim()}
+          style={{
+            background: sending || uploading || !subject.trim() || !body.trim() ? '#333' : '#fff',
+            color: sending || uploading || !subject.trim() || !body.trim() ? '#666' : '#1a1a2e',
+            border: 'none',
+            borderRadius: 6,
+            padding: '0.5rem 1.25rem',
+            fontWeight: 600,
+            cursor: sending || uploading || !subject.trim() || !body.trim() ? 'not-allowed' : 'pointer',
+            fontSize: '0.9rem',
+          }}
         >
           {sending ? 'Sending...' : 'Send to All Members'}
         </button>

@@ -1,15 +1,30 @@
+.page {
+  padding: 2%;
+  background: #1a1a2e;
+  min-height: 100vh;
+  color: #fff;
+}
+
 .container {
   max-width: 700px;
   margin: 0 auto;
 }
 
+.heading {
+  font-size: 1.6rem;
+  font-weight: 700;
+  margin: 0 0 1.25rem 0;
+  color: #fff;
+}
+
 .card {
-  background: #fff;
-  border: 1px solid #dee2e6;
+  background: #2a2a3e;
+  border: 1px solid #3a3a52;
   border-radius: 8px;
   padding: 20px 24px;
   margin-bottom: 16px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  color: #fff;
 }
 
 .cardInfo {
@@ -17,23 +32,43 @@
   align-items: center;
   gap: 16px;
   flex-wrap: wrap;
-  margin-bottom: 16px;
+  margin-bottom: 8px;
 }
 
 .cardInfo strong {
   flex: 1 1 auto;
   font-size: 1rem;
+  color: #fff;
+}
+
+.amountRow {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
 }
 
 .amount {
   font-size: 1.1rem;
   font-weight: 600;
-  color: #198754;
+  color: #75b798;
+}
+
+.totalAmount {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #f5a8a8;
+}
+
+.amountBreakdown {
+  font-size: 0.8rem;
+  color: #888;
 }
 
 .due {
   font-size: 0.875rem;
-  color: #6c757d;
+  color: #888;
 }
 
 .status {
@@ -42,13 +77,13 @@
   letter-spacing: 0.05em;
   padding: 2px 8px;
   border-radius: 12px;
-  background: #e2f0d9;
-  color: #198754;
+  background: #0e2a1a;
+  color: #75b798;
 }
 
 .overdue {
-  background: #fde8e8;
-  color: #dc3545;
+  background: #2a0e0e;
+  color: #f5a8a8;
 }
 
 .payBtn {
@@ -72,16 +107,16 @@
 }
 
 .stripeForm {
-  border-top: 1px solid #dee2e6;
+  border-top: 1px solid #3a3a52;
   padding-top: 16px;
 }
 
 .cardElementWrapper {
-  border: 1px solid #ced4da;
+  border: 1px solid #3a3a52;
   border-radius: 6px;
   padding: 12px 14px;
   margin-bottom: 12px;
-  background: #fff;
+  background: #1e1e32;
 }
 
 .formActions {
@@ -91,7 +126,7 @@
 }
 
 .confirmBtn {
-  background-color: #198754;
+  background-color: #157347;
   color: #fff;
   border: none;
   border-radius: 6px;
@@ -102,7 +137,7 @@
 }
 
 .confirmBtn:hover:not(:disabled) {
-  background-color: #157347;
+  background-color: #125f3a;
 }
 
 .confirmBtn:disabled {
@@ -112,8 +147,8 @@
 
 .cancelBtn {
   background-color: transparent;
-  color: #6c757d;
-  border: 1px solid #6c757d;
+  color: #ccc;
+  border: 1px solid #555;
   border-radius: 6px;
   padding: 8px 20px;
   font-size: 0.9rem;
@@ -121,7 +156,9 @@
 }
 
 .cancelBtn:hover:not(:disabled) {
-  background-color: #f8f9fa;
+  background-color: #1e1e32;
+  border-color: #aaa;
+  color: #fff;
 }
 
 .cancelBtn:disabled {
@@ -130,9 +167,163 @@
 }
 
 .fieldError {
-  color: #dc3545;
+  color: #f5a8a8;
   font-size: 0.85rem;
   margin-top: 6px;
+}
+
+.emptyCard {
+  background: #2a2a3e;
+  border: 1px solid #3a3a52;
+  border-radius: 8px;
+  padding: 2rem;
+  text-align: center;
+  color: #888;
+  margin-bottom: 16px;
+}
+
+.loadingText {
+  color: #888;
+  padding: 1rem 0;
+}
+
+.loadingInline {
+  color: #888;
+  margin-bottom: 0;
+  font-size: 0.9rem;
+}
+
+.completedSection {
+  margin-top: 2rem;
+  border: 1px solid #3a3a52;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.completedToggle {
+  width: 100%;
+  background: #1e1e32;
+  border: none;
+  padding: 12px 20px;
+  text-align: left;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.completedToggle:hover {
+  background: #2a2a3e;
+}
+
+.completedBody {
+  padding: 16px 20px;
+  border-top: 1px solid #3a3a52;
+}
+
+.completedSearch {
+  width: 100%;
+  background: #1a1a2e;
+  border: 1px solid #444;
+  border-radius: 6px;
+  color: #fff;
+  padding: 8px 12px;
+  font-size: 0.875rem;
+  margin-bottom: 12px;
+  box-sizing: border-box;
+  outline: none;
+}
+
+.completedSearch::placeholder {
+  color: #666;
+}
+
+.completedSearch:focus {
+  border-color: #666;
+}
+
+.completedCard {
+  background: #1e1e32;
+  border-radius: 6px;
+  padding: 12px 16px;
+  margin-bottom: 8px;
+  color: #fff;
+}
+
+.completedCardInfo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.completedCardInfo strong {
+  color: #fff;
+}
+
+.completedCardMeta {
+  display: flex;
+  gap: 8px;
+  font-size: 0.85rem;
+  color: #888;
+}
+
+.overdueTag {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 2px 8px;
+  border-radius: 12px;
+  background: #2a0e0e;
+  color: #f5a8a8;
+  font-weight: 500;
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+  justify-content: center;
+}
+
+.pageBtn {
+  background: transparent;
+  border: 1px solid #444;
+  border-radius: 6px;
+  padding: 6px 14px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  color: #ccc;
+}
+
+.pageBtn:hover:not(:disabled) {
+  background: #1e1e32;
+  border-color: #aaa;
+  color: #fff;
+}
+
+.pageBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.pageInfo {
+  font-size: 0.85rem;
+  color: #888;
+  min-width: 48px;
+  text-align: center;
+}
+
+.emptyCompleted {
+  color: #888;
+  font-size: 0.9rem;
+  text-align: center;
+  padding: 1rem 0;
+  margin: 0;
 }
 
 .toast {
@@ -140,11 +331,11 @@
   bottom: 28px;
   left: 50%;
   transform: translateX(-50%);
-  background: #198754;
+  background: #157347;
   color: #fff;
   padding: 10px 24px;
   border-radius: 6px;
   font-size: 0.95rem;
   z-index: 1000;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
 }

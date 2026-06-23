@@ -6,7 +6,6 @@ import { userManager } from '../js/cognitoManager.js';
 import AdminDashboard from './AdminDashboard.jsx';
 import AdminControl from './AdminControl.jsx';
 import EventsSignup from './EventsSignup.jsx';
-import Payments from './Payments.jsx';
 import Pay from './Pay.jsx';
 import AnnouncementsView from './AnnouncementsView.jsx';
 
@@ -28,10 +27,6 @@ const Content = ({ activeTab }) => {
   }
   if (activeTab === 'Events') {
     return <EventsSignup />;
-  }
-  if (activeTab === 'Pay') 
-  {
-    return <Payments />
   }
   if (activeTab === 'Pay') {
     return <Pay />;
@@ -58,8 +53,9 @@ export default function App() {
             'Authorization': `Bearer ${user.id_token}`
           }
         });
-        if (!res.ok) return;
         const data = await res.json();
+        console.log('[checkAdmin] status:', res.status, '| email:', user.profile?.email, '| isAdmin:', !!data.isAdmin);
+        if (!res.ok) return;
         setIsAdmin(!!data.isAdmin);
       } catch {
         // not admin
@@ -105,10 +101,10 @@ export default function App() {
   }, []);
 
   return (
-    <div className='bg-light'>
-      <nav className='navbar navbar-expand-lg navbar-light bg-white mb-4 shadow-sm'>
+    <div style={{ background: '#1a1a2e', minHeight: activeTab === 'Nafudakake' ? 0 : '100vh' }}>
+      <nav style={{ background: '#87CEEB', borderBottom: '1px solid #5ba8cc', padding: '0.5rem 0', marginBottom: 0 }} className='navbar navbar-expand-lg'>
         <div className='container-fluid'>
-          <a className='navbar-brand' href='#'>
+          <a className='navbar-brand' href='#' style={{ color: '#1a1a2e', fontWeight: 700, fontSize: '1.1rem' }}>
             SDKB Portal
           </a>
           <button
@@ -116,6 +112,7 @@ export default function App() {
             type='button'
             data-bs-toggle='collapse'
             data-bs-target='#navbarNav'
+            style={{ borderColor: '#1a1a2e' }}
           >
             <span className='navbar-toggler-icon'></span>
           </button>
@@ -124,9 +121,17 @@ export default function App() {
               {tabs.map((tab) => (
                 <li className='nav-item' key={tab}>
                   <a
-                    className={`nav-link${activeTab === tab ? ' active' : ''}`}
                     onClick={() => setActiveTab(tab)}
-                    style={{ cursor: 'pointer' }}
+                    style={{
+                      cursor: 'pointer',
+                      display: 'block',
+                      padding: '0.5rem 1rem',
+                      color: activeTab === tab ? '#1a1a2e' : '#2a4a5e',
+                      fontWeight: activeTab === tab ? 700 : 400,
+                      borderBottom: activeTab === tab ? '2px solid #1a1a2e' : '2px solid transparent',
+                      textDecoration: 'none',
+                      fontSize: '0.9rem',
+                    }}
                   >
                     {tab}
                   </a>
@@ -134,13 +139,13 @@ export default function App() {
               ))}
             </ul>
             <div className='d-flex gap-2'>
-              <button id='signIn' className='btn btn-warning'>
+              <button id='signIn' className='btn' style={{ background: '#1a1a2e', color: '#fff', fontWeight: 600 }}>
                 Sign In
               </button>
               <button
                 id='signOut'
-                className='btn btn-outline-secondary'
-                style={{ display: 'none' }}
+                className='btn'
+                style={{ background: 'transparent', border: '1px solid #1a1a2e', color: '#1a1a2e', display: 'none' }}
               >
                 Sign Out
               </button>
@@ -148,11 +153,7 @@ export default function App() {
           </div>
         </div>
       </nav>
-      {activeTab !== 'Nafudakake' && (
-        <div className='container-fluid pb-4'>
-          <Content activeTab={activeTab} />
-        </div>
-      )}
+      {activeTab !== 'Nafudakake' && <Content activeTab={activeTab} />}
     </div>
   );
 }

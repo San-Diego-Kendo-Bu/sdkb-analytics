@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import styles from '../../css/events.module.css';
 import { userManager } from '../js/cognitoManager';
+import { isOffHours, OFF_HOURS_MSG } from '../js/offHours';
+import OffHoursCard from '../react_components/OffHoursCard';
 
 const BASE_URL = 'https://qh3c0tz6s9.execute-api.us-east-2.amazonaws.com';
 const EVENTS_API = `${BASE_URL}/events`;
@@ -9,18 +11,14 @@ const MEMBERS_API = `${BASE_URL}/members`;
 const REGISTER_API = `${BASE_URL}/events/register`;
 
 const STATUS_COLORS = {
+  Active: '#28a745',
   Past: '#6c757d',
-  Ongoing: '#28a745',
-  Upcoming: '#0d6efd',
 };
 
 function getStatus(start, end) {
   const now = new Date();
-  const s = new Date(start);
-  const e = end ? new Date(end) : s;
-  if (now < s) return 'Upcoming';
-  if (now > e) return 'Past';
-  return 'Ongoing';
+  const e = end ? new Date(end) : new Date(start);
+  return now > e ? 'Past' : 'Active';
 }
 
 function formatDateBadge(iso) {
@@ -45,7 +43,7 @@ function formatDateRange(start, end, location) {
   return `${startStr} · ${timeStr} · ${location}`;
 }
 
-function SignUpForm({ ev, config, onSubmit, onCancel, submitting }) {
+function SignUpForm({ ev, config, member, onSubmit, onCancel, submitting }) {
   const [division, setDivision] = useState('');
   const [doingTeams, setDoingTeams] = useState(false);
   const [shinpanning, setShinpanning] = useState(false);
@@ -88,11 +86,14 @@ function SignUpForm({ ev, config, onSubmit, onCancel, submitting }) {
             <input className={styles.input} placeholder="Division" value={division}
               onChange={e => setDivision(e.target.value)} />
           )}
-          <label className={styles.label}>
-            <input type="checkbox" checked={doingTeams} onChange={e => setDoingTeams(e.target.checked)} />{' '}
-            Doing teams
-          </label>
-          {config?.shinpan_needed && (
+          {config?.teams_included && (
+            <label className={styles.label}>
+              <input type="checkbox" checked={doingTeams} onChange={e => setDoingTeams(e.target.checked)} />{' '}
+              Doing teams
+            </label>
+          )}
+          {config?.shinpan_needed &&
+            (member?.rank_type === 'shihan' || (member?.rank_type === 'dan' && Number(member?.rank_number) >= 4)) && (
             <label className={styles.label}>
               <input type="checkbox" checked={shinpanning} onChange={e => setShinpanning(e.target.checked)} />{' '}
               Shinpanning
@@ -142,6 +143,7 @@ function EventsSignup() {
   const [registeredIds, setRegisteredIds] = useState(new Set());
   const [toast, setToast] = useState(null);
   const memberIdRef = useRef(null);
+  const memberRankRef = useRef(null);
 
   useEffect(() => {
     async function loadRegistrations() {
@@ -159,9 +161,11 @@ function EventsSignup() {
         console.log('[registrations] members response:', membersData);
         if (!membersData.items?.length) return;
 
-        const memberId = membersData.items[0].member_id;
+        const memberItem = membersData.items[0];
+        const memberId = memberItem.member_id;
         console.log('[registrations] memberId:', memberId, '(type:', typeof memberId, ')');
         memberIdRef.current = memberId;
+        memberRankRef.current = { rank_type: memberItem.rank_type, rank_number: memberItem.rank_number };
 
         const fetchReg = (path) => fetch(`${BASE_URL}${path}`)
           .then(r => r.json())
@@ -193,6 +197,7 @@ function EventsSignup() {
   }, []);
 
   useEffect(() => {
+    if (isOffHours()) { setLoading(false); return; }
     fetch(EVENTS_API)
       .then(res => { if (!res.ok) throw new Error(`HTTP ${res.status}`); return res.json(); })
       .then(data => {
@@ -225,12 +230,14 @@ function EventsSignup() {
       .finally(() => setLoading(false));
   }, []);
 
-  const filtered = events.filter(ev => {
-    const status = getStatus(ev.start_datetime, ev.end_datetime);
-    const matchFilter = filter === 'All' || status === filter;
-    const matchSearch = ev.title.toLowerCase().includes(search.toLowerCase());
-    return matchFilter && matchSearch;
-  });
+  const filtered = events
+    .filter(ev => {
+      const status = getStatus(ev.start_datetime, ev.end_datetime);
+      const matchFilter = filter === 'All' || status === filter;
+      const matchSearch = ev.title.toLowerCase().includes(search.toLowerCase());
+      return matchFilter && matchSearch;
+    })
+    .sort((a, b) => new Date(b.start_datetime) - new Date(a.start_datetime));
 
   function showToast(msg) {
     setToast(msg);
@@ -265,11 +272,14 @@ function EventsSignup() {
       alert('No member account found for your email. Please contact an admin.');
       return null;
     }
-    memberIdRef.current = membersData.items[0].member_id;
+    const memberItem = membersData.items[0];
+    memberIdRef.current = memberItem.member_id;
+    memberRankRef.current = { rank_type: memberItem.rank_type, rank_number: memberItem.rank_number };
     return memberIdRef.current;
   }
 
   async function handleSignUpSubmit(ev, extra) {
+    if (isOffHours()) { showToast(OFF_HOURS_MSG); return; }
     setSubmitting(true);
     try {
       const memberId = await resolveMemberId();
@@ -305,6 +315,7 @@ function EventsSignup() {
   }
 
   async function handleUnregister(ev) {
+    if (isOffHours()) { showToast(OFF_HOURS_MSG); return; }
     setSubmitting(true);
     try {
       const memberId = await resolveMemberId();
@@ -348,7 +359,7 @@ function EventsSignup() {
 
       <div className={styles.filters}>
         <span className={styles.filtersLabel}>Filter:</span>
-        {['All', 'Upcoming', 'Ongoing', 'Past'].map(f => (
+        {['All', 'Active', 'Past'].map(f => (
           <button
             key={f}
             className={`${styles.filterBtn} ${filter === f ? styles.filterActive : ''}`}
@@ -359,8 +370,9 @@ function EventsSignup() {
 
       <div className={styles.list}>
         {loading && <p className={styles.empty}>Loading events...</p>}
-        {error && <p className={styles.empty}>Error: {error}</p>}
-        {!loading && !error && filtered.length === 0 && <p className={styles.empty}>No events found.</p>}
+        {!loading && isOffHours() && <OffHoursCard />}
+        {!isOffHours() && error && <p className={styles.empty}>Error: {error}</p>}
+        {!loading && !error && !isOffHours() && filtered.length === 0 && <p className={styles.empty}>No events found.</p>}
         {filtered.map(ev => {
           const status = getStatus(ev.start_datetime, ev.end_datetime);
           const { day, month } = formatDateBadge(ev.start_datetime);
@@ -380,6 +392,7 @@ function EventsSignup() {
                   <SignUpForm
                     ev={ev}
                     config={cfg}
+                    member={memberRankRef.current}
                     onSubmit={extra => handleSignUpSubmit(ev, extra)}
                     onCancel={() => setSigningUpId(null)}
                     submitting={submitting}

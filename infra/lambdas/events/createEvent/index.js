@@ -45,14 +45,6 @@ exports.handler = async (event) => {
         const eventLocation = parameters.event_location;
         const paymentId = parameters.payment_id ? parseInt(parameters.payment_id, 10) : null;
 
-        if (!paymentId) {
-            return {
-                statusCode: 400,
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ error: "payment_id is required to create an event." }),
-            };
-        }
-
         const conflict = await query(
             `SELECT event_id FROM ${EVENTS_TABLE} WHERE payment_id = $1 LIMIT 1`,
             [paymentId]

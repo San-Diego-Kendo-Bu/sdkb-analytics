@@ -11,7 +11,6 @@ import * as scheduler from "aws-cdk-lib/aws-scheduler";
 import path from "path";
 import { NodejsFunction, LogLevel, OutputFormat } from "aws-cdk-lib/aws-lambda-nodejs";
 import * as logs from "aws-cdk-lib/aws-logs";
-import * as sqs from "aws-cdk-lib/aws-sqs";
 import { Runtime } from "aws-cdk-lib/aws-lambda";
 
 export interface DatabaseStackProps extends StackProps {}
@@ -22,21 +21,6 @@ export class DatabaseStack extends Stack {
 
   constructor(scope: Construct, id: string, props?: DatabaseStackProps) {
     super(scope, id, props);
-
-    const dbOpsDlq = new sqs.Queue(this, "DbOpsDlq", {
-      retentionPeriod: Duration.days(14),
-      fifo: true,
-      queueName: "db-ops-dlq.fifo",
-      contentBasedDeduplication: true,
-    });
-
-    const dbOpsQueue = new sqs.Queue(this, "DbOpsQueue", {
-      visibilityTimeout: Duration.minutes(2),
-      deadLetterQueue: { queue: dbOpsDlq, maxReceiveCount: 5 },
-      fifo: true,
-      queueName: "db-ops.fifo",
-      contentBasedDeduplication: true,
-    });
 
     const commonNodejs = {
       runtime: Runtime.NODEJS_18_X,
@@ -86,43 +70,6 @@ export class DatabaseStack extends Stack {
       backupRetention: Duration.days(0),
       credentials: rds.Credentials.fromUsername("sdkbadmin"),
     });
-
-    const dbWriterLambda = new NodejsFunction(this, "DbWriterLambda", {
-      entry: path.join(__dirname, "../../lambdas/rds/dbWriter/index.js"),
-      handler: "handler",
-      ...commonNodejs,
-      bundling: { ...commonNodejs.bundling, externalModules: ["pg-native"] },
-      timeout: Duration.seconds(30),
-      runtime: lambda.Runtime.NODEJS_18_X,
-      environment: {
-        HOST: this.rdsInstance.dbInstanceEndpointAddress,
-        DB_SECRET_ARN: this.rdsInstance.secret!.secretArn,
-        PORT: "5432",
-      },
-    });
-
-    new lambda.EventSourceMapping(this, "DbWriterMapping", {
-      target: dbWriterLambda,
-      eventSourceArn: dbOpsQueue.queueArn,
-      batchSize: 5,
-      enabled: true,
-    });
-
-    dbOpsQueue.grantConsumeMessages(dbWriterLambda);
-
-    const enqueueSqlLambda = new NodejsFunction(this, "EnqueueSqlLambda", {
-      entry: path.join(__dirname, "../../lambdas/rds/enqueueSql/index.js"),
-      handler: "handler",
-      ...commonNodejs,
-      timeout: Duration.seconds(10),
-      runtime: lambda.Runtime.NODEJS_18_X,
-      environment: {
-        QUEUE_URL: dbOpsQueue.queueUrl,
-      },
-    });
-    dbOpsQueue.grantSendMessages(enqueueSqlLambda);
-
-    this.rdsInstance.secret!.grantRead(dbWriterLambda);
 
     const controlDbLambda = new NodejsFunction(this, "ControlDbLambda", {
       entry: path.join(__dirname, "../../lambdas/rds/controlDb/index.js"),

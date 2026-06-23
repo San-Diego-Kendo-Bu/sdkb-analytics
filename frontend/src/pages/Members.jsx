@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { userManager } from '../js/cognitoManager';
 import styles from '../../css/members.module.css';
 
 const BASE_URL        = 'https://qh3c0tz6s9.execute-api.us-east-2.amazonaws.com';
@@ -12,9 +13,9 @@ const SUBMITTED_API   = `${BASE_URL}/submittedpayments`;
 const PAYMENTS_API    = `${BASE_URL}/payments`;
 
 const TYPE_STYLE = {
-  tournament: { bg: '#cfe2ff', border: '#0d6efd', text: '#0a58ca', badgeBg: '#0d6efd' },
-  shinsa:     { bg: '#ffe5d0', border: '#fd7e14', text: '#974d00', badgeBg: '#fd7e14' },
-  seminar:    { bg: '#d1e7dd', border: '#198754', text: '#0f5132', badgeBg: '#198754' },
+  tournament: { bg: '#1a2744', border: '#0d6efd', text: '#6ea8fe', badgeBg: '#0d6efd' },
+  shinsa:     { bg: '#2e1d0e', border: '#fd7e14', text: '#fd9843', badgeBg: '#fd7e14' },
+  seminar:    { bg: '#0e2a1a', border: '#198754', text: '#75b798', badgeBg: '#198754' },
 };
 
 function getRegSummary(r) {
@@ -128,7 +129,27 @@ function EventsTab({ bins, memberMap, onSelect }) {
   );
 }
 
-function PaymentsTab({ bins }) {
+function UnassignableTag({ label, color, bg, onUnassign }) {
+  return (
+    <span style={{
+      display: 'inline-flex', alignItems: 'center', gap: 4,
+      background: bg, color, borderRadius: 8, padding: '2px 6px 2px 8px',
+      fontSize: '0.82rem', fontWeight: 500,
+    }}>
+      {label}
+      <button
+        onClick={onUnassign}
+        title="Unassign"
+        style={{
+          background: 'none', border: 'none', color, cursor: 'pointer',
+          padding: '0 1px', lineHeight: 1, opacity: 0.7, fontSize: '0.9rem',
+        }}
+      >×</button>
+    </span>
+  );
+}
+
+function PaymentsTab({ bins, onUnassign }) {
   if (bins.length === 0) {
     return <p className="text-muted mt-3">No payment data yet.</p>;
   }
@@ -151,10 +172,10 @@ function PaymentsTab({ bins }) {
 
             {submitted.length > 0 && (
               <div className={styles.paymentGroup}>
-                <span className={styles.groupLabel} style={{ background: '#d1e7dd', color: '#0f5132' }}>Paid</span>
+                <span className={styles.groupLabel} style={{ background: '#0e2a1a', color: '#75b798' }}>Paid</span>
                 <div className={styles.memberTags}>
                   {submitted.map((s, i) => (
-                    <span key={i} className={styles.memberTag} style={{ background: '#d1e7dd', color: '#0f5132' }}>
+                    <span key={i} className={styles.memberTag} style={{ background: '#0e2a1a', color: '#75b798' }}>
                       {s.member ? `${s.member.first_name} ${s.member.last_name}` : `Member #${s.member_id}`}
                     </span>
                   ))}
@@ -164,12 +185,16 @@ function PaymentsTab({ bins }) {
 
             {overdue.length > 0 && (
               <div className={styles.paymentGroup}>
-                <span className={styles.groupLabel} style={{ background: '#fde8e8', color: '#842029' }}>Overdue</span>
+                <span className={styles.groupLabel} style={{ background: '#2a0e0e', color: '#f5a8a8' }}>Overdue</span>
                 <div className={styles.memberTags}>
                   {overdue.map((a, i) => (
-                    <span key={i} className={styles.memberTag} style={{ background: '#fde8e8', color: '#842029' }}>
-                      {a.member ? `${a.member.first_name} ${a.member.last_name}` : `Member #${a.member_id}`}
-                    </span>
+                    <UnassignableTag
+                      key={i}
+                      label={a.member ? `${a.member.first_name} ${a.member.last_name}` : `Member #${a.member_id}`}
+                      color="#f5a8a8"
+                      bg="#2a0e0e"
+                      onUnassign={() => onUnassign(a.member_id, payment.payment_id)}
+                    />
                   ))}
                 </div>
               </div>
@@ -177,12 +202,16 @@ function PaymentsTab({ bins }) {
 
             {due.length > 0 && (
               <div className={styles.paymentGroup}>
-                <span className={styles.groupLabel} style={{ background: '#fff3cd', color: '#664d03' }}>Due</span>
+                <span className={styles.groupLabel} style={{ background: '#2a1d0e', color: '#f0c060' }}>Due</span>
                 <div className={styles.memberTags}>
                   {due.map((a, i) => (
-                    <span key={i} className={styles.memberTag} style={{ background: '#fff3cd', color: '#664d03' }}>
-                      {a.member ? `${a.member.first_name} ${a.member.last_name}` : `Member #${a.member_id}`}
-                    </span>
+                    <UnassignableTag
+                      key={i}
+                      label={a.member ? `${a.member.first_name} ${a.member.last_name}` : `Member #${a.member_id}`}
+                      color="#f0c060"
+                      bg="#2a1d0e"
+                      onUnassign={() => onUnassign(a.member_id, payment.payment_id)}
+                    />
                   ))}
                 </div>
               </div>
@@ -194,9 +223,184 @@ function PaymentsTab({ bins }) {
   );
 }
 
+function formatRank(rank_type, rank_number) {
+  if (!rank_type) return '—';
+  const num = rank_number != null ? String(rank_number) : '';
+  return num ? `${num} ${rank_type}` : rank_type;
+}
+
+const DIR_FILTERS = [
+  { key: 'active',   label: 'All Active' },
+  { key: 'senseis',  label: 'Senseis (4-Dan+)' },
+  { key: 'guests',   label: 'Guests' },
+  { key: 'inactive', label: 'Inactive' },
+];
+
+function matchesDirFilter(m, filter) {
+  if (filter === 'active')   return m.status !== 'inactive' && m.status !== 'guest';
+  if (filter === 'senseis')  return m.rank_type === 'shihan' || (m.rank_type === 'dan' && Number(m.rank_number) >= 4);
+  if (filter === 'guests')   return m.status === 'guest';
+  if (filter === 'inactive') return m.status === 'inactive';
+  return true;
+}
+
+function DirectoryTab({ members, onToggleStatus, onToggleStudent }) {
+  const [search, setSearch] = useState('');
+  const [dirFilter, setDirFilter] = useState('active');
+
+  const filtered = members
+    .filter(m => matchesDirFilter(m, dirFilter))
+    .filter(m => {
+      const q = search.toLowerCase();
+      const fullName = `${m.first_name} ${m.last_name}`.toLowerCase();
+      return (
+        fullName.includes(q) ||
+        (m.email ?? '').toLowerCase().includes(q) ||
+        formatRank(m.rank_type, m.rank_number).toLowerCase().includes(q)
+      );
+    })
+    .sort((a, b) => {
+      const la = (a.last_name ?? '').toLowerCase();
+      const lb = (b.last_name ?? '').toLowerCase();
+      return la < lb ? -1 : la > lb ? 1 : 0;
+    });
+
+  return (
+    <div>
+      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem', flexWrap: 'wrap' }}>
+        {DIR_FILTERS.map(f => (
+          <button
+            key={f.key}
+            onClick={() => setDirFilter(f.key)}
+            style={{
+              fontSize: '0.8rem',
+              padding: '4px 14px',
+              borderRadius: 16,
+              border: dirFilter === f.key ? 'none' : '1px solid #3a3a52',
+              cursor: 'pointer',
+              fontWeight: dirFilter === f.key ? 700 : 400,
+              background: dirFilter === f.key ? '#6ea8fe' : 'transparent',
+              color: dirFilter === f.key ? '#1a1a2e' : '#aaa',
+              transition: 'all 0.12s',
+            }}
+          >{f.label}</button>
+        ))}
+      </div>
+      <input
+        placeholder="Search by name, rank, or email..."
+        value={search}
+        onChange={e => setSearch(e.target.value)}
+        style={{
+          background: '#1a1a2e',
+          border: '1px solid #444',
+          borderRadius: 6,
+          color: '#fff',
+          padding: '0.5rem 1rem',
+          fontSize: '0.9rem',
+          width: '100%',
+          maxWidth: 400,
+          boxSizing: 'border-box',
+          marginBottom: '1rem',
+          outline: 'none',
+        }}
+      />
+
+      {filtered.length === 0 ? (
+        <p style={{ color: '#888', padding: '2rem 0', textAlign: 'center' }}>No members found.</p>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+          <div className={styles.dirHeader}>
+            <span>Name</span>
+            <span className={styles.dirCellHide}>Rank</span>
+            <span className={styles.dirCellHide}>Email</span>
+            <span className={styles.dirCellHide}>Birthday</span>
+            <span>Status</span>
+            <span>Student</span>
+          </div>
+          {filtered.map(m => (
+            <div key={m.member_id} className={styles.dirRow}>
+              <span style={{ fontWeight: 500, color: '#fff' }}>
+                {m.last_name}, {m.first_name}
+                {m.status === 'guest' && (
+                  <span style={{ marginLeft: 6, fontSize: '0.7rem', background: '#2e1d0e', color: '#fd9843', borderRadius: 8, padding: '1px 6px', fontWeight: 700 }}>
+                    Guest
+                  </span>
+                )}
+              </span>
+              <span className={styles.dirCellHide} style={{ color: '#ccc' }}>{formatRank(m.rank_type, m.rank_number)}</span>
+              <span className={styles.dirCellHide} style={{ color: '#888', fontSize: '0.82rem' }}>
+                {m.email ? (
+                  <a href={`mailto:${m.email}`} style={{ color: '#6ea8fe', textDecoration: 'none' }}>{m.email}</a>
+                ) : '—'}
+              </span>
+              <span className={styles.dirCellHide} style={{ color: '#888', fontSize: '0.82rem' }}>
+                {m.birthday
+                  ? new Date(m.birthday).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' })
+                  : '—'}
+              </span>
+              <span>
+                {m.status === 'guest' ? (
+                  <span style={{ fontSize: '0.72rem', background: '#2e1d0e', color: '#fd9843', borderRadius: 8, padding: '2px 8px', fontWeight: 700 }}>Guest</span>
+                ) : (
+                  <div
+                    onClick={() => onToggleStatus(m, m.status === 'inactive' ? 'active' : 'inactive')}
+                    style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', userSelect: 'none' }}
+                  >
+                    <div style={{
+                      width: 36, height: 20, borderRadius: 10,
+                      background: m.status === 'inactive' ? '#3a3a52' : '#157347',
+                      position: 'relative', transition: 'background 0.2s', flexShrink: 0,
+                    }}>
+                      <div style={{
+                        position: 'absolute', top: 2,
+                        left: m.status === 'inactive' ? 2 : 18,
+                        width: 16, height: 16, borderRadius: '50%',
+                        background: '#fff', transition: 'left 0.2s',
+                      }} />
+                    </div>
+                    <span style={{ fontSize: '0.72rem', color: m.status === 'inactive' ? '#888' : '#75b798', fontWeight: 600 }}>
+                      {m.status === 'inactive' ? 'Inactive' : 'Active'}
+                    </span>
+                  </div>
+                )}
+              </span>
+              <span>
+                <div
+                  onClick={() => onToggleStudent(m, !m.is_student)}
+                  style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', userSelect: 'none' }}
+                >
+                  <div style={{
+                    width: 36, height: 20, borderRadius: 10,
+                    background: m.is_student ? '#1565c0' : '#3a3a52',
+                    position: 'relative', transition: 'background 0.2s', flexShrink: 0,
+                  }}>
+                    <div style={{
+                      position: 'absolute', top: 2,
+                      left: m.is_student ? 18 : 2,
+                      width: 16, height: 16, borderRadius: '50%',
+                      background: '#fff', transition: 'left 0.2s',
+                    }} />
+                  </div>
+                  <span style={{ fontSize: '0.72rem', color: m.is_student ? '#6ea8fe' : '#888', fontWeight: 600 }}>
+                    {m.is_student ? 'Yes' : 'No'}
+                  </span>
+                </div>
+              </span>
+            </div>
+          ))}
+          <p style={{ color: '#888', fontSize: '0.8rem', marginTop: '0.75rem', textAlign: 'right' }}>
+            {filtered.length} member{filtered.length !== 1 ? 's' : ''}
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function Members() {
   const [tab, setTab]             = useState('events');
   const [overview, setOverview]   = useState(null);
+  const [allMembers, setAllMembers] = useState([]);
   const [loading, setLoading]     = useState(true);
   const [selected, setSelected]   = useState(null);
 
@@ -267,7 +471,7 @@ export default function Members() {
             .map(a => ({
               ...a,
               member: memberMap[String(a.member_id)],
-              isOverdue: p.due_date ? new Date() > new Date(p.due_date) : a.due_status === 'overdue',
+              isOverdue: p.due_date ? new Date().toISOString().slice(0, 10) > p.due_date.slice(0, 10) : a.due_status === 'overdue',
             }));
           const mySubmitted = submitted
             .filter(s => String(s.payment_id) === String(p.payment_id))
@@ -276,6 +480,7 @@ export default function Members() {
         })
         .filter(b => b.assigned.length > 0 || b.submitted.length > 0);
 
+      setAllMembers(members);
       setOverview({ eventBins, paymentBins, memberMap });
     } catch (err) {
       console.error('Members load error:', err);
@@ -283,8 +488,86 @@ export default function Members() {
     setLoading(false);
   }
 
-  if (loading) return <p className="text-muted p-3">Loading...</p>;
-  if (!overview) return <p className="text-muted p-3">Failed to load data.</p>;
+  async function handleUnassign(memberId, paymentId) {
+    try {
+      const user = await userManager.getUser();
+      const res = await fetch(ASSIGNED_API, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${user.id_token}` },
+        body: JSON.stringify({ member_id: memberId, payment_id: paymentId }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      setOverview(prev => ({
+        ...prev,
+        paymentBins: prev.paymentBins
+          .map(b => String(b.payment.payment_id) === String(paymentId)
+            ? { ...b, assigned: b.assigned.filter(a => String(a.member_id) !== String(memberId)) }
+            : b
+          )
+          .filter(b => b.assigned.length > 0 || b.submitted.length > 0),
+      }));
+    } catch (err) {
+      console.error('unassign error:', err);
+    }
+  }
+
+  async function handleToggleStudent(member, newValue) {
+    try {
+      const user = await userManager.getUser();
+      const res = await fetch(MEMBERS_API, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${user.id_token}` },
+        body: JSON.stringify({
+          member_id: member.member_id,
+          first_name: member.first_name,
+          last_name: member.last_name,
+          zekken_text: member.zekken_text,
+          rank_type: member.rank_type,
+          rank_number: member.rank_number,
+          email: member.email,
+          birthday: member.birthday || null,
+          status: member.status,
+          is_student: newValue,
+        }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      setAllMembers(prev => prev.map(m =>
+        m.member_id === member.member_id ? { ...m, is_student: newValue } : m
+      ));
+    } catch (err) {
+      console.error('toggleStudent error:', err);
+    }
+  }
+
+  async function handleToggleStatus(member, newStatus) {
+    try {
+      const user = await userManager.getUser();
+      const res = await fetch(MEMBERS_API, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${user.id_token}` },
+        body: JSON.stringify({
+          member_id: member.member_id,
+          first_name: member.first_name,
+          last_name: member.last_name,
+          zekken_text: member.zekken_text,
+          rank_type: member.rank_type,
+          rank_number: member.rank_number,
+          email: member.email,
+          birthday: member.birthday || null,
+          status: newStatus,
+        }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      setAllMembers(prev => prev.map(m =>
+        m.member_id === member.member_id ? { ...m, status: newStatus } : m
+      ));
+    } catch (err) {
+      console.error('toggleStatus error:', err);
+    }
+  }
+
+  if (loading) return <div className={styles.container}><p style={{ color: '#888' }}>Loading...</p></div>;
+  if (!overview) return <div className={styles.container}><p style={{ color: '#888' }}>Failed to load data.</p></div>;
 
   return (
     <div className={styles.container}>
@@ -295,13 +578,19 @@ export default function Members() {
         <button className={`${styles.tab} ${tab === 'payments' ? styles.activeTab : ''}`} onClick={() => setTab('payments')}>
           Payments
         </button>
+        <button className={`${styles.tab} ${tab === 'directory' ? styles.activeTab : ''}`} onClick={() => setTab('directory')}>
+          Directory
+        </button>
       </div>
 
       {tab === 'events' && (
         <EventsTab bins={overview.eventBins} memberMap={overview.memberMap} onSelect={setSelected} />
       )}
       {tab === 'payments' && (
-        <PaymentsTab bins={overview.paymentBins} />
+        <PaymentsTab bins={overview.paymentBins} onUnassign={handleUnassign} />
+      )}
+      {tab === 'directory' && (
+        <DirectoryTab members={allMembers} onToggleStatus={handleToggleStatus} onToggleStudent={handleToggleStudent} />
       )}
 
       {selected && <MemberModal selection={selected} onClose={() => setSelected(null)} />}

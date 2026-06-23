@@ -49,7 +49,19 @@ exports.handler = async (event) => {
                 body: "Invalid payment ID.",
             };
         }
-        
+
+        const alreadyPaid = await query(
+            `SELECT 1 FROM submitted_payments WHERE member_id = $1 AND payment_id = $2 LIMIT 1`,
+            [memberId, paymentId]
+        );
+        if (alreadyPaid.rowCount > 0) {
+            return {
+                statusCode: 409,
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ error: "Member has already submitted this payment." }),
+            };
+        }
+
         const result = await query(
             `
             INSERT INTO assigned_payments (

@@ -24,7 +24,7 @@ async function renderTable() {
         if (!membersResponse.ok) throw new Error(`HTTP error ${membersResponse.status}`);
         
         const data = await membersResponse.json();
-        members = data.items;
+        members = data.items.filter(m => m.status !== 'inactive');
         members.sort(compareRank);
         
         // Extract admin status from response
@@ -51,7 +51,7 @@ async function renderTable() {
                 curRank = rankToNum(rankNum, rankType);
             }
 
-            const memberSlip = generateSlip(zekkenText, formatName(firstName, lastName), memberId, isAdmin);
+            const memberSlip = generateSlip(formatName(firstName, lastName), zekkenText, memberId, isAdmin);
             slips.push(memberSlip);
         }
 
@@ -114,6 +114,37 @@ function fitAllZekkenFronts() {
     fronts.forEach(fitZekkenFront);
 }
 
+function fitKanjiBack(backEl) {
+    if (!backEl) return;
+    const spans = backEl.querySelectorAll('span');
+    if (!spans.length) return;
+
+    spans.forEach(s => { s.style.fontSize = ''; });
+    backEl.offsetHeight;
+
+    const overflows = () =>
+        backEl.scrollHeight > backEl.clientHeight ||
+        backEl.scrollWidth > backEl.clientWidth;
+
+    if (!overflows()) return;
+
+    const baseSize = parseFloat(getComputedStyle(spans[0]).fontSize);
+    const minSize = Math.max(8, baseSize * 0.4);
+    let size = baseSize;
+
+    while (size > minSize && overflows()) {
+        size = Math.max(minSize, size - 2);
+        spans.forEach(s => { s.style.fontSize = `${size}px`; });
+        backEl.offsetHeight;
+    }
+}
+
+function fitAllKanjiBacks() {
+    const shelf = document.getElementById('shelf');
+    if (!shelf) return;
+    shelf.querySelectorAll('.slip .back').forEach(fitKanjiBack);
+}
+
 function generateSlip(frontText, backText, memberId, isAdmin) {
     frontText = frontText.replace(/\./g, '·').replace(/ /g, '\u00A0').replace(/ー/g, '|');
     backText = backText.replace(/\./g, '·').replace(/ /g, '\u00A0').replace(/ー/g, '|');
@@ -143,9 +174,14 @@ function generateSlip(frontText, backText, memberId, isAdmin) {
     const back = document.createElement('div');
     back.className = 'back';
 
+    var backKanjiSize;
+    if (backText.length <= 4) backKanjiSize = 'kanjiLarge';
+    else if (backText.length <= 12) backKanjiSize = 'kanjiMed';
+    else backKanjiSize = 'kanjiSmall';
+
     for (const char of backText) {
         const span = document.createElement('span');
-        span.className = 'character';
+        span.className = backKanjiSize;
         span.textContent = char;
         back.appendChild(span);
     }
@@ -190,7 +226,7 @@ function layoutShelf() {
             renderedSlips.forEach(slip => rowDiv.appendChild(slip));
             shelf.appendChild(rowDiv);
 
-            (window.requestAnimationFrame || setTimeout)(() => fitAllZekkenFronts(), 0);
+            (window.requestAnimationFrame || setTimeout)(() => { fitAllZekkenFronts(); fitAllKanjiBacks(); }, 0);
         } else {
             const slipsPerRow = Math.max(2, Math.floor(shelfWidth / slipWidth));
 
@@ -227,7 +263,7 @@ function layoutShelf() {
                 shelf.appendChild(rowDiv);
             }
 
-            (window.requestAnimationFrame || setTimeout)(() => fitAllZekkenFronts(), 0);
+            (window.requestAnimationFrame || setTimeout)(() => { fitAllZekkenFronts(); fitAllKanjiBacks(); }, 0);
         }
     } catch (e) {
         console.error('Failed to layout shelf:', e);
@@ -250,6 +286,7 @@ function openModal(memberId) {
     document.getElementById('editEmail').value = selectedMember.email || '';
     document.getElementById('editBirthday').value = selectedMember.birthday || '';
     document.getElementById('editStatus').value = selectedMember.status || '';
+    document.getElementById('editIsStudent').checked = selectedMember.is_student === true;
     document.getElementById('modalOverlay').style.display = 'flex';
 
     let rankNumberInput = document.getElementById('editRankNumber');

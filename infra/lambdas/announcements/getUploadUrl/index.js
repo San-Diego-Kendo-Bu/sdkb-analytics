@@ -17,18 +17,19 @@ exports.handler = async (event) => {
     if (!isAdmin) return { statusCode: 403, body: "Forbidden" };
 
     try {
-        const rawFilename = event.queryStringParameters?.filename ?? `newsletter-${Date.now()}.pdf`;
+        const rawFilename = event.queryStringParameters?.filename ?? `attachment-${Date.now()}`;
+        const contentType = event.queryStringParameters?.contentType ?? "application/octet-stream";
         const safeFilename = rawFilename.replace(/[^a-zA-Z0-9._-]/g, "_");
         const key = `newsletters/${Date.now()}-${safeFilename}`;
 
         const command = new PutObjectCommand({
             Bucket: BUCKET_NAME,
             Key: key,
-            ContentType: "application/pdf",
+            ContentType: contentType,
         });
 
         const uploadUrl = await getSignedUrl(s3, command, { expiresIn: 300 });
-        const pdfUrl = `https://${BUCKET_NAME}.s3.${REGION}.amazonaws.com/${key}`;
+        const attachmentUrl = `https://${BUCKET_NAME}.s3.${REGION}.amazonaws.com/${key}`;
 
         return {
             statusCode: 200,
@@ -36,7 +37,7 @@ exports.handler = async (event) => {
                 "Content-Type": "application/json",
                 "Access-Control-Allow-Origin": "*",
             },
-            body: JSON.stringify({ upload_url: uploadUrl, pdf_url: pdfUrl }),
+            body: JSON.stringify({ upload_url: uploadUrl, pdf_url: attachmentUrl }),
         };
     } catch (err) {
         console.error("getUploadUrl error:", err);
