@@ -260,3 +260,40 @@
   margin: 0;
   color: #fff;
 }
+
+/* ---- Directory grid ---- */
+.dirHeader {
+  display: grid;
+  grid-template-columns: 1fr 120px 1fr 110px 90px 90px;
+  padding: 0.5rem 1rem;
+  font-size: 0.75rem;
+  color: #888;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid #3a3a52;
+}
+
+.dirRow {
+  display: grid;
+  grid-template-columns: 1fr 120px 1fr 110px 90px 90px;
+  padding: 0.65rem 1rem;
+  border-bottom: 1px solid #3a3a52;
+  font-size: 0.875rem;
+  align-items: center;
+  transition: background 0.12s;
+}
+
+.dirRow:hover { background: #1e1e32; }
+
+@media (max-width: 600px) {
+  .dirHeader {
+    grid-template-columns: 1fr 90px 90px;
+  }
+  .dirRow {
+    grid-template-columns: 1fr 90px 90px;
+  }
+  .dirCellHide {
+    display: none;
+  }
+}

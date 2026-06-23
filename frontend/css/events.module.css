@@ -347,3 +347,18 @@
   font-size: 0.8rem;
   margin-top: -0.25rem;
 }
+
+@media (max-width: 600px) {
+  .header {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  .headerRight {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+  .search {
+    width: 100%;
+    min-width: 0;
+  }
+}

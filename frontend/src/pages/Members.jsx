@@ -309,37 +309,16 @@ function DirectoryTab({ members, onToggleStatus, onToggleStudent }) {
         <p style={{ color: '#888', padding: '2rem 0', textAlign: 'center' }}>No members found.</p>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: '1fr 120px 1fr 110px 90px 90px',
-            padding: '0.5rem 1rem',
-            fontSize: '0.75rem',
-            color: '#888',
-            fontWeight: 700,
-            textTransform: 'uppercase',
-            letterSpacing: '0.05em',
-            borderBottom: '1px solid #3a3a52',
-          }}>
+          <div className={styles.dirHeader}>
             <span>Name</span>
-            <span>Rank</span>
-            <span>Email</span>
-            <span>Birthday</span>
+            <span className={styles.dirCellHide}>Rank</span>
+            <span className={styles.dirCellHide}>Email</span>
+            <span className={styles.dirCellHide}>Birthday</span>
             <span>Status</span>
             <span>Student</span>
           </div>
           {filtered.map(m => (
-            <div key={m.member_id} style={{
-              display: 'grid',
-              gridTemplateColumns: '1fr 120px 1fr 110px 90px 90px',
-              padding: '0.65rem 1rem',
-              borderBottom: '1px solid #3a3a52',
-              fontSize: '0.875rem',
-              alignItems: 'center',
-              transition: 'background 0.12s',
-            }}
-              onMouseEnter={e => e.currentTarget.style.background = '#1e1e32'}
-              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-            >
+            <div key={m.member_id} className={styles.dirRow}>
               <span style={{ fontWeight: 500, color: '#fff' }}>
                 {m.last_name}, {m.first_name}
                 {m.status === 'guest' && (
@@ -348,13 +327,13 @@ function DirectoryTab({ members, onToggleStatus, onToggleStudent }) {
                   </span>
                 )}
               </span>
-              <span style={{ color: '#ccc' }}>{formatRank(m.rank_type, m.rank_number)}</span>
-              <span style={{ color: '#888', fontSize: '0.82rem' }}>
+              <span className={styles.dirCellHide} style={{ color: '#ccc' }}>{formatRank(m.rank_type, m.rank_number)}</span>
+              <span className={styles.dirCellHide} style={{ color: '#888', fontSize: '0.82rem' }}>
                 {m.email ? (
                   <a href={`mailto:${m.email}`} style={{ color: '#6ea8fe', textDecoration: 'none' }}>{m.email}</a>
                 ) : '—'}
               </span>
-              <span style={{ color: '#888', fontSize: '0.82rem' }}>
+              <span className={styles.dirCellHide} style={{ color: '#888', fontSize: '0.82rem' }}>
                 {m.birthday
                   ? new Date(m.birthday).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' })
                   : '—'}
