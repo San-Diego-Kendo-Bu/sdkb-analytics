@@ -34,6 +34,10 @@
                     <option value="guest">Guest</option>
                 </select>
             </label>
+            <label style="display: flex; flex-direction: row; align-items: center; gap: 10px; margin-top: 6px;">
+                <input type="checkbox" id="editIsStudent" style="width: 18px; height: 18px;">
+                <span>Student</span>
+            </label>
             <label>
                 First Name:
                 <input type="text" id="editFirstName">
@@ -132,9 +136,13 @@
         <label for="addBirthday">Birthday</label>
         <input type="date" id="addBirthday" name="birthday">
 
-        <div style="display: flex; flex-direction: row; margin-top: 5px; gap: 5%; margin-top: 5%; margin-bottom: 5%;">
+        <div style="display: flex; flex-direction: row; margin-top: 5px; gap: 5%; margin-top: 5%; margin-bottom: 2%;">
             <input type="checkbox" value="yes" id="isGuest" name="isGuest" style="width: 20px; height: 20px;">
             <label for="isGuest" style="font-size: 1.0em;">I'm adding a guest</label>
+        </div>
+        <div style="display: flex; flex-direction: row; gap: 5%; margin-bottom: 5%;">
+            <input type="checkbox" id="isStudent" name="isStudent" style="width: 20px; height: 20px;">
+            <label for="isStudent" style="font-size: 1.0em;">Student</label>
         </div>
 
         <div class="form-action-buttons">

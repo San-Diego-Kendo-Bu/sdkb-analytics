@@ -82,6 +82,7 @@ export async function saveButtonLogic(selectedMember) {
         const newEmail = document.getElementById('editEmail').value;
         const newBirthday = document.getElementById('editBirthday').value;
         const newStatus = document.getElementById('editStatus').value;
+        const newIsStudent = document.getElementById('editIsStudent').checked;
 
         const response = await fetch('https://qh3c0tz6s9.execute-api.us-east-2.amazonaws.com/members', {
             method: 'PATCH',
@@ -98,7 +99,8 @@ export async function saveButtonLogic(selectedMember) {
                 zekken_text: newZekkenText,
                 email: newEmail,
                 birthday: newBirthday || null,
-                status: newStatus
+                status: newStatus,
+                is_student: newIsStudent,
             })
         });
 
@@ -167,6 +169,7 @@ export async function addFormSubmitLogic(event) {
         const newBirthday = document.getElementById('addBirthday').value;
 
         const isGuest = document.getElementById('isGuest').checked ? 'yes' : 'no';
+        const isStudent = document.getElementById('isStudent').checked;
 
         const response = await fetch('https://qh3c0tz6s9.execute-api.us-east-2.amazonaws.com/members', {
             method: 'POST',
@@ -183,7 +186,8 @@ export async function addFormSubmitLogic(event) {
                 zekken_text: newZekkenText,
                 email: newEmail,
                 birthday: newBirthday || null,
-                is_guest: isGuest
+                is_guest: isGuest,
+                is_student: isStudent,
             })
         });
 

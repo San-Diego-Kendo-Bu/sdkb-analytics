@@ -35,6 +35,7 @@ exports.handler = async (event) => {
             parameters.overdue_penalty !== undefined && parameters.overdue_penalty !== null
                 ? parseFloat(parameters.overdue_penalty)
                 : 0.0;
+        const isDojoDue = parameters.is_dojo_due === true || parameters.is_dojo_due === 'true';
 
         if (!paymentValue || paymentValue < 1.0) {
             return {
@@ -79,12 +80,13 @@ exports.handler = async (event) => {
                 due_date,
                 payment_value,
                 overdue_penalty,
-                has_submission
+                has_submission,
+                is_dojo_due
             )
-            VALUES ($1, $2, $3, $4, $5, $6, $7)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
             RETURNING *
             `,
-            [newPaymentId, title, createdAt, dueDate, paymentValue, overduePenalty, false]
+            [newPaymentId, title, createdAt, dueDate, paymentValue, overduePenalty, false, isDojoDue]
         );
 
         return {

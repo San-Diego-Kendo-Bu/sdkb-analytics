@@ -24,7 +24,7 @@ async function renderTable() {
         if (!membersResponse.ok) throw new Error(`HTTP error ${membersResponse.status}`);
         
         const data = await membersResponse.json();
-        members = data.items;
+        members = data.items.filter(m => m.status !== 'inactive');
         members.sort(compareRank);
         
         // Extract admin status from response
@@ -51,7 +51,7 @@ async function renderTable() {
                 curRank = rankToNum(rankNum, rankType);
             }
 
-            const memberSlip = generateSlip(zekkenText, formatName(firstName, lastName), memberId, isAdmin);
+            const memberSlip = generateSlip(formatName(firstName, lastName), zekkenText, memberId, isAdmin);
             slips.push(memberSlip);
         }
 
@@ -143,9 +143,14 @@ function generateSlip(frontText, backText, memberId, isAdmin) {
     const back = document.createElement('div');
     back.className = 'back';
 
+    var backKanjiSize;
+    if (backText.length <= 4) backKanjiSize = 'kanjiLarge';
+    else if (backText.length <= 12) backKanjiSize = 'kanjiMed';
+    else backKanjiSize = 'kanjiSmall';
+
     for (const char of backText) {
         const span = document.createElement('span');
-        span.className = 'character';
+        span.className = backKanjiSize;
         span.textContent = char;
         back.appendChild(span);
     }
@@ -250,6 +255,7 @@ function openModal(memberId) {
     document.getElementById('editEmail').value = selectedMember.email || '';
     document.getElementById('editBirthday').value = selectedMember.birthday || '';
     document.getElementById('editStatus').value = selectedMember.status || '';
+    document.getElementById('editIsStudent').checked = selectedMember.is_student === true;
     document.getElementById('modalOverlay').style.display = 'flex';
 
     let rankNumberInput = document.getElementById('editRankNumber');

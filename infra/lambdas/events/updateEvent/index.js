@@ -141,6 +141,45 @@ exports.handler = async (event) => {
 
         const data = result.rows[0];
 
+        // If a payment was just linked, auto-assign it to all existing registrants
+        if (payload.payment_id) {
+            const paymentResult = await query(
+                `SELECT due_date FROM payments WHERE payment_id = $1`,
+                [payload.payment_id]
+            );
+            const dueDate = paymentResult.rows[0]?.due_date;
+            const todayStr = new Date().toISOString().slice(0, 10);
+            const dueDateStr = dueDate ? new Date(dueDate).toISOString().slice(0, 10) : null;
+            const dueStatus = dueDateStr && todayStr > dueDateStr ? 'overdue' : 'due';
+            const now = new Date().toISOString();
+
+            const [tourn, shinsa, seminar] = await Promise.all([
+                query(`SELECT member_id FROM tournament_registrations WHERE event_id = $1`, [eventId]),
+                query(`SELECT member_id FROM shinsa_registrations WHERE event_id = $1`, [eventId]),
+                query(`SELECT member_id FROM seminar_registrations WHERE event_id = $1`, [eventId]),
+            ]);
+
+            const memberIds = [...new Set([
+                ...tourn.rows.map(r => r.member_id),
+                ...shinsa.rows.map(r => r.member_id),
+                ...seminar.rows.map(r => r.member_id),
+            ])];
+
+            await Promise.all(memberIds.map(async memberId => {
+                const alreadyPaid = await query(
+                    `SELECT 1 FROM submitted_payments WHERE member_id = $1 AND payment_id = $2 LIMIT 1`,
+                    [memberId, payload.payment_id]
+                );
+                if (alreadyPaid.rowCount === 0) {
+                    await query(
+                        `INSERT INTO assigned_payments (member_id, payment_id, assigned_on, due_status)
+                         VALUES ($1, $2, $3, $4) ON CONFLICT DO NOTHING`,
+                        [memberId, payload.payment_id, now, dueStatus]
+                    );
+                }
+            }));
+        }
+
         return {
             statusCode: 200,
             headers: {

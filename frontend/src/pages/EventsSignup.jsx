@@ -43,7 +43,7 @@ function formatDateRange(start, end, location) {
   return `${startStr} · ${timeStr} · ${location}`;
 }
 
-function SignUpForm({ ev, config, onSubmit, onCancel, submitting }) {
+function SignUpForm({ ev, config, member, onSubmit, onCancel, submitting }) {
   const [division, setDivision] = useState('');
   const [doingTeams, setDoingTeams] = useState(false);
   const [shinpanning, setShinpanning] = useState(false);
@@ -86,11 +86,14 @@ function SignUpForm({ ev, config, onSubmit, onCancel, submitting }) {
             <input className={styles.input} placeholder="Division" value={division}
               onChange={e => setDivision(e.target.value)} />
           )}
-          <label className={styles.label}>
-            <input type="checkbox" checked={doingTeams} onChange={e => setDoingTeams(e.target.checked)} />{' '}
-            Doing teams
-          </label>
-          {config?.shinpan_needed && (
+          {config?.teams_included && (
+            <label className={styles.label}>
+              <input type="checkbox" checked={doingTeams} onChange={e => setDoingTeams(e.target.checked)} />{' '}
+              Doing teams
+            </label>
+          )}
+          {config?.shinpan_needed &&
+            (member?.rank_type === 'shihan' || (member?.rank_type === 'dan' && Number(member?.rank_number) >= 4)) && (
             <label className={styles.label}>
               <input type="checkbox" checked={shinpanning} onChange={e => setShinpanning(e.target.checked)} />{' '}
               Shinpanning
@@ -140,6 +143,7 @@ function EventsSignup() {
   const [registeredIds, setRegisteredIds] = useState(new Set());
   const [toast, setToast] = useState(null);
   const memberIdRef = useRef(null);
+  const memberRankRef = useRef(null);
 
   useEffect(() => {
     async function loadRegistrations() {
@@ -157,9 +161,11 @@ function EventsSignup() {
         console.log('[registrations] members response:', membersData);
         if (!membersData.items?.length) return;
 
-        const memberId = membersData.items[0].member_id;
+        const memberItem = membersData.items[0];
+        const memberId = memberItem.member_id;
         console.log('[registrations] memberId:', memberId, '(type:', typeof memberId, ')');
         memberIdRef.current = memberId;
+        memberRankRef.current = { rank_type: memberItem.rank_type, rank_number: memberItem.rank_number };
 
         const fetchReg = (path) => fetch(`${BASE_URL}${path}`)
           .then(r => r.json())
@@ -266,7 +272,9 @@ function EventsSignup() {
       alert('No member account found for your email. Please contact an admin.');
       return null;
     }
-    memberIdRef.current = membersData.items[0].member_id;
+    const memberItem = membersData.items[0];
+    memberIdRef.current = memberItem.member_id;
+    memberRankRef.current = { rank_type: memberItem.rank_type, rank_number: memberItem.rank_number };
     return memberIdRef.current;
   }
 
@@ -384,6 +392,7 @@ function EventsSignup() {
                   <SignUpForm
                     ev={ev}
                     config={cfg}
+                    member={memberRankRef.current}
                     onSubmit={extra => handleSignUpSubmit(ev, extra)}
                     onCancel={() => setSigningUpId(null)}
                     submitting={submitting}

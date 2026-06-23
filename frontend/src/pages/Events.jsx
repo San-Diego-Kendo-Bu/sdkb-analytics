@@ -272,7 +272,7 @@ function Events() {
 
   const linkedPaymentIds = new Set(events.map(e => e.payment_id).filter(Boolean));
   const baseAvailablePayments = payments.filter(p =>
-    !submittedPaymentIds.has(p.payment_id) && !linkedPaymentIds.has(p.payment_id)
+    !p.is_dojo_due && !submittedPaymentIds.has(p.payment_id) && !linkedPaymentIds.has(p.payment_id)
   );
 
   function getPaymentsForEvent(eventId) {

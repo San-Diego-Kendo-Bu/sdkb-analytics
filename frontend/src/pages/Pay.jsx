@@ -218,22 +218,37 @@ export default function Pay() {
       ) : (
         assignedPayments.map(p => {
           const isThisOne = payingId === p.payment_id;
-          const isOverdue = p.due_date ? new Date() > new Date(p.due_date) : p.due_status === 'overdue';
+          const isOverdue = p.due_date ? new Date().toISOString().slice(0, 10) > p.due_date.slice(0, 10) : p.due_status === 'overdue';
           const statusLabel = isOverdue ? 'overdue' : 'due';
+
+          const base = Number(p.payment_value ?? 0);
+          const penalty = isOverdue && p.overdue_penalty ? Number(p.overdue_penalty) : 0;
+          const total = base + penalty;
 
           return (
             <div key={p.payment_id} className={styles.card}>
               <div className={styles.cardInfo}>
                 <strong>{p.title ?? `Payment #${p.payment_id}`}</strong>
-                <span className={styles.amount}>${Number(p.payment_value ?? 0).toFixed(2)}</span>
+                <span className={`${styles.status} ${isOverdue ? styles.overdue : ''}`}>
+                  {statusLabel}
+                </span>
+              </div>
+              <div className={styles.amountRow}>
+                {isOverdue && penalty > 0 ? (
+                  <>
+                    <span className={styles.totalAmount}>${total.toFixed(2)} total</span>
+                    <span className={styles.amountBreakdown}>
+                      ${base.toFixed(2)} base + ${penalty.toFixed(2)} overdue penalty
+                    </span>
+                  </>
+                ) : (
+                  <span className={styles.amount}>${base.toFixed(2)}</span>
+                )}
                 {p.due_date && (
                   <span className={styles.due}>
                     Due: {new Date(p.due_date).toLocaleDateString('en-US', { timeZone: 'UTC' })}
                   </span>
                 )}
-                <span className={`${styles.status} ${isOverdue ? styles.overdue : ''}`}>
-                  {statusLabel}
-                </span>
               </div>
 
               {isThisOne && loadingIntent && (

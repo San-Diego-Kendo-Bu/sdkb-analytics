@@ -5,7 +5,8 @@ CREATE TABLE IF NOT EXISTS payments (
     overdue_penalty DOUBLE PRECISION,
     due_date TIMESTAMPTZ NOT NULL,
     title TEXT NOT NULL,
-    has_submission BOOLEAN NOT NULL
+    has_submission BOOLEAN NOT NULL,
+    is_dojo_due BOOLEAN NOT NULL DEFAULT FALSE
 );
 
 CREATE TABLE IF NOT EXISTS events (
