@@ -67,7 +67,9 @@ exports.handler = async (event) => {
         }
 
         const { payment_value, overdue_penalty, due_date } = paymentResult.rows[0];
-        const isOverdue = due_date && new Date() > new Date(due_date);
+        const todayStr = new Date().toISOString().slice(0, 10);
+        const dueDateStr = due_date ? new Date(due_date).toISOString().slice(0, 10) : '';
+        const isOverdue = !!dueDateStr && todayStr > dueDateStr;
         const total = parseFloat(payment_value) + (isOverdue ? parseFloat(overdue_penalty ?? 0) : 0);
         const amountCents = Math.round(total * 100);
 
@@ -84,6 +86,10 @@ exports.handler = async (event) => {
             currency: "usd",
             customer: customerId,
             payment_method_types: ["card"],
+            metadata: {
+                member_id: String(memberId),
+                payment_id: String(paymentId),
+            },
         });
 
         return {
