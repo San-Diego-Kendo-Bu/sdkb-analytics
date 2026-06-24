@@ -179,11 +179,6 @@ export class ServiceStack extends Stack {
       ...commonNodejs,
     });
 
-    const submitPaymentLambda = new NodejsFunction(this, "SubmitPaymentLambda", {
-      entry: path.join(__dirname, "../../lambdas/submitted_payments/submitPayment/index.js"),
-      handler: "handler",
-      ...commonNodejs,
-    });
     const removeSbmtPaymentLambda = new NodejsFunction(this, "RemoveSbmtPaymentLambda", {
       entry: path.join(__dirname, "../../lambdas/submitted_payments/removeSbmtPayment/index.js"),
       handler: "handler",
@@ -247,6 +242,13 @@ export class ServiceStack extends Stack {
       ...commonNodejs,
     });
 
+    const stripeWebhookLambda = new NodejsFunction(this, "StripeWebhookLambda", {
+      entry: path.join(__dirname, "../../lambdas/webhooks/stripeWebhook/index.js"),
+      handler: "handler",
+      ...commonNodejs,
+      environment: { SECRET_ID: props.stripeSecret.secretName },
+    });
+
     // ---- Newsletter S3 bucket
     const newsletterBucket = new s3.Bucket(this, "NewsletterBucket", {
       blockPublicAccess: new s3.BlockPublicAccess({
@@ -294,6 +296,7 @@ export class ServiceStack extends Stack {
       environment: { GMAIL_SECRET_ID: props.gmailSecret.secretName },
     });
 
+    props.databaseStack.grantDatabaseAccess(stripeWebhookLambda);
     props.databaseStack.grantDatabaseAccess(broadcastPaymentLambda);
     props.databaseStack.grantDatabaseAccess(createPaymentLambda);
     props.databaseStack.grantDatabaseAccess(getPaymentLambda);
@@ -315,7 +318,6 @@ export class ServiceStack extends Stack {
     props.databaseStack.grantDatabaseAccess(registerEventLambda);
     props.databaseStack.grantDatabaseAccess(unregisterEventLambda);
     props.databaseStack.grantDatabaseAccess(getSbmtPaymentLambda);
-    props.databaseStack.grantDatabaseAccess(submitPaymentLambda);
     props.databaseStack.grantDatabaseAccess(removeSbmtPaymentLambda);
     props.databaseStack.grantDatabaseAccess(clearOvrPaymentsLambda);
     props.databaseStack.grantDatabaseAccess(createPaymentIntentLambda);
@@ -327,6 +329,7 @@ export class ServiceStack extends Stack {
     props.stripeSecret.grantRead(createMemberLambda);
     props.stripeSecret.grantRead(removeMemberLambda);
     props.stripeSecret.grantRead(createPaymentIntentLambda);
+    props.stripeSecret.grantRead(stripeWebhookLambda);
     props.stripeSecretPk.grantRead(createPaymentIntentLambda);
 
     // ---- DynamoDB policies (same as your IamStack)
@@ -400,7 +403,7 @@ export class ServiceStack extends Stack {
       resources: [members],
     }));
 
-    submitPaymentLambda.role?.addToPrincipalPolicy(new iam.PolicyStatement({
+    stripeWebhookLambda.role?.addToPrincipalPolicy(new iam.PolicyStatement({
       actions: ["dynamodb:Query"],
       resources: [members],
     }));
@@ -548,11 +551,6 @@ export class ServiceStack extends Stack {
     // Submitted Payments
     httpApi.addRoutes({
       path: "/submittedpayments",
-      methods: [HttpMethod.POST],
-      integration: new HttpLambdaIntegration("SubmittedPaymentsPostInt", submitPaymentLambda),
-    });
-    httpApi.addRoutes({
-      path: "/submittedpayments",
       methods: [HttpMethod.DELETE],
       integration: new HttpLambdaIntegration("SubmittedPaymentsDeleteInt", removeSbmtPaymentLambda),
       ...(auth ? { authorizer: auth } : {}),
@@ -622,6 +620,13 @@ export class ServiceStack extends Stack {
       methods: [HttpMethod.DELETE],
       integration: new HttpLambdaIntegration("EventsDeleteInt", removeEventLambda),
       ...(auth ? { authorizer: auth } : {}),
+    });
+
+    // Stripe webhook (no authorizer — Stripe signs requests with HMAC)
+    httpApi.addRoutes({
+      path: "/webhooks/stripe",
+      methods: [HttpMethod.POST],
+      integration: new HttpLambdaIntegration("StripeWebhookInt", stripeWebhookLambda),
     });
 
     // Announcements

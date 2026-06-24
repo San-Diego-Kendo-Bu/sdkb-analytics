@@ -171,21 +171,12 @@ export default function Pay() {
   }
 
   async function handlePaymentSuccess() {
-    const memberId = await resolveMemberId();
-    try {
-      await fetch(SUBMIT_PAYMENT_API, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ member_id: memberId, payment_id: payingId }),
-      });
-    } catch (err) {
-      console.error('submitPayment error:', err);
-    }
     setPayingId(null);
     setStripeData(null);
     setSubmitting(false);
-    showToast('Payment submitted successfully!');
-    loadPayments();
+    showToast('Payment successful! Your history will update shortly.');
+    // Stripe webhook records the submission server-side; give it a moment before reloading
+    setTimeout(loadPayments, 2500);
   }
 
   function handleCancel() {
