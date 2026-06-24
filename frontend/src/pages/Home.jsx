@@ -40,31 +40,53 @@ const Content = ({ activeTab }) => {
 export default function App() {
   const [activeTab, setActiveTab] = useState('Nafudakake');
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isSignedIn, setIsSignedIn] = useState(false);
 
   useEffect(() => {
-    async function checkAdmin() {
+    async function checkUser() {
       const user = await userManager.getUser();
-      if (!user || user.expired) return;
+      if (!user || user.expired) {
+        setIsSignedIn(false);
+        setIsAdmin(false);
+        return;
+      }
+      setIsSignedIn(true);
       try {
         const res = await fetch('https://qh3c0tz6s9.execute-api.us-east-2.amazonaws.com/admins', {
           method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${user.id_token}`
-          }
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${user.id_token}` }
         });
         const data = await res.json();
-        console.log('[checkAdmin] status:', res.status, '| email:', user.profile?.email, '| isAdmin:', !!data.isAdmin);
-        if (!res.ok) return;
-        setIsAdmin(!!data.isAdmin);
+        console.log('[checkUser] status:', res.status, '| email:', user.profile?.email, '| isAdmin:', !!data.isAdmin);
+        if (res.ok) setIsAdmin(!!data.isAdmin);
       } catch {
         // not admin
       }
     }
-    checkAdmin();
+
+    checkUser();
+
+    const onLoaded = () => checkUser();
+    const onUnloaded = () => {
+      setIsSignedIn(false);
+      setIsAdmin(false);
+      setActiveTab('Nafudakake');
+    };
+
+    userManager.events.addUserLoaded(onLoaded);
+    userManager.events.addUserUnloaded(onUnloaded);
+    userManager.events.addUserSignedOut(onUnloaded);
+
+    return () => {
+      userManager.events.removeUserLoaded(onLoaded);
+      userManager.events.removeUserUnloaded(onUnloaded);
+      userManager.events.removeUserSignedOut(onUnloaded);
+    };
   }, []);
 
-  const tabs = isAdmin ? [...BASE_TABS, 'Admin Control'] : BASE_TABS;
+  const tabs = isSignedIn
+    ? (isAdmin ? [...BASE_TABS, 'Admin Control'] : BASE_TABS)
+    : ['Nafudakake'];
 
   useEffect(() => {
     const nafudakakeContent = document.getElementById('nafudakake-content');

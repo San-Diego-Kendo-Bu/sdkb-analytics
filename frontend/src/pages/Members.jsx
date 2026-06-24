@@ -86,45 +86,76 @@ function MemberModal({ selection, onClose }) {
   );
 }
 
+function FilterToggle({ showAll, onToggle }) {
+  return (
+    <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
+      {['Active', 'All'].map(label => (
+        <button key={label} onClick={() => onToggle(label === 'All')}
+          style={{
+            fontSize: '0.8rem', padding: '4px 14px', borderRadius: 16, cursor: 'pointer',
+            fontWeight: (label === 'All') === showAll ? 700 : 400,
+            border: (label === 'All') === showAll ? 'none' : '1px solid #3a3a52',
+            background: (label === 'All') === showAll ? '#6ea8fe' : 'transparent',
+            color: (label === 'All') === showAll ? '#1a1a2e' : '#aaa',
+            transition: 'all 0.12s',
+          }}
+        >{label}</button>
+      ))}
+    </div>
+  );
+}
+
 function EventsTab({ bins, memberMap, onSelect }) {
+  const [showAll, setShowAll] = useState(false);
+  const today = new Date().toISOString().slice(0, 10);
+  const visible = showAll
+    ? bins
+    : bins.filter(({ event }) => !event.event_date || event.event_date.slice(0, 10) >= today);
+
   if (bins.length === 0) {
     return <p className="text-muted mt-3">No event signups yet.</p>;
   }
   return (
-    <div className={styles.binGrid}>
-      {bins.map(({ event, regs }) => {
-        const ts = TYPE_STYLE[event.event_type] ?? TYPE_STYLE.seminar;
-        return (
-          <div key={event.event_id} className={styles.eventBin} style={{ borderColor: ts.border }}>
-            <div className={styles.eventHeader} style={{ background: ts.bg }}>
-              <span className={styles.typeBadge} style={{ background: ts.badgeBg, color: '#fff' }}>
-                {event.event_type}
-              </span>
-              <span className={styles.eventName} style={{ color: ts.text }}>{event.event_name}</span>
-              {event.event_date && (
-                <span className={styles.eventDate}>
-                  {new Date(event.event_date).toLocaleDateString('en-US', {
-                    timeZone: 'UTC', month: 'short', day: 'numeric', year: 'numeric',
-                  })}
-                </span>
-              )}
-            </div>
-            <ul className={styles.memberList}>
-              {regs.map((r, i) => {
-                const m = memberMap[String(r.member_id)];
-                const name = m ? `${m.first_name} ${m.last_name}` : `Member #${r.member_id}`;
-                const summary = getRegSummary(r);
-                return (
-                  <li key={i} className={styles.memberRow} onClick={() => onSelect({ reg: r, event, member: m })}>
-                    <span className={styles.memberName}>{name}</span>
-                    {summary && <span className={styles.detailHint}>{summary}</span>}
-                  </li>
-                );
-              })}
-            </ul>
+    <div>
+      <FilterToggle showAll={showAll} onToggle={setShowAll} />
+      {visible.length === 0
+        ? <p style={{ color: '#888', padding: '2rem 0', textAlign: 'center' }}>No active event signups.</p>
+        : <div className={styles.binGrid}>
+            {visible.map(({ event, regs }) => {
+              const ts = TYPE_STYLE[event.event_type] ?? TYPE_STYLE.seminar;
+              return (
+                <div key={event.event_id} className={styles.eventBin} style={{ borderColor: ts.border }}>
+                  <div className={styles.eventHeader} style={{ background: ts.bg }}>
+                    <span className={styles.typeBadge} style={{ background: ts.badgeBg, color: '#fff' }}>
+                      {event.event_type}
+                    </span>
+                    <span className={styles.eventName} style={{ color: ts.text }}>{event.event_name}</span>
+                    {event.event_date && (
+                      <span className={styles.eventDate}>
+                        {new Date(event.event_date).toLocaleDateString('en-US', {
+                          timeZone: 'UTC', month: 'short', day: 'numeric', year: 'numeric',
+                        })}
+                      </span>
+                    )}
+                  </div>
+                  <ul className={styles.memberList}>
+                    {regs.map((r, i) => {
+                      const m = memberMap[String(r.member_id)];
+                      const name = m ? `${m.first_name} ${m.last_name}` : `Member #${r.member_id}`;
+                      const summary = getRegSummary(r);
+                      return (
+                        <li key={i} className={styles.memberRow} onClick={() => onSelect({ reg: r, event, member: m })}>
+                          <span className={styles.memberName}>{name}</span>
+                          {summary && <span className={styles.detailHint}>{summary}</span>}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              );
+            })}
           </div>
-        );
-      })}
+      }
     </div>
   );
 }
@@ -150,12 +181,26 @@ function UnassignableTag({ label, color, bg, onUnassign }) {
 }
 
 function PaymentsTab({ bins, onUnassign }) {
+  const [showAll, setShowAll] = useState(false);
+  const today = new Date().toISOString().slice(0, 10);
+  const visible = showAll
+    ? bins
+    : bins.filter(({ payment, assigned }) => {
+        const isPastDue = payment.due_date ? today > payment.due_date.slice(0, 10) : false;
+        const hasOverdue = assigned.some(a => a.isOverdue);
+        return !isPastDue || hasOverdue;
+      });
+
   if (bins.length === 0) {
     return <p className="text-muted mt-3">No payment data yet.</p>;
   }
   return (
-    <div className={styles.paymentSection}>
-      {bins.map(({ payment, assigned, submitted }) => {
+    <div>
+      <FilterToggle showAll={showAll} onToggle={setShowAll} />
+      {visible.length === 0
+        ? <p style={{ color: '#888', padding: '2rem 0', textAlign: 'center' }}>No active payments.</p>
+        : <div className={styles.paymentSection}>
+      {visible.map(({ payment, assigned, submitted }) => {
         const overdue = assigned.filter(a => a.isOverdue);
         const due     = assigned.filter(a => !a.isOverdue);
         return (
@@ -219,6 +264,8 @@ function PaymentsTab({ bins, onUnassign }) {
           </div>
         );
       })}
+        </div>
+      }
     </div>
   );
 }
