@@ -151,21 +151,23 @@ function EventsSignup() {
       console.log('[registrations] user:', user ? 'found' : 'none', 'expired:', user?.expired);
       if (!user || user.expired) return;
 
-      const email = user.profile?.email;
-      console.log('[registrations] email:', email);
-      if (!email) return;
+      const username = user.profile?.preferred_username;
+      if (!username) return;
 
       try {
-        const membersRes = await fetch(`${MEMBERS_API}?email=${encodeURIComponent(email)}`);
-        const membersData = await membersRes.json();
-        console.log('[registrations] members response:', membersData);
-        if (!membersData.items?.length) return;
+        const usernameRes = await fetch(`${MEMBERS_API}?username=${encodeURIComponent(username)}`);
+        const usernameData = await usernameRes.json();
+        if (!usernameData.items?.length) return;
 
-        const memberItem = membersData.items[0];
-        const memberId = memberItem.member_id;
-        console.log('[registrations] memberId:', memberId, '(type:', typeof memberId, ')');
+        const memberId = usernameData.items[0].member_id;
         memberIdRef.current = memberId;
-        memberRankRef.current = { rank_type: memberItem.rank_type, rank_number: memberItem.rank_number };
+
+        const fullRes = await fetch(`${MEMBERS_API}?member_id=${memberId}`);
+        const fullData = await fullRes.json();
+        const memberItem = fullData.items?.[0];
+        if (memberItem) {
+          memberRankRef.current = { rank_type: memberItem.rank_type, rank_number: memberItem.rank_number };
+        }
 
         const fetchReg = (path) => fetch(`${BASE_URL}${path}`)
           .then(r => r.json())
@@ -260,21 +262,26 @@ function EventsSignup() {
       alert('Please sign in to register for events.');
       return null;
     }
-    const email = user.profile?.email;
-    if (!email) {
-      alert('Could not determine your email. Please sign in again.');
+    const username = user.profile?.preferred_username;
+    if (!username) {
+      alert('Could not determine your account. Please sign in again.');
       return null;
     }
-    const membersRes = await fetch(`${MEMBERS_API}?email=${encodeURIComponent(email)}`);
-    if (!membersRes.ok) throw new Error(`Could not fetch member info (HTTP ${membersRes.status})`);
-    const membersData = await membersRes.json();
-    if (!membersData.items?.length) {
-      alert('No member account found for your email. Please contact an admin.');
+    const usernameRes = await fetch(`${MEMBERS_API}?username=${encodeURIComponent(username)}`);
+    if (!usernameRes.ok) throw new Error(`Could not fetch member info (HTTP ${usernameRes.status})`);
+    const usernameData = await usernameRes.json();
+    if (!usernameData.items?.length) {
+      alert('No member account found. Please contact an admin.');
       return null;
     }
-    const memberItem = membersData.items[0];
-    memberIdRef.current = memberItem.member_id;
-    memberRankRef.current = { rank_type: memberItem.rank_type, rank_number: memberItem.rank_number };
+    const memberId = usernameData.items[0].member_id;
+    memberIdRef.current = memberId;
+    const fullRes = await fetch(`${MEMBERS_API}?member_id=${memberId}`);
+    const fullData = await fullRes.json();
+    const memberItem = fullData.items?.[0];
+    if (memberItem) {
+      memberRankRef.current = { rank_type: memberItem.rank_type, rank_number: memberItem.rank_number };
+    }
     return memberIdRef.current;
   }
 
