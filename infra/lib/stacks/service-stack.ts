@@ -343,7 +343,7 @@ export class ServiceStack extends Stack {
 
     getMembersLambda.role?.addToPrincipalPolicy(new iam.PolicyStatement({
       actions: ["dynamodb:Query"],
-      resources: [members, `${members}/index/email-index`],
+      resources: [members, `${members}/index/email-index`, `${members}/index/username-index`],
     }));
 
     broadcastPaymentLambda.role?.addToPrincipalPolicy(new iam.PolicyStatement({
