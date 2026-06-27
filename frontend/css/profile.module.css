@@ -1,0 +1,168 @@
+.page {
+  min-height: 100vh;
+  background: #1a1a2e;
+  padding: 2rem 1rem;
+}
+
+.container {
+  max-width: 680px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+/* ---- Header card ---- */
+.headerCard {
+  background: #22223a;
+  border: 1px solid #2e2e50;
+  border-radius: 12px;
+  padding: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+}
+
+.avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: #87CEEB;
+  color: #1a1a2e;
+  font-size: 1.5rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.nameBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.fullName {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #e8e8f0;
+}
+
+.zekken {
+  font-size: 1rem;
+  color: #87CEEB;
+  letter-spacing: 0.05em;
+}
+
+/* ---- Info grid ---- */
+.infoCard {
+  background: #22223a;
+  border: 1px solid #2e2e50;
+  border-radius: 12px;
+  padding: 1.25rem 1.5rem;
+}
+
+.infoGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem 1.5rem;
+}
+
+.infoItem {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.infoLabel {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #6b6b9a;
+}
+
+.infoValue {
+  font-size: 0.95rem;
+  color: #e8e8f0;
+}
+
+.statusBadge {
+  display: inline-block;
+  padding: 1px 10px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+/* ---- Events card ---- */
+.eventsCard {
+  background: #22223a;
+  border: 1px solid #2e2e50;
+  border-radius: 12px;
+  padding: 1.25rem 1.5rem;
+}
+
+.eventsHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.eventsTitle {
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #6b6b9a;
+}
+
+.eventsTotal {
+  font-size: 0.9rem;
+  color: #87CEEB;
+  font-weight: 600;
+}
+
+.breakdownGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.breakdownItem {
+  background: #1a1a2e;
+  border-radius: 8px;
+  padding: 0.85rem 0.75rem;
+  text-align: center;
+  border: 1px solid #2e2e50;
+}
+
+.breakdownCount {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #e8e8f0;
+  line-height: 1;
+}
+
+.breakdownLabel {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-top: 0.35rem;
+}
+
+.loading {
+  color: #6b6b9a;
+  text-align: center;
+  padding: 3rem 0;
+}
+
+@media (max-width: 600px) {
+  .infoGrid {
+    grid-template-columns: 1fr;
+  }
+}

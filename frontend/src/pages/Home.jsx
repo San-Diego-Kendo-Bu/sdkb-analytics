@@ -8,6 +8,7 @@ import AdminControl from './AdminControl.jsx';
 import EventsSignup from './EventsSignup.jsx';
 import Pay from './Pay.jsx';
 import AnnouncementsView from './AnnouncementsView.jsx';
+import Profile from './Profile.jsx';
 
 const BASE_TABS = ['Nafudakake', 'Pay', 'Events', 'Announcements'];
 
@@ -33,6 +34,9 @@ const Content = ({ activeTab }) => {
   }
   if (activeTab === 'Announcements') {
     return <AnnouncementsView />;
+  }
+  if (activeTab === 'My Profile') {
+    return <Profile />;
   }
   return <Placeholder title={activeTab} />;
 };
@@ -85,7 +89,7 @@ export default function App() {
   }, []);
 
   const tabs = isSignedIn
-    ? (isAdmin ? [...BASE_TABS, 'Admin Control'] : BASE_TABS)
+    ? (isAdmin ? [...BASE_TABS, 'Admin Control', 'My Profile'] : [...BASE_TABS, 'My Profile'])
     : ['Nafudakake'];
 
   useEffect(() => {
