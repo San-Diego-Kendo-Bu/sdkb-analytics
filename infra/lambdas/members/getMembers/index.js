@@ -2,6 +2,7 @@ const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
 const { getMemberById, getMembersByEmail } = require("../../shared_utils/members");
 const {
   ScanCommand,
+  QueryCommand,
   DynamoDBDocumentClient
 } = require("@aws-sdk/lib-dynamodb");
 
@@ -17,13 +18,13 @@ exports.handler = async (event) => {
     
     if (event.queryStringParameters) {
       if (event.queryStringParameters.email) {
-        // Handle query by email address
         let email = event.queryStringParameters.email;
         return await getByEmail(email);
       } else if (event.queryStringParameters.member_id) {
-        // Handle query by member ID 
         let member_id = parseInt(event.queryStringParameters.member_id);
         return await getById(member_id);
+      } else if (event.queryStringParameters.username) {
+        return await getByUsername(event.queryStringParameters.username);
       } else {
         return {
           statusCode: 500,
@@ -73,6 +74,23 @@ async function getById(memberId) {
       count: responseItems.length,
       items: responseItems
     }),
+  };
+}
+
+async function getByUsername(username) {
+  const response = await ddb.send(new QueryCommand({
+    TableName: MEMBERS_TABLE,
+    IndexName: "username-index",
+    KeyConditionExpression: "#u = :u",
+    ExpressionAttributeNames: { "#u": "username" },
+    ExpressionAttributeValues: { ":u": username },
+    Limit: 1,
+  }));
+  const items = response.Items ?? [];
+  return {
+    statusCode: 200,
+    headers: DEFAULT_GET_RESPONSE_HEADERS,
+    body: JSON.stringify({ count: items.length, items }),
   };
 }
 

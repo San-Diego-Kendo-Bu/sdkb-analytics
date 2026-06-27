@@ -91,9 +91,9 @@ export default function Pay() {
     if (memberIdRef.current !== null) return memberIdRef.current;
     const user = await userManager.getUser();
     if (!user || user.expired) return null;
-    const email = user.profile?.email;
-    if (!email) return null;
-    const res = await fetch(`${MEMBERS_API}?email=${encodeURIComponent(email)}`);
+    const username = user.profile?.preferred_username;
+    if (!username) return null;
+    const res = await fetch(`${MEMBERS_API}?username=${encodeURIComponent(username)}`);
     const data = await res.json();
     const memberId = data.items?.[0]?.member_id ?? null;
     memberIdRef.current = memberId;

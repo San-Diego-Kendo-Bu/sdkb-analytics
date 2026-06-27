@@ -47,13 +47,16 @@ export default function Profile() {
       const user = await userManager.getUser();
       if (!user || user.expired) { setLoading(false); return; }
 
-      const email = user.profile?.email;
-      if (!email) { setLoading(false); return; }
+      console.log('[Profile] full profile claims:', user.profile);
+      const username = user.profile?.preferred_username;
+      console.log('[Profile] username:', username);
+      if (!username) { setLoading(false); return; }
 
-      // Email GSI is KEYS_ONLY — get member_id first, then fetch full record by primary key
-      const emailRes = await fetch(`${MEMBERS_API}?email=${encodeURIComponent(email)}`);
-      const emailData = await emailRes.json();
-      const memberId = emailData.items?.[0]?.member_id;
+      const usernameRes = await fetch(`${MEMBERS_API}?username=${encodeURIComponent(username)}`);
+      const usernameData = await usernameRes.json();
+      console.log('[Profile] username lookup result:', usernameData);
+      const memberId = usernameData.items?.[0]?.member_id;
+      console.log('[Profile] memberId:', memberId);
 
       if (!memberId) { setLoading(false); return; }
 
