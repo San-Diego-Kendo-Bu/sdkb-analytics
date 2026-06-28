@@ -5,10 +5,13 @@ import { isOffHours, OFF_HOURS_MSG } from '../js/offHours';
 import OffHoursCard from '../react_components/OffHoursCard';
 
 const BASE_URL = 'https://qh3c0tz6s9.execute-api.us-east-2.amazonaws.com';
-const EVENTS_API = `${BASE_URL}/events`;
-const CONFIGURE_API = `${BASE_URL}/events/configure`;
-const MEMBERS_API = `${BASE_URL}/members`;
-const REGISTER_API = `${BASE_URL}/events/register`;
+const EVENTS_API            = `${BASE_URL}/events`;
+const CONFIGURE_API         = `${BASE_URL}/events/configure`;
+const MEMBERS_API           = `${BASE_URL}/members`;
+const REGISTER_API          = `${BASE_URL}/events/register`;
+const PAYMENTS_API          = `${BASE_URL}/payments`;
+const ASSIGNED_PAYMENTS_API = `${BASE_URL}/assignedpayments`;
+const SUBMITTED_PAYMENTS_API = `${BASE_URL}/submittedpayments`;
 
 const STATUS_COLORS = {
   Active: '#28a745',
@@ -131,7 +134,7 @@ function SignUpForm({ ev, config, member, onSubmit, onCancel, submitting }) {
   );
 }
 
-function EventsSignup() {
+function EventsSignup({ onPayNavigate }) {
   const [events, setEvents] = useState([]);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('All');
@@ -142,6 +145,9 @@ function EventsSignup() {
   const [submitting, setSubmitting] = useState(false);
   const [registeredIds, setRegisteredIds] = useState(new Set());
   const [toast, setToast] = useState(null);
+  const [paymentMap, setPaymentMap] = useState({});
+  const [assignedPaymentIds, setAssignedPaymentIds] = useState(new Set());
+  const [paidPaymentIds, setPaidPaymentIds] = useState(new Set());
   const memberIdRef = useRef(null);
   const memberRankRef = useRef(null);
 
@@ -173,15 +179,14 @@ function EventsSignup() {
           .then(r => r.json())
           .catch(() => ({ body: [] }));
 
-        const [tourn, shinsa, seminar] = await Promise.all([
+        const [tourn, shinsa, seminar, payData, asgnData, submittedData] = await Promise.all([
           fetchReg('/events/tournamentRegistrations'),
           fetchReg('/events/shinsaRegistrations'),
           fetchReg('/events/seminarRegistrations'),
+          fetch(PAYMENTS_API).then(r => r.json()).catch(() => ({ data: [] })),
+          fetch(ASSIGNED_PAYMENTS_API).then(r => r.json()).catch(() => ({ data: [] })),
+          fetch(SUBMITTED_PAYMENTS_API).then(r => r.json()).catch(() => ({ data: [] })),
         ]);
-
-        console.log('[registrations] tourn rows:', tourn.body);
-        console.log('[registrations] shinsa rows:', shinsa.body);
-        console.log('[registrations] seminar rows:', seminar.body);
 
         const match = (r) => Number(r.member_id) === Number(memberId);
         const ids = new Set([
@@ -189,8 +194,15 @@ function EventsSignup() {
           ...(shinsa.body || []).filter(match).map(r => r.event_id),
           ...(seminar.body || []).filter(match).map(r => r.event_id),
         ]);
-        console.log('[registrations] matched event ids:', [...ids]);
         setRegisteredIds(ids);
+
+        setPaymentMap(Object.fromEntries((payData.data ?? []).map(p => [String(p.payment_id), p])));
+        setAssignedPaymentIds(new Set(
+          (asgnData.data ?? []).filter(a => Number(a.member_id) === Number(memberId)).map(a => String(a.payment_id))
+        ));
+        setPaidPaymentIds(new Set(
+          (submittedData.data ?? []).filter(s => Number(s.member_id) === Number(memberId)).map(s => String(s.payment_id))
+        ));
       } catch (err) {
         console.error('[registrations] failed:', err);
       }
@@ -210,6 +222,7 @@ function EventsSignup() {
           end_datetime: e.event_deadline,
           location: e.event_location,
           type: e.event_type,
+          payment_id: e.payment_id ?? null,
         }));
         setEvents(evs);
         return evs;
@@ -453,6 +466,25 @@ function EventsSignup() {
                         )}
                       </div>
                     )}
+                    {ev.payment_id && paymentMap[String(ev.payment_id)] && (() => {
+                      const pid = String(ev.payment_id);
+                      const pay = paymentMap[pid];
+                      const isAssigned = assignedPaymentIds.has(pid);
+                      const isPaid = paidPaymentIds.has(pid);
+                      return (
+                        <div className={styles.paymentRow}>
+                          <span className={styles.paymentIcon}>💳</span>
+                          <span className={styles.paymentTitle}>{pay.title}</span>
+                          <span className={styles.paymentAmount}>${Number(pay.payment_value ?? 0).toFixed(2)}</span>
+                          {isPaid && <span className={styles.paidBadge}>Paid ✓</span>}
+                          {isAssigned && !isPaid && onPayNavigate && (
+                            <button className={styles.payNowBtn} onClick={() => onPayNavigate(ev.payment_id)}>
+                              Pay Now →
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })()}
                     <div className={styles.cardActions}>
                       {status !== 'Past' && !isRegistered && (
                         <button className={styles.signupBtn} onClick={() => handleSignUpClick(ev)}>

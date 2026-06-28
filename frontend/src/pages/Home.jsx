@@ -19,7 +19,7 @@ const Placeholder = ({ title }) => (
   </div>
 );
 
-const Content = ({ activeTab, setActiveTab }) => {
+const Content = ({ activeTab, setActiveTab, pendingPaymentId, setPendingPaymentId }) => {
   if (activeTab === 'Nafudakake') {
     return null;
   }
@@ -30,10 +30,19 @@ const Content = ({ activeTab, setActiveTab }) => {
     return <AdminControl />;
   }
   if (activeTab === 'Events') {
-    return <EventsSignup />;
+    return (
+      <EventsSignup
+        onPayNavigate={(pid) => { setPendingPaymentId(pid); setActiveTab('Pay'); }}
+      />
+    );
   }
   if (activeTab === 'Pay') {
-    return <Pay />;
+    return (
+      <Pay
+        autoPaymentId={pendingPaymentId}
+        onAutoPayConsumed={() => setPendingPaymentId(null)}
+      />
+    );
   }
   if (activeTab === 'Announcements') {
     return <AnnouncementsView />;
@@ -48,6 +57,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('Nafudakake');
   const [isAdmin, setIsAdmin] = useState(false);
   const [isSignedIn, setIsSignedIn] = useState(false);
+  const [pendingPaymentId, setPendingPaymentId] = useState(null);
 
   useEffect(() => {
     async function checkUser() {
@@ -188,7 +198,7 @@ export default function App() {
           </div>
         </div>
       </nav>
-      {activeTab !== 'Nafudakake' && <Content activeTab={activeTab} setActiveTab={setActiveTab} />}
+      {activeTab !== 'Nafudakake' && <Content activeTab={activeTab} setActiveTab={setActiveTab} pendingPaymentId={pendingPaymentId} setPendingPaymentId={setPendingPaymentId} />}
     </div>
   );
 }
