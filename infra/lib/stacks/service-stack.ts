@@ -249,6 +249,24 @@ export class ServiceStack extends Stack {
       environment: { SECRET_ID: props.stripeSecret.secretName },
     });
 
+    const createTournamentResultLambda = new NodejsFunction(this, "CreateTournamentResultLambda", {
+      entry: path.join(__dirname, "../../lambdas/tournaments/createTournamentResult/index.js"),
+      handler: "handler",
+      ...commonNodejs,
+    });
+
+    const getTournamentResultsLambda = new NodejsFunction(this, "GetTournamentResultsLambda", {
+      entry: path.join(__dirname, "../../lambdas/tournaments/getTournamentResults/index.js"),
+      handler: "handler",
+      ...commonNodejs,
+    });
+
+    const deleteTournamentResultLambda = new NodejsFunction(this, "DeleteTournamentResultLambda", {
+      entry: path.join(__dirname, "../../lambdas/tournaments/deleteTournamentResult/index.js"),
+      handler: "handler",
+      ...commonNodejs,
+    });
+
     // ---- Newsletter S3 bucket
     const newsletterBucket = new s3.Bucket(this, "NewsletterBucket", {
       blockPublicAccess: new s3.BlockPublicAccess({
@@ -323,6 +341,9 @@ export class ServiceStack extends Stack {
     props.databaseStack.grantDatabaseAccess(createPaymentIntentLambda);
     props.databaseStack.grantDatabaseAccess(getAnnouncementsLambda);
     props.databaseStack.grantDatabaseAccess(sendAnnouncementLambda);
+    props.databaseStack.grantDatabaseAccess(createTournamentResultLambda);
+    props.databaseStack.grantDatabaseAccess(getTournamentResultsLambda);
+    props.databaseStack.grantDatabaseAccess(deleteTournamentResultLambda);
 
 
     // ---- Secrets access (same as your IamStack)
@@ -619,6 +640,25 @@ export class ServiceStack extends Stack {
       path: "/events",
       methods: [HttpMethod.DELETE],
       integration: new HttpLambdaIntegration("EventsDeleteInt", removeEventLambda),
+      ...(auth ? { authorizer: auth } : {}),
+    });
+
+    // Tournament Results
+    httpApi.addRoutes({
+      path: "/events/tournamentResults",
+      methods: [HttpMethod.POST],
+      integration: new HttpLambdaIntegration("TournamentResultsPostInt", createTournamentResultLambda),
+      ...(auth ? { authorizer: auth } : {}),
+    });
+    httpApi.addRoutes({
+      path: "/events/tournamentResults",
+      methods: [HttpMethod.GET],
+      integration: new HttpLambdaIntegration("TournamentResultsGetInt", getTournamentResultsLambda),
+    });
+    httpApi.addRoutes({
+      path: "/events/tournamentResults",
+      methods: [HttpMethod.DELETE],
+      integration: new HttpLambdaIntegration("TournamentResultsDeleteInt", deleteTournamentResultLambda),
       ...(auth ? { authorizer: auth } : {}),
     });
 

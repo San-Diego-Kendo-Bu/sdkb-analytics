@@ -3,6 +3,7 @@ import Payments from "./Payments";
 import Members from "./Members";
 import Events from "./Events";
 import Announcements from "./Announcements";
+import TournamentResults from "./TournamentResults";
 
 import { useState } from "react";
 
@@ -21,6 +22,9 @@ function AdminControl(){
             break;
         case "Announcements":
             component = <Announcements/>;
+            break;
+        case "TournamentResults":
+            component = <TournamentResults/>;
             break;
         default:
             component = <AdminDashboard setPage={setPage}/>;

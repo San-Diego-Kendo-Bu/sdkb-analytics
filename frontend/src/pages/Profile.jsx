@@ -8,6 +8,7 @@ const EVENTS_API       = `${BASE_URL}/events`;
 const TOURNAMENT_API   = `${BASE_URL}/events/tournamentRegistrations`;
 const SHINSA_API       = `${BASE_URL}/events/shinsaRegistrations`;
 const SEMINAR_API      = `${BASE_URL}/events/seminarRegistrations`;
+const RESULTS_API      = `${BASE_URL}/events/tournamentResults`;
 
 const STATUS_COLORS = {
   active:   { bg: '#0d3321', color: '#75b798' },
@@ -21,6 +22,17 @@ const BREAKDOWN_COLORS = {
   seminar:    '#75b798',
   shinsa:     '#fd9843',
 };
+
+const PLACEMENT_COLORS = {
+  First:    '#ffd700',
+  Second:   '#c0c0c0',
+  Third:    '#cd7f32',
+  Kantosho: '#75b798',
+};
+
+function placementColor(p) {
+  return PLACEMENT_COLORS[p] ?? '#aaa';
+}
 
 function formatRank(rankNumber, rankType) {
   if (!rankType) return '—';
@@ -40,6 +52,7 @@ function initials(firstName, lastName) {
 export default function Profile() {
   const [member, setMember] = useState(null);
   const [eventCounts, setEventCounts] = useState(null);
+  const [achievements, setAchievements] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -47,40 +60,38 @@ export default function Profile() {
       const user = await userManager.getUser();
       if (!user || user.expired) { setLoading(false); return; }
 
-      console.log('[Profile] full profile claims:', user.profile);
       const username = user.profile?.preferred_username;
-      console.log('[Profile] username:', username);
       if (!username) { setLoading(false); return; }
 
       const usernameRes = await fetch(`${MEMBERS_API}?username=${encodeURIComponent(username)}`);
       const usernameData = await usernameRes.json();
-      console.log('[Profile] username lookup result:', usernameData);
       const memberId = usernameData.items?.[0]?.member_id;
-      console.log('[Profile] memberId:', memberId);
 
       if (!memberId) { setLoading(false); return; }
 
-      const [memberRes, eventsRes, tourneyRes, shinsaRes, seminarRes] = await Promise.all([
+      const [memberRes, eventsRes, tourneyRes, shinsaRes, seminarRes, resultsRes] = await Promise.all([
         fetch(`${MEMBERS_API}?member_id=${memberId}`),
         fetch(EVENTS_API),
         fetch(TOURNAMENT_API),
         fetch(SHINSA_API),
         fetch(SEMINAR_API),
+        fetch(`${RESULTS_API}?member_id=${memberId}`),
       ]);
 
-      const [memberData, eventsData, tourneyData, shinsaData, seminarData] = await Promise.all([
+      const [memberData, eventsData, tourneyData, shinsaData, seminarData, resultsData] = await Promise.all([
         memberRes.json(),
         eventsRes.json(),
         tourneyRes.json(),
         shinsaRes.json(),
         seminarRes.json(),
+        resultsRes.json(),
       ]);
 
       const me = memberData.items?.[0] ?? null;
       setMember(me);
 
       if (me) {
-        const memberId = Number(me.member_id);
+        const mid = Number(me.member_id);
         const thisYear = new Date().getFullYear();
 
         const eventMap = Object.fromEntries(
@@ -94,15 +105,14 @@ export default function Profile() {
         };
 
         const tournaments = (tourneyData.body ?? [])
-          .filter(r => Number(r.member_id) === memberId && inThisYear(r.event_id)).length;
-
+          .filter(r => Number(r.member_id) === mid && inThisYear(r.event_id)).length;
         const shinsa = (shinsaData.body ?? [])
-          .filter(r => Number(r.member_id) === memberId && inThisYear(r.event_id)).length;
-
+          .filter(r => Number(r.member_id) === mid && inThisYear(r.event_id)).length;
         const seminars = (seminarData.body ?? [])
-          .filter(r => Number(r.member_id) === memberId && inThisYear(r.event_id)).length;
+          .filter(r => Number(r.member_id) === mid && inThisYear(r.event_id)).length;
 
         setEventCounts({ tournaments, shinsa, seminars });
+        setAchievements(resultsData.data ?? []);
       }
 
       setLoading(false);
@@ -195,6 +205,41 @@ export default function Profile() {
                     style={{ color: BREAKDOWN_COLORS[key] }}
                   >
                     {label}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Achievements */}
+        {achievements.length > 0 && (
+          <div className={styles.eventsCard}>
+            <div className={styles.eventsHeader}>
+              <span className={styles.eventsTitle}>Tournament Achievements</span>
+              <span className={styles.eventsTotal}>{achievements.length} placement{achievements.length !== 1 ? 's' : ''}</span>
+            </div>
+            <div className={styles.achievementsList}>
+              {achievements.map(r => (
+                <div key={r.result_id} className={styles.achievementRow}>
+                  <span
+                    className={styles.placementBadge}
+                    style={{
+                      background: placementColor(r.placement) + '22',
+                      color: placementColor(r.placement),
+                      border: `1px solid ${placementColor(r.placement)}55`,
+                    }}
+                  >
+                    {r.placement}
+                  </span>
+                  <div className={styles.achievementInfo}>
+                    <span className={styles.achievementEvent}>{r.event_name}</span>
+                    <span className={styles.achievementMeta}>
+                      {r.division}
+                      {r.is_teams ? ' · Team' : ''}
+                      {' · '}
+                      {new Date(r.event_date).toLocaleDateString('en-US', { timeZone: 'UTC', year: 'numeric', month: 'short', day: 'numeric' })}
+                    </span>
                   </div>
                 </div>
               ))}
