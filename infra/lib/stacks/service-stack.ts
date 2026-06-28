@@ -347,6 +347,7 @@ export class ServiceStack extends Stack {
     props.databaseStack.grantDatabaseAccess(createPaymentIntentLambda);
     props.databaseStack.grantDatabaseAccess(getAnnouncementsLambda);
     props.databaseStack.grantDatabaseAccess(sendAnnouncementLambda);
+    props.databaseStack.grantDatabaseAccess(removeMemberLambda);
     props.databaseStack.grantDatabaseAccess(updateMemberSelfLambda);
     props.databaseStack.grantDatabaseAccess(createTournamentResultLambda);
     props.databaseStack.grantDatabaseAccess(getTournamentResultsLambda);

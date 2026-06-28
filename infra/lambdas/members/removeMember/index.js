@@ -13,6 +13,7 @@ const {
 } = require("@aws-sdk/client-cognito-identity-provider");
 
 const { normalizeGroups } = require("../../shared_utils/normalize_claim");
+const { query } = require("../../shared_utils/db");
 
 const Stripe = require("stripe");
 const cognito = new CognitoIdentityProviderClient({ region: "us-east-2" });
@@ -97,6 +98,15 @@ exports.handler = async (event) => {
         member_id: data.member_id
       }
     };
+
+    // Delete all PostgreSQL rows referencing this member
+    const mid = data.member_id;
+    await query("DELETE FROM tournament_registrations WHERE member_id = $1", [mid]);
+    await query("DELETE FROM shinsa_registrations    WHERE member_id = $1", [mid]);
+    await query("DELETE FROM seminar_registrations   WHERE member_id = $1", [mid]);
+    await query("DELETE FROM assigned_payments       WHERE member_id = $1", [mid]);
+    await query("DELETE FROM submitted_payments      WHERE member_id = $1", [mid]);
+    await query("DELETE FROM tournament_results      WHERE member_id = $1", [mid]);
 
     const stripe = await getStripe();
     const responseItems = [];
