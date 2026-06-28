@@ -3,6 +3,7 @@ import { MdEditCalendar } from "react-icons/md";
 import { MdOutlineAnnouncement } from "react-icons/md";
 import { MdManageAccounts } from "react-icons/md";
 import { MdPayment } from "react-icons/md";
+import { MdEmojiEvents } from "react-icons/md";
 import '../../css/admindashboard.css';
 
 function AdminDashboard({setPage}) {
@@ -58,6 +59,15 @@ function AdminDashboard({setPage}) {
           width={cardWidth}
           height={cardHeight}
           onClick={()=>setPage("Events")}
+          />
+          <DashboardCard
+          title='Tournament Results'
+          description='Record and view tournament placements'
+          icon={MdEmojiEvents}
+          color={palettes.orange}
+          width={cardWidth}
+          height={cardHeight}
+          onClick={()=>setPage("TournamentResults")}
           />
         </div>
       </div>

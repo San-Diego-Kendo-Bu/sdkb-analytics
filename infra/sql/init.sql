@@ -93,3 +93,14 @@ CREATE TABLE IF NOT EXISTS announcements (
     pdf_url TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+CREATE TABLE IF NOT EXISTS tournament_results (
+    result_id BIGSERIAL PRIMARY KEY,
+    event_id BIGINT NOT NULL REFERENCES events(event_id) ON DELETE CASCADE,
+    member_id BIGINT,
+    member_name TEXT NOT NULL,
+    division TEXT NOT NULL,
+    placement TEXT NOT NULL,
+    is_teams BOOLEAN NOT NULL DEFAULT FALSE,
+    recorded_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);

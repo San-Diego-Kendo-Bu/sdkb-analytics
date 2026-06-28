@@ -44,6 +44,7 @@ exports.handler = async () => {
             password: admin.password,
             database: 'postgres',
             port: 5432,
+            ssl: false,
         });
 
         // Connect to RDS instance with Admin
@@ -93,6 +94,7 @@ exports.handler = async () => {
             password: credentials.password,
             database: 'sdkb-db',
             port: 5432,
+            ssl: false,
         });
 
         // Connect to RDS instance

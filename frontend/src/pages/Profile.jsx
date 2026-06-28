@@ -8,6 +8,7 @@ const EVENTS_API       = `${BASE_URL}/events`;
 const TOURNAMENT_API   = `${BASE_URL}/events/tournamentRegistrations`;
 const SHINSA_API       = `${BASE_URL}/events/shinsaRegistrations`;
 const SEMINAR_API      = `${BASE_URL}/events/seminarRegistrations`;
+const RESULTS_API      = `${BASE_URL}/events/tournamentResults`;
 
 const STATUS_COLORS = {
   active:   { bg: '#0d3321', color: '#75b798' },
@@ -21,6 +22,17 @@ const BREAKDOWN_COLORS = {
   seminar:    '#75b798',
   shinsa:     '#fd9843',
 };
+
+const PLACEMENT_COLORS = {
+  First:    '#ffd700',
+  Second:   '#c0c0c0',
+  Third:    '#cd7f32',
+  Kantosho: '#75b798',
+};
+
+function placementColor(p) {
+  return PLACEMENT_COLORS[p] ?? '#aaa';
+}
 
 function formatRank(rankNumber, rankType) {
   if (!rankType) return '—';
@@ -37,50 +49,56 @@ function initials(firstName, lastName) {
   return `${(firstName ?? '')[0] ?? ''}${(lastName ?? '')[0] ?? ''}`.toUpperCase();
 }
 
+const MEMBERS_SELF_API = `${BASE_URL}/members/self`;
+
 export default function Profile() {
   const [member, setMember] = useState(null);
   const [eventCounts, setEventCounts] = useState(null);
+  const [achievements, setAchievements] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [hoveredBreakdown, setHoveredBreakdown] = useState(null);
+  const [editingBirthday, setEditingBirthday] = useState(false);
+  const [birthdayInput, setBirthdayInput] = useState('');
+  const [savingBirthday, setSavingBirthday] = useState(false);
+  const [birthdayError, setBirthdayError] = useState('');
 
   useEffect(() => {
     async function load() {
       const user = await userManager.getUser();
       if (!user || user.expired) { setLoading(false); return; }
 
-      console.log('[Profile] full profile claims:', user.profile);
       const username = user.profile?.preferred_username;
-      console.log('[Profile] username:', username);
       if (!username) { setLoading(false); return; }
 
       const usernameRes = await fetch(`${MEMBERS_API}?username=${encodeURIComponent(username)}`);
       const usernameData = await usernameRes.json();
-      console.log('[Profile] username lookup result:', usernameData);
       const memberId = usernameData.items?.[0]?.member_id;
-      console.log('[Profile] memberId:', memberId);
 
       if (!memberId) { setLoading(false); return; }
 
-      const [memberRes, eventsRes, tourneyRes, shinsaRes, seminarRes] = await Promise.all([
+      const [memberRes, eventsRes, tourneyRes, shinsaRes, seminarRes, resultsRes] = await Promise.all([
         fetch(`${MEMBERS_API}?member_id=${memberId}`),
         fetch(EVENTS_API),
         fetch(TOURNAMENT_API),
         fetch(SHINSA_API),
         fetch(SEMINAR_API),
+        fetch(`${RESULTS_API}?member_id=${memberId}`),
       ]);
 
-      const [memberData, eventsData, tourneyData, shinsaData, seminarData] = await Promise.all([
+      const [memberData, eventsData, tourneyData, shinsaData, seminarData, resultsData] = await Promise.all([
         memberRes.json(),
         eventsRes.json(),
         tourneyRes.json(),
         shinsaRes.json(),
         seminarRes.json(),
+        resultsRes.json(),
       ]);
 
       const me = memberData.items?.[0] ?? null;
       setMember(me);
 
       if (me) {
-        const memberId = Number(me.member_id);
+        const mid = Number(me.member_id);
         const thisYear = new Date().getFullYear();
 
         const eventMap = Object.fromEntries(
@@ -93,16 +111,28 @@ export default function Profile() {
           return new Date(ev.event_date).getFullYear() === thisYear;
         };
 
-        const tournaments = (tourneyData.body ?? [])
-          .filter(r => Number(r.member_id) === memberId && inThisYear(r.event_id)).length;
+        const toEventList = (rows) =>
+          rows
+            .filter(r => Number(r.member_id) === mid && inThisYear(r.event_id))
+            .map(r => {
+              const ev = eventMap[String(r.event_id)];
+              return { name: ev?.event_name ?? `Event #${r.event_id}`, date: ev?.event_date };
+            })
+            .sort((a, b) => new Date(a.date) - new Date(b.date));
 
-        const shinsa = (shinsaData.body ?? [])
-          .filter(r => Number(r.member_id) === memberId && inThisYear(r.event_id)).length;
+        const tournamentList = toEventList(tourneyData.body ?? []);
+        const shinsaList     = toEventList(shinsaData.body ?? []);
+        const seminarList    = toEventList(seminarData.body ?? []);
 
-        const seminars = (seminarData.body ?? [])
-          .filter(r => Number(r.member_id) === memberId && inThisYear(r.event_id)).length;
-
-        setEventCounts({ tournaments, shinsa, seminars });
+        setEventCounts({
+          tournaments: tournamentList.length,
+          shinsa:      shinsaList.length,
+          seminars:    seminarList.length,
+          tournamentList,
+          shinsaList,
+          seminarList,
+        });
+        setAchievements(resultsData.data ?? []);
       }
 
       setLoading(false);
@@ -110,6 +140,30 @@ export default function Profile() {
 
     load();
   }, []);
+
+  async function saveBirthday() {
+    if (!birthdayInput) { setBirthdayError('Please enter a date.'); return; }
+    setSavingBirthday(true);
+    setBirthdayError('');
+    try {
+      const user = await userManager.getUser();
+      const res = await fetch(MEMBERS_SELF_API, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${user.id_token}` },
+        body: JSON.stringify({ birthday: birthdayInput }),
+      });
+      if (res.ok) {
+        setMember(m => ({ ...m, birthday: birthdayInput }));
+        setEditingBirthday(false);
+      } else {
+        const data = await res.json();
+        setBirthdayError(data.message ?? 'Save failed.');
+      }
+    } catch {
+      setBirthdayError('Network error.');
+    }
+    setSavingBirthday(false);
+  }
 
   if (loading) {
     return <div className={styles.page}><p className={styles.loading}>Loading profile...</p></div>;
@@ -170,7 +224,35 @@ export default function Profile() {
             </div>
             <div className={styles.infoItem}>
               <span className={styles.infoLabel}>Birthday</span>
-              <span className={styles.infoValue}>{formatBirthday(member.birthday)}</span>
+              {editingBirthday ? (
+                <div className={styles.birthdayEdit}>
+                  <input
+                    type="date"
+                    className={styles.birthdayInput}
+                    value={birthdayInput}
+                    onChange={e => setBirthdayInput(e.target.value)}
+                  />
+                  <div className={styles.birthdayActions}>
+                    <button className={styles.saveSmallBtn} onClick={saveBirthday} disabled={savingBirthday}>
+                      {savingBirthday ? '…' : 'Save'}
+                    </button>
+                    <button className={styles.cancelSmallBtn} onClick={() => { setEditingBirthday(false); setBirthdayError(''); }}>
+                      Cancel
+                    </button>
+                  </div>
+                  {birthdayError && <span className={styles.birthdayError}>{birthdayError}</span>}
+                </div>
+              ) : (
+                <div className={styles.birthdayRow}>
+                  <span className={styles.infoValue}>{formatBirthday(member.birthday)}</span>
+                  <button
+                    className={styles.editBtn}
+                    onClick={() => { setBirthdayInput(member.birthday ? new Date(member.birthday).toISOString().slice(0, 10) : ''); setEditingBirthday(true); }}
+                  >
+                    Edit
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -184,17 +266,69 @@ export default function Profile() {
             </div>
             <div className={styles.breakdownGrid}>
               {[
-                { key: 'tournament', label: 'Tournament', count: eventCounts.tournaments },
-                { key: 'seminar',    label: 'Seminar',    count: eventCounts.seminars   },
-                { key: 'shinsa',     label: 'Shinsa',     count: eventCounts.shinsa     },
-              ].map(({ key, label, count }) => (
-                <div key={key} className={styles.breakdownItem}>
+                { key: 'tournament', label: 'Tournament', count: eventCounts.tournaments, events: eventCounts.tournamentList },
+                { key: 'seminar',    label: 'Seminar',    count: eventCounts.seminars,    events: eventCounts.seminarList   },
+                { key: 'shinsa',     label: 'Shinsa',     count: eventCounts.shinsa,      events: eventCounts.shinsaList    },
+              ].map(({ key, label, count, events }) => (
+                <div
+                  key={key}
+                  className={styles.breakdownItem}
+                  onMouseEnter={() => count > 0 && setHoveredBreakdown(key)}
+                  onMouseLeave={() => setHoveredBreakdown(null)}
+                >
+                  {hoveredBreakdown === key && (
+                    <div className={styles.breakdownTooltip}>
+                      {events.slice(0, 5).map((ev, i) => (
+                        <div key={i} className={styles.tooltipRow}>
+                          <span className={styles.tooltipName}>{ev.name}</span>
+                          <span className={styles.tooltipDate}>
+                            {new Date(ev.date).toLocaleDateString('en-US', { timeZone: 'UTC', month: 'short', day: 'numeric' })}
+                          </span>
+                        </div>
+                      ))}
+                      {events.length > 5 && (
+                        <div className={styles.tooltipMore}>+{events.length - 5} more</div>
+                      )}
+                    </div>
+                  )}
                   <div className={styles.breakdownCount}>{count}</div>
-                  <div
-                    className={styles.breakdownLabel}
-                    style={{ color: BREAKDOWN_COLORS[key] }}
-                  >
+                  <div className={styles.breakdownLabel} style={{ color: BREAKDOWN_COLORS[key] }}>
                     {label}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Achievements */}
+        {achievements.length > 0 && (
+          <div className={styles.eventsCard}>
+            <div className={styles.eventsHeader}>
+              <span className={styles.eventsTitle}>Tournament Achievements</span>
+              <span className={styles.eventsTotal}>{achievements.length} placement{achievements.length !== 1 ? 's' : ''}</span>
+            </div>
+            <div className={styles.achievementsList}>
+              {achievements.map(r => (
+                <div key={r.result_id} className={styles.achievementRow}>
+                  <span
+                    className={styles.placementBadge}
+                    style={{
+                      background: placementColor(r.placement) + '22',
+                      color: placementColor(r.placement),
+                      border: `1px solid ${placementColor(r.placement)}55`,
+                    }}
+                  >
+                    {r.placement}
+                  </span>
+                  <div className={styles.achievementInfo}>
+                    <span className={styles.achievementEvent}>{r.event_name}</span>
+                    <span className={styles.achievementMeta}>
+                      {r.division}
+                      {r.is_teams ? ' · Team' : ''}
+                      {' · '}
+                      {new Date(r.event_date).toLocaleDateString('en-US', { timeZone: 'UTC', year: 'numeric', month: 'short', day: 'numeric' })}
+                    </span>
                   </div>
                 </div>
               ))}

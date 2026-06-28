@@ -76,6 +76,12 @@ export class ServiceStack extends Stack {
       ...commonNodejs,
     });
 
+    const updateMemberSelfLambda = new NodejsFunction(this, "UpdateMemberSelfLambda", {
+      entry: path.join(__dirname, "../../lambdas/members/updateMemberSelf/index.js"),
+      handler: "handler",
+      ...commonNodejs,
+    });
+
     const getAdminLambda = new NodejsFunction(this, "GetAdminLambda", {
       entry: path.join(__dirname, "../../lambdas/admins/getAdmin/index.js"),
       handler: "handler",
@@ -249,6 +255,24 @@ export class ServiceStack extends Stack {
       environment: { SECRET_ID: props.stripeSecret.secretName },
     });
 
+    const createTournamentResultLambda = new NodejsFunction(this, "CreateTournamentResultLambda", {
+      entry: path.join(__dirname, "../../lambdas/tournaments/createTournamentResult/index.js"),
+      handler: "handler",
+      ...commonNodejs,
+    });
+
+    const getTournamentResultsLambda = new NodejsFunction(this, "GetTournamentResultsLambda", {
+      entry: path.join(__dirname, "../../lambdas/tournaments/getTournamentResults/index.js"),
+      handler: "handler",
+      ...commonNodejs,
+    });
+
+    const deleteTournamentResultLambda = new NodejsFunction(this, "DeleteTournamentResultLambda", {
+      entry: path.join(__dirname, "../../lambdas/tournaments/deleteTournamentResult/index.js"),
+      handler: "handler",
+      ...commonNodejs,
+    });
+
     // ---- Newsletter S3 bucket
     const newsletterBucket = new s3.Bucket(this, "NewsletterBucket", {
       blockPublicAccess: new s3.BlockPublicAccess({
@@ -323,6 +347,11 @@ export class ServiceStack extends Stack {
     props.databaseStack.grantDatabaseAccess(createPaymentIntentLambda);
     props.databaseStack.grantDatabaseAccess(getAnnouncementsLambda);
     props.databaseStack.grantDatabaseAccess(sendAnnouncementLambda);
+    props.databaseStack.grantDatabaseAccess(removeMemberLambda);
+    props.databaseStack.grantDatabaseAccess(updateMemberSelfLambda);
+    props.databaseStack.grantDatabaseAccess(createTournamentResultLambda);
+    props.databaseStack.grantDatabaseAccess(getTournamentResultsLambda);
+    props.databaseStack.grantDatabaseAccess(deleteTournamentResultLambda);
 
 
     // ---- Secrets access (same as your IamStack)
@@ -403,6 +432,15 @@ export class ServiceStack extends Stack {
       resources: [members],
     }));
 
+    updateMemberSelfLambda.role?.addToPrincipalPolicy(new iam.PolicyStatement({
+      actions: ["dynamodb:Query"],
+      resources: [members, `${members}/index/username-index`],
+    }));
+    updateMemberSelfLambda.role?.addToPrincipalPolicy(new iam.PolicyStatement({
+      actions: ["dynamodb:UpdateItem"],
+      resources: [members],
+    }));
+
     stripeWebhookLambda.role?.addToPrincipalPolicy(new iam.PolicyStatement({
       actions: ["dynamodb:Query"],
       resources: [members],
@@ -478,6 +516,12 @@ export class ServiceStack extends Stack {
       path: "/members",
       methods: [HttpMethod.PATCH],
       integration: new HttpLambdaIntegration("MembersPatchInt", modifyMemberLambda),
+      ...(auth ? { authorizer: auth } : {}),
+    });
+    httpApi.addRoutes({
+      path: "/members/self",
+      methods: [HttpMethod.PATCH],
+      integration: new HttpLambdaIntegration("MembersSelfPatchInt", updateMemberSelfLambda),
       ...(auth ? { authorizer: auth } : {}),
     });
     httpApi.addRoutes({
@@ -619,6 +663,25 @@ export class ServiceStack extends Stack {
       path: "/events",
       methods: [HttpMethod.DELETE],
       integration: new HttpLambdaIntegration("EventsDeleteInt", removeEventLambda),
+      ...(auth ? { authorizer: auth } : {}),
+    });
+
+    // Tournament Results
+    httpApi.addRoutes({
+      path: "/events/tournamentResults",
+      methods: [HttpMethod.POST],
+      integration: new HttpLambdaIntegration("TournamentResultsPostInt", createTournamentResultLambda),
+      ...(auth ? { authorizer: auth } : {}),
+    });
+    httpApi.addRoutes({
+      path: "/events/tournamentResults",
+      methods: [HttpMethod.GET],
+      integration: new HttpLambdaIntegration("TournamentResultsGetInt", getTournamentResultsLambda),
+    });
+    httpApi.addRoutes({
+      path: "/events/tournamentResults",
+      methods: [HttpMethod.DELETE],
+      integration: new HttpLambdaIntegration("TournamentResultsDeleteInt", deleteTournamentResultLambda),
       ...(auth ? { authorizer: auth } : {}),
     });
 

@@ -68,7 +68,7 @@ function PaymentForm({ onSuccess, onCancel, submitting, setSubmitting }) {
   );
 }
 
-export default function Pay() {
+export default function Pay({ autoPaymentId, onAutoPayConsumed }) {
   const [assignedPayments, setAssignedPayments] = useState([]);
   const [completedPayments, setCompletedPayments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -146,6 +146,17 @@ export default function Pay() {
   useEffect(() => { if (!isOffHours()) loadPayments(); else setLoading(false); }, []);
 
   useEffect(() => { setCompletedPage(0); }, [completedSearch]);
+
+  const autoTriggeredRef = useRef(false);
+  useEffect(() => {
+    if (!autoPaymentId || loading || autoTriggeredRef.current) return;
+    const payment = assignedPayments.find(p => String(p.payment_id) === String(autoPaymentId));
+    if (payment) {
+      autoTriggeredRef.current = true;
+      handlePayClick(payment);
+      if (onAutoPayConsumed) onAutoPayConsumed();
+    }
+  }, [autoPaymentId, loading, assignedPayments]);
 
   async function handlePayClick(payment) {
     if (isOffHours()) { showToast(OFF_HOURS_MSG); return; }

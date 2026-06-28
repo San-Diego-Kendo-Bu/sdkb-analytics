@@ -88,6 +88,79 @@
   color: #e8e8f0;
 }
 
+.birthdayRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.editBtn {
+  background: transparent;
+  border: 1px solid #3e3e5e;
+  color: #6b6b9a;
+  border-radius: 4px;
+  padding: 0.1rem 0.5rem;
+  font-size: 0.72rem;
+  cursor: pointer;
+}
+
+.editBtn:hover {
+  border-color: #87ceeb;
+  color: #87ceeb;
+}
+
+.birthdayEdit {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.birthdayInput {
+  background: #1a1a2e;
+  border: 1px solid #3e3e5e;
+  border-radius: 5px;
+  color: #e8e8f0;
+  padding: 0.3rem 0.5rem;
+  font-size: 0.85rem;
+  width: 100%;
+}
+
+.birthdayInput:focus {
+  outline: none;
+  border-color: #87ceeb;
+}
+
+.birthdayActions {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.saveSmallBtn {
+  background: #87ceeb;
+  color: #1a1a2e;
+  border: none;
+  border-radius: 4px;
+  padding: 0.2rem 0.65rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.cancelSmallBtn {
+  background: transparent;
+  border: 1px solid #3e3e5e;
+  color: #6b6b9a;
+  border-radius: 4px;
+  padding: 0.2rem 0.65rem;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
+.birthdayError {
+  font-size: 0.75rem;
+  color: #dc3545;
+}
+
 .statusBadge {
   display: inline-block;
   padding: 1px 10px;
@@ -138,6 +211,71 @@
   padding: 0.85rem 0.75rem;
   text-align: center;
   border: 1px solid #2e2e50;
+  position: relative;
+  cursor: default;
+}
+
+.breakdownTooltip {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: #2a2a3e;
+  border: 1px solid #3e3e5e;
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+  min-width: 180px;
+  max-width: 240px;
+  z-index: 10;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+  text-align: left;
+  pointer-events: none;
+}
+
+.breakdownTooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+  border-top-color: #3e3e5e;
+}
+
+.tooltipRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.5rem;
+  padding: 0.2rem 0;
+}
+
+.tooltipRow + .tooltipRow {
+  border-top: 1px solid #33334a;
+}
+
+.tooltipName {
+  font-size: 0.8rem;
+  color: #e8e8f0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tooltipDate {
+  font-size: 0.75rem;
+  color: #6b6b9a;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.tooltipMore {
+  font-size: 0.75rem;
+  color: #6b6b9a;
+  text-align: center;
+  padding-top: 0.3rem;
+  margin-top: 0.2rem;
+  border-top: 1px solid #33334a;
 }
 
 .breakdownCount {
@@ -153,6 +291,53 @@
   text-transform: uppercase;
   letter-spacing: 0.06em;
   margin-top: 0.35rem;
+}
+
+/* ---- Achievements ---- */
+.achievementsList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.achievementRow {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  background: #1a1a2e;
+  border-radius: 8px;
+  padding: 0.65rem 0.85rem;
+  border: 1px solid #2e2e50;
+}
+
+.placementBadge {
+  border-radius: 5px;
+  padding: 0.2rem 0.65rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.achievementInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.achievementEvent {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #e8e8f0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.achievementMeta {
+  font-size: 0.75rem;
+  color: #6b6b9a;
 }
 
 .loading {
