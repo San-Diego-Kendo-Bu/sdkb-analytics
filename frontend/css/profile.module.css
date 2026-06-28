@@ -138,6 +138,71 @@
   padding: 0.85rem 0.75rem;
   text-align: center;
   border: 1px solid #2e2e50;
+  position: relative;
+  cursor: default;
+}
+
+.breakdownTooltip {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: #2a2a3e;
+  border: 1px solid #3e3e5e;
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+  min-width: 180px;
+  max-width: 240px;
+  z-index: 10;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+  text-align: left;
+  pointer-events: none;
+}
+
+.breakdownTooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+  border-top-color: #3e3e5e;
+}
+
+.tooltipRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.5rem;
+  padding: 0.2rem 0;
+}
+
+.tooltipRow + .tooltipRow {
+  border-top: 1px solid #33334a;
+}
+
+.tooltipName {
+  font-size: 0.8rem;
+  color: #e8e8f0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tooltipDate {
+  font-size: 0.75rem;
+  color: #6b6b9a;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.tooltipMore {
+  font-size: 0.75rem;
+  color: #6b6b9a;
+  text-align: center;
+  padding-top: 0.3rem;
+  margin-top: 0.2rem;
+  border-top: 1px solid #33334a;
 }
 
 .breakdownCount {

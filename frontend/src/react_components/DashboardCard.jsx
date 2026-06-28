@@ -8,8 +8,9 @@ function DashboardCard({title, description, icon, color, width, height, onClick}
         backgroundColor: `rgba(${color.r}, ${color.g}, ${color.b}, 0.1)`,
         borderRadius: "20px",
         padding:"3%",
-        width:`${width}px`,
-        height:`${height}px`,
+        width:'100%',
+        minHeight:`${height}px`,
+        boxSizing:'border-box',
         marginBottom: `2%`
     };
 
@@ -17,8 +18,9 @@ function DashboardCard({title, description, icon, color, width, height, onClick}
         backgroundColor: `rgba(${color.r}, ${color.g}, ${color.b}, 0.2)`,
         borderRadius: "20px",
         padding:"3%",
-        width:`${width}px`,
-        height:`${height}px`,
+        width:'100%',
+        minHeight:`${height}px`,
+        boxSizing:'border-box',
         cursor:"pointer"
     }
     

@@ -1,14 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { renderTable, layoutShelf, setupEventListeners } from '../js/nafudaManager.js';
 
 import * as buttonLogic from '../js/buttonLogic.js';
 import { userManager } from '../js/cognitoManager.js';
-import AdminDashboard from './AdminDashboard.jsx';
 import AdminControl from './AdminControl.jsx';
 import EventsSignup from './EventsSignup.jsx';
 import Pay from './Pay.jsx';
 import AnnouncementsView from './AnnouncementsView.jsx';
 import Profile from './Profile.jsx';
+import Overview from './Overview.jsx';
 
 const BASE_TABS = ['Nafudakake', 'Pay', 'Events', 'Announcements'];
 
@@ -19,9 +19,12 @@ const Placeholder = ({ title }) => (
   </div>
 );
 
-const Content = ({ activeTab }) => {
+const Content = ({ activeTab, setActiveTab }) => {
   if (activeTab === 'Nafudakake') {
     return null;
+  }
+  if (activeTab === 'Overview') {
+    return <Overview onNavigate={setActiveTab} />;
   }
   if (activeTab === 'Admin Control') {
     return <AdminControl />;
@@ -55,6 +58,7 @@ export default function App() {
         return;
       }
       setIsSignedIn(true);
+      setActiveTab('Overview');
       try {
         const res = await fetch('https://qh3c0tz6s9.execute-api.us-east-2.amazonaws.com/admins', {
           method: 'GET',
@@ -130,7 +134,12 @@ export default function App() {
     <div style={{ background: '#1a1a2e', minHeight: activeTab === 'Nafudakake' ? 0 : '100vh' }}>
       <nav style={{ background: '#87CEEB', borderBottom: '1px solid #5ba8cc', padding: '0.5rem 0', marginBottom: 0 }} className='navbar navbar-expand-lg'>
         <div className='container-fluid'>
-          <a className='navbar-brand' href='#' style={{ color: '#1a1a2e', fontWeight: 700, fontSize: '1.1rem' }}>
+          <a
+            className='navbar-brand'
+            href='#'
+            onClick={(e) => { e.preventDefault(); setActiveTab(isSignedIn ? 'Overview' : 'Nafudakake'); }}
+            style={{ color: '#1a1a2e', fontWeight: 700, fontSize: '1.1rem' }}
+          >
             SDKB Portal
           </a>
           <button
@@ -179,7 +188,7 @@ export default function App() {
           </div>
         </div>
       </nav>
-      {activeTab !== 'Nafudakake' && <Content activeTab={activeTab} />}
+      {activeTab !== 'Nafudakake' && <Content activeTab={activeTab} setActiveTab={setActiveTab} />}
     </div>
   );
 }

@@ -54,6 +54,7 @@ export default function Profile() {
   const [eventCounts, setEventCounts] = useState(null);
   const [achievements, setAchievements] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [hoveredBreakdown, setHoveredBreakdown] = useState(null);
 
   useEffect(() => {
     async function load() {
@@ -104,14 +105,27 @@ export default function Profile() {
           return new Date(ev.event_date).getFullYear() === thisYear;
         };
 
-        const tournaments = (tourneyData.body ?? [])
-          .filter(r => Number(r.member_id) === mid && inThisYear(r.event_id)).length;
-        const shinsa = (shinsaData.body ?? [])
-          .filter(r => Number(r.member_id) === mid && inThisYear(r.event_id)).length;
-        const seminars = (seminarData.body ?? [])
-          .filter(r => Number(r.member_id) === mid && inThisYear(r.event_id)).length;
+        const toEventList = (rows) =>
+          rows
+            .filter(r => Number(r.member_id) === mid && inThisYear(r.event_id))
+            .map(r => {
+              const ev = eventMap[String(r.event_id)];
+              return { name: ev?.event_name ?? `Event #${r.event_id}`, date: ev?.event_date };
+            })
+            .sort((a, b) => new Date(a.date) - new Date(b.date));
 
-        setEventCounts({ tournaments, shinsa, seminars });
+        const tournamentList = toEventList(tourneyData.body ?? []);
+        const shinsaList     = toEventList(shinsaData.body ?? []);
+        const seminarList    = toEventList(seminarData.body ?? []);
+
+        setEventCounts({
+          tournaments: tournamentList.length,
+          shinsa:      shinsaList.length,
+          seminars:    seminarList.length,
+          tournamentList,
+          shinsaList,
+          seminarList,
+        });
         setAchievements(resultsData.data ?? []);
       }
 
@@ -194,16 +208,33 @@ export default function Profile() {
             </div>
             <div className={styles.breakdownGrid}>
               {[
-                { key: 'tournament', label: 'Tournament', count: eventCounts.tournaments },
-                { key: 'seminar',    label: 'Seminar',    count: eventCounts.seminars   },
-                { key: 'shinsa',     label: 'Shinsa',     count: eventCounts.shinsa     },
-              ].map(({ key, label, count }) => (
-                <div key={key} className={styles.breakdownItem}>
+                { key: 'tournament', label: 'Tournament', count: eventCounts.tournaments, events: eventCounts.tournamentList },
+                { key: 'seminar',    label: 'Seminar',    count: eventCounts.seminars,    events: eventCounts.seminarList   },
+                { key: 'shinsa',     label: 'Shinsa',     count: eventCounts.shinsa,      events: eventCounts.shinsaList    },
+              ].map(({ key, label, count, events }) => (
+                <div
+                  key={key}
+                  className={styles.breakdownItem}
+                  onMouseEnter={() => count > 0 && setHoveredBreakdown(key)}
+                  onMouseLeave={() => setHoveredBreakdown(null)}
+                >
+                  {hoveredBreakdown === key && (
+                    <div className={styles.breakdownTooltip}>
+                      {events.slice(0, 5).map((ev, i) => (
+                        <div key={i} className={styles.tooltipRow}>
+                          <span className={styles.tooltipName}>{ev.name}</span>
+                          <span className={styles.tooltipDate}>
+                            {new Date(ev.date).toLocaleDateString('en-US', { timeZone: 'UTC', month: 'short', day: 'numeric' })}
+                          </span>
+                        </div>
+                      ))}
+                      {events.length > 5 && (
+                        <div className={styles.tooltipMore}>+{events.length - 5} more</div>
+                      )}
+                    </div>
+                  )}
                   <div className={styles.breakdownCount}>{count}</div>
-                  <div
-                    className={styles.breakdownLabel}
-                    style={{ color: BREAKDOWN_COLORS[key] }}
-                  >
+                  <div className={styles.breakdownLabel} style={{ color: BREAKDOWN_COLORS[key] }}>
                     {label}
                   </div>
                 </div>
