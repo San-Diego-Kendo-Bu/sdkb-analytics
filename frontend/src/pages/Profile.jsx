@@ -49,12 +49,18 @@ function initials(firstName, lastName) {
   return `${(firstName ?? '')[0] ?? ''}${(lastName ?? '')[0] ?? ''}`.toUpperCase();
 }
 
+const MEMBERS_SELF_API = `${BASE_URL}/members/self`;
+
 export default function Profile() {
   const [member, setMember] = useState(null);
   const [eventCounts, setEventCounts] = useState(null);
   const [achievements, setAchievements] = useState([]);
   const [loading, setLoading] = useState(true);
   const [hoveredBreakdown, setHoveredBreakdown] = useState(null);
+  const [editingBirthday, setEditingBirthday] = useState(false);
+  const [birthdayInput, setBirthdayInput] = useState('');
+  const [savingBirthday, setSavingBirthday] = useState(false);
+  const [birthdayError, setBirthdayError] = useState('');
 
   useEffect(() => {
     async function load() {
@@ -135,6 +141,30 @@ export default function Profile() {
     load();
   }, []);
 
+  async function saveBirthday() {
+    if (!birthdayInput) { setBirthdayError('Please enter a date.'); return; }
+    setSavingBirthday(true);
+    setBirthdayError('');
+    try {
+      const user = await userManager.getUser();
+      const res = await fetch(MEMBERS_SELF_API, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${user.id_token}` },
+        body: JSON.stringify({ birthday: birthdayInput }),
+      });
+      if (res.ok) {
+        setMember(m => ({ ...m, birthday: birthdayInput }));
+        setEditingBirthday(false);
+      } else {
+        const data = await res.json();
+        setBirthdayError(data.message ?? 'Save failed.');
+      }
+    } catch {
+      setBirthdayError('Network error.');
+    }
+    setSavingBirthday(false);
+  }
+
   if (loading) {
     return <div className={styles.page}><p className={styles.loading}>Loading profile...</p></div>;
   }
@@ -194,7 +224,35 @@ export default function Profile() {
             </div>
             <div className={styles.infoItem}>
               <span className={styles.infoLabel}>Birthday</span>
-              <span className={styles.infoValue}>{formatBirthday(member.birthday)}</span>
+              {editingBirthday ? (
+                <div className={styles.birthdayEdit}>
+                  <input
+                    type="date"
+                    className={styles.birthdayInput}
+                    value={birthdayInput}
+                    onChange={e => setBirthdayInput(e.target.value)}
+                  />
+                  <div className={styles.birthdayActions}>
+                    <button className={styles.saveSmallBtn} onClick={saveBirthday} disabled={savingBirthday}>
+                      {savingBirthday ? '…' : 'Save'}
+                    </button>
+                    <button className={styles.cancelSmallBtn} onClick={() => { setEditingBirthday(false); setBirthdayError(''); }}>
+                      Cancel
+                    </button>
+                  </div>
+                  {birthdayError && <span className={styles.birthdayError}>{birthdayError}</span>}
+                </div>
+              ) : (
+                <div className={styles.birthdayRow}>
+                  <span className={styles.infoValue}>{formatBirthday(member.birthday)}</span>
+                  <button
+                    className={styles.editBtn}
+                    onClick={() => { setBirthdayInput(member.birthday ? new Date(member.birthday).toISOString().slice(0, 10) : ''); setEditingBirthday(true); }}
+                  >
+                    Edit
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>

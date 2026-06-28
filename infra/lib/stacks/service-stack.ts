@@ -76,6 +76,12 @@ export class ServiceStack extends Stack {
       ...commonNodejs,
     });
 
+    const updateMemberSelfLambda = new NodejsFunction(this, "UpdateMemberSelfLambda", {
+      entry: path.join(__dirname, "../../lambdas/members/updateMemberSelf/index.js"),
+      handler: "handler",
+      ...commonNodejs,
+    });
+
     const getAdminLambda = new NodejsFunction(this, "GetAdminLambda", {
       entry: path.join(__dirname, "../../lambdas/admins/getAdmin/index.js"),
       handler: "handler",
@@ -341,6 +347,7 @@ export class ServiceStack extends Stack {
     props.databaseStack.grantDatabaseAccess(createPaymentIntentLambda);
     props.databaseStack.grantDatabaseAccess(getAnnouncementsLambda);
     props.databaseStack.grantDatabaseAccess(sendAnnouncementLambda);
+    props.databaseStack.grantDatabaseAccess(updateMemberSelfLambda);
     props.databaseStack.grantDatabaseAccess(createTournamentResultLambda);
     props.databaseStack.grantDatabaseAccess(getTournamentResultsLambda);
     props.databaseStack.grantDatabaseAccess(deleteTournamentResultLambda);
@@ -424,6 +431,15 @@ export class ServiceStack extends Stack {
       resources: [members],
     }));
 
+    updateMemberSelfLambda.role?.addToPrincipalPolicy(new iam.PolicyStatement({
+      actions: ["dynamodb:Query"],
+      resources: [members, `${members}/index/username-index`],
+    }));
+    updateMemberSelfLambda.role?.addToPrincipalPolicy(new iam.PolicyStatement({
+      actions: ["dynamodb:UpdateItem"],
+      resources: [members],
+    }));
+
     stripeWebhookLambda.role?.addToPrincipalPolicy(new iam.PolicyStatement({
       actions: ["dynamodb:Query"],
       resources: [members],
@@ -499,6 +515,12 @@ export class ServiceStack extends Stack {
       path: "/members",
       methods: [HttpMethod.PATCH],
       integration: new HttpLambdaIntegration("MembersPatchInt", modifyMemberLambda),
+      ...(auth ? { authorizer: auth } : {}),
+    });
+    httpApi.addRoutes({
+      path: "/members/self",
+      methods: [HttpMethod.PATCH],
+      integration: new HttpLambdaIntegration("MembersSelfPatchInt", updateMemberSelfLambda),
       ...(auth ? { authorizer: auth } : {}),
     });
     httpApi.addRoutes({
