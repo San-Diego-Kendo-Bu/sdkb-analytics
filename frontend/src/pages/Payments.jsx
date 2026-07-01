@@ -211,10 +211,10 @@ function Payments() {
     let targets;
     let label;
     if (mode === 'adults') {
-      targets = members.filter(m => active(m) && notSensei(m));
+      targets = members.filter(m => active(m) && notSensei(m) && !m.is_student && (calcAge(m.birthday) ?? Infinity) > 18);
       label = 'adults (3-dan & below)';
     } else if (mode === 'students') {
-      targets = members.filter(m => active(m) && m.is_student === true && (calcAge(m.birthday) ?? 0) >= 18);
+      targets = members.filter(m => active(m) && m.is_student === true);
       label = 'university students';
     } else if (mode === 'kids') {
       targets = members.filter(m => active(m) && (calcAge(m.birthday) ?? Infinity) <= 18);

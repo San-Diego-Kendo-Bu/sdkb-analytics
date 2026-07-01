@@ -362,7 +362,7 @@ function DirectoryTab({ members, onToggleStatus, onToggleStudent }) {
             <span className={styles.dirCellHide}>Email</span>
             <span className={styles.dirCellHide}>Birthday</span>
             <span>Status</span>
-            <span>Student</span>
+            <span>College Student</span>
           </div>
           {filtered.map(m => (
             <div key={m.member_id} className={styles.dirRow}>

@@ -141,7 +141,8 @@ exports.handler = async (event) => {
         email: data.email,
         birthday: data.birthday ?? null,
         status: defaultStatus,
-        customer_id, // fixed typo
+        is_student: data.is_student === true,
+        customer_id,
         username,
         dedup_key: dedupKey,
       },
