@@ -58,6 +58,7 @@ export default function App() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [isSignedIn, setIsSignedIn] = useState(false);
   const [pendingPaymentId, setPendingPaymentId] = useState(null);
+  const [showAbout, setShowAbout] = useState(false);
 
   useEffect(() => {
     async function checkUser() {
@@ -183,7 +184,11 @@ export default function App() {
                 </li>
               ))}
             </ul>
-            <div className='d-flex gap-2'>
+            <div className='d-flex gap-2 align-items-center'>
+              <button
+                onClick={() => setShowAbout(true)}
+                style={{ background: 'transparent', border: '1px solid #1a1a2e', color: '#1a1a2e', borderRadius: '50%', width: 28, height: 28, fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer', lineHeight: 1, padding: 0, flexShrink: 0 }}
+              >?</button>
               <button id='signIn' className='btn' style={{ background: '#1a1a2e', color: '#fff', fontWeight: 600 }}>
                 Sign In
               </button>
@@ -199,6 +204,29 @@ export default function App() {
         </div>
       </nav>
       {activeTab !== 'Nafudakake' && <Content activeTab={activeTab} setActiveTab={setActiveTab} pendingPaymentId={pendingPaymentId} setPendingPaymentId={setPendingPaymentId} />}
+
+      {showAbout && (
+        <div
+          onClick={() => setShowAbout(false)}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{ background: '#2a2a3e', borderRadius: 12, padding: '2rem', maxWidth: 480, width: '100%', color: '#e0e0e0', position: 'relative', lineHeight: 1.7 }}
+          >
+            <button
+              onClick={() => setShowAbout(false)}
+              style={{ position: 'absolute', top: '0.75rem', right: '0.75rem', background: 'transparent', border: 'none', color: '#aaa', fontSize: '1.2rem', cursor: 'pointer' }}
+            >✕</button>
+            <p style={{ margin: 0, fontSize: '0.95rem' }}>
+              This app was created by a group of students and full-time developers who generously volunteered their free time to give back to their former dojo, San Diego Kendo Bu. I would especially like to thank our UCSD alumni Gabe I., Rahul P., Ben L., and Aidan M. for their invaluable contributions. Whether your contributions were large or small, each of you played an important role in making this app a reality.
+            </p>
+            <p style={{ margin: '1rem 0 0 0', fontSize: '0.95rem' }}>
+              Please forward app inquiries to Isamu Goto.
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
