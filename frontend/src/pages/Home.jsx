@@ -9,8 +9,9 @@ import Pay from './Pay.jsx';
 import AnnouncementsView from './AnnouncementsView.jsx';
 import Profile from './Profile.jsx';
 import Overview from './Overview.jsx';
+import ResultsSummary from './ResultsSummary.jsx';
 
-const BASE_TABS = ['Nafudakake', 'Pay', 'Events', 'Announcements'];
+const BASE_TABS = ['Nafudakake', 'Pay', 'Events', 'Announcements', 'Results'];
 
 const Placeholder = ({ title }) => (
   <div className='p-4 bg-white border rounded shadow-sm text-center text-muted'>
@@ -46,6 +47,9 @@ const Content = ({ activeTab, setActiveTab, pendingPaymentId, setPendingPaymentI
   }
   if (activeTab === 'Announcements') {
     return <AnnouncementsView />;
+  }
+  if (activeTab === 'Results') {
+    return <ResultsSummary />;
   }
   if (activeTab === 'My Profile') {
     return <Profile />;

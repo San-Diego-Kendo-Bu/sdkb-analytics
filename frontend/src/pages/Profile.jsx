@@ -56,6 +56,7 @@ export default function Profile() {
   const [eventCounts, setEventCounts] = useState(null);
   const [achievements, setAchievements] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [hoveredBreakdown, setHoveredBreakdown] = useState(null);
   const [editingBirthday, setEditingBirthday] = useState(false);
   const [birthdayInput, setBirthdayInput] = useState('');
@@ -99,25 +100,19 @@ export default function Profile() {
 
       if (me) {
         const mid = Number(me.member_id);
-        const thisYear = new Date().getFullYear();
 
         const eventMap = Object.fromEntries(
           (eventsData.body ?? []).map(e => [String(e.event_id), e])
         );
 
-        const inThisYear = (eventId) => {
-          const ev = eventMap[String(eventId)];
-          if (!ev?.event_date) return false;
-          return new Date(ev.event_date).getFullYear() === thisYear;
-        };
-
         const toEventList = (rows) =>
           rows
-            .filter(r => Number(r.member_id) === mid && inThisYear(r.event_id))
+            .filter(r => Number(r.member_id) === mid)
             .map(r => {
               const ev = eventMap[String(r.event_id)];
               return { name: ev?.event_name ?? `Event #${r.event_id}`, date: ev?.event_date };
             })
+            .filter(item => item.date)
             .sort((a, b) => new Date(a.date) - new Date(b.date));
 
         const tournamentList = toEventList(tourneyData.body ?? []);
@@ -174,8 +169,26 @@ export default function Profile() {
   }
 
   const statusStyle = STATUS_COLORS[member.status] ?? STATUS_COLORS.inactive;
-  const total = eventCounts ? eventCounts.tournaments + eventCounts.shinsa + eventCounts.seminars : 0;
-  const thisYear = new Date().getFullYear();
+
+  const filterByYear = (list) => selectedYear === 'All'
+    ? list
+    : list.filter(ev => ev.date && new Date(ev.date).getFullYear() === selectedYear);
+
+  const filteredTournaments = filterByYear(eventCounts?.tournamentList ?? []);
+  const filteredSeminars    = filterByYear(eventCounts?.seminarList ?? []);
+  const filteredShinsa      = filterByYear(eventCounts?.shinsaList ?? []);
+  const total = filteredTournaments.length + filteredSeminars.length + filteredShinsa.length;
+
+  const filteredAchievements = selectedYear === 'All'
+    ? achievements
+    : achievements.filter(r => r.event_date && new Date(r.event_date).getFullYear() === selectedYear);
+
+  const allDates = [
+    ...(eventCounts?.tournamentList ?? []),
+    ...(eventCounts?.seminarList ?? []),
+    ...(eventCounts?.shinsaList ?? []),
+  ].map(e => e.date).concat(achievements.map(r => r.event_date)).filter(Boolean);
+  const availableYears = [...new Set(allDates.map(d => new Date(d).getFullYear()))].sort((a, b) => b - a);
 
   return (
     <div className={styles.page}>
@@ -261,14 +274,43 @@ export default function Profile() {
         {eventCounts && (
           <div className={styles.eventsCard}>
             <div className={styles.eventsHeader}>
-              <span className={styles.eventsTitle}>Event Activity — {thisYear}</span>
+              <span className={styles.eventsTitle}>
+                Event Activity — {selectedYear === 'All' ? 'All Years' : selectedYear}
+              </span>
               <span className={styles.eventsTotal}>{total} event{total !== 1 ? 's' : ''}</span>
             </div>
+            {availableYears.length > 1 && (
+              <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', marginBottom: '0.75rem' }}>
+                {availableYears.map(y => (
+                  <button
+                    key={y}
+                    onClick={() => setSelectedYear(y)}
+                    style={{
+                      padding: '0.2rem 0.75rem', borderRadius: 20, fontSize: '0.8rem', cursor: 'pointer',
+                      border: selectedYear === y ? 'none' : '1px solid #444',
+                      background: selectedYear === y ? '#fff' : 'transparent',
+                      color: selectedYear === y ? '#1a1a2e' : '#ccc',
+                      fontWeight: selectedYear === y ? 700 : 400,
+                    }}
+                  >{y}</button>
+                ))}
+                <button
+                  onClick={() => setSelectedYear('All')}
+                  style={{
+                    padding: '0.2rem 0.75rem', borderRadius: 20, fontSize: '0.8rem', cursor: 'pointer',
+                    border: selectedYear === 'All' ? 'none' : '1px solid #444',
+                    background: selectedYear === 'All' ? '#fff' : 'transparent',
+                    color: selectedYear === 'All' ? '#1a1a2e' : '#ccc',
+                    fontWeight: selectedYear === 'All' ? 700 : 400,
+                  }}
+                >All</button>
+              </div>
+            )}
             <div className={styles.breakdownGrid}>
               {[
-                { key: 'tournament', label: 'Tournament', count: eventCounts.tournaments, events: eventCounts.tournamentList },
-                { key: 'seminar',    label: 'Seminar',    count: eventCounts.seminars,    events: eventCounts.seminarList   },
-                { key: 'shinsa',     label: 'Shinsa',     count: eventCounts.shinsa,      events: eventCounts.shinsaList    },
+                { key: 'tournament', label: 'Tournament', count: filteredTournaments.length, events: filteredTournaments },
+                { key: 'seminar',    label: 'Seminar',    count: filteredSeminars.length,    events: filteredSeminars   },
+                { key: 'shinsa',     label: 'Shinsa',     count: filteredShinsa.length,      events: filteredShinsa    },
               ].map(({ key, label, count, events }) => (
                 <div
                   key={key}
@@ -305,11 +347,15 @@ export default function Profile() {
         {achievements.length > 0 && (
           <div className={styles.eventsCard}>
             <div className={styles.eventsHeader}>
-              <span className={styles.eventsTitle}>Tournament Achievements</span>
-              <span className={styles.eventsTotal}>{achievements.length} placement{achievements.length !== 1 ? 's' : ''}</span>
+              <span className={styles.eventsTitle}>
+                Tournament Achievements{selectedYear !== 'All' ? ` — ${selectedYear}` : ''}
+              </span>
+              <span className={styles.eventsTotal}>{filteredAchievements.length} placement{filteredAchievements.length !== 1 ? 's' : ''}</span>
             </div>
             <div className={styles.achievementsList}>
-              {achievements.map(r => (
+              {filteredAchievements.length === 0
+                ? <p style={{ color: '#666', fontSize: '0.875rem', margin: 0 }}>No placements for {selectedYear}.</p>
+                : filteredAchievements.map(r => (
                 <div key={r.result_id} className={styles.achievementRow}>
                   <span
                     className={styles.placementBadge}
@@ -335,6 +381,7 @@ export default function Profile() {
             </div>
           </div>
         )}
+
 
       </div>
     </div>
