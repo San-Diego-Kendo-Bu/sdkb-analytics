@@ -9,17 +9,17 @@ export interface Stage {
   userPoolClientId: string;
 }
 
-const ALPHA: Stage = {
-  name: 'alpha',
-  env: {
-    account: '222575804757',
-    region: 'us-west-2',
-  },
-  membersTableArn: 'arn:aws:dynamodb:us-west-2:222575804757:table/members',
-  configTableArn: 'arn:aws:dynamodb:us-west-2:222575804757:table/appConfigs',
-  userPoolId: 'us-west-2_vzaw67ddt',
-  userPoolClientId: '16jp8lcjkdia9d0a640jkgch76',
-}
+// const ALPHA: Stage = {
+//   name: 'alpha',
+//   env: {
+//     account: '222575804757',
+//     region: 'us-west-2',
+//   },
+//   membersTableArn: 'arn:aws:dynamodb:us-west-2:222575804757:table/members',
+//   configTableArn: 'arn:aws:dynamodb:us-west-2:222575804757:table/appConfigs',
+//   userPoolId: 'us-west-2_vzaw67ddt',
+//   userPoolClientId: '16jp8lcjkdia9d0a640jkgch76',
+// }
 
 const BETA: Stage = {
   name: 'beta',
@@ -33,4 +33,4 @@ const BETA: Stage = {
   userPoolClientId: '7uqje135h2m1tu0t1j2bdasgq3',
 }
 
-export const STAGES = [ALPHA, BETA];
+export const STAGES = [BETA];

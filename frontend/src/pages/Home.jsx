@@ -153,9 +153,9 @@ export default function App() {
             className='navbar-brand'
             href='#'
             onClick={(e) => { e.preventDefault(); setActiveTab(isSignedIn ? 'Overview' : 'Nafudakake'); }}
-            style={{ color: '#1a1a2e', fontWeight: 700, fontSize: '1.1rem' }}
+            style={{ padding: 0 }}
           >
-            SDKB Portal
+            <img src='/assets/icons/SDKB-logo.png' alt='SDKB' style={{ height: 42, width: 'auto', display: 'block' }} />
           </a>
           <button
             className='navbar-toggler'
