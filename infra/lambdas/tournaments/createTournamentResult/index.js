@@ -24,13 +24,11 @@ exports.handler = async (event) => {
         }
 
         const eventDate = new Date(eventRes.rows[0].event_date);
-        const now = new Date();
-        const daysSince = (now - eventDate) / (1000 * 60 * 60 * 24);
-        if (daysSince < 0 || daysSince > 7) {
+        if (eventDate > new Date()) {
             return {
                 statusCode: 403,
                 headers: HEADERS,
-                body: JSON.stringify({ error: "Recording window has closed (7 days after tournament)" })
+                body: JSON.stringify({ error: "Cannot record results for a future tournament" })
             };
         }
 
