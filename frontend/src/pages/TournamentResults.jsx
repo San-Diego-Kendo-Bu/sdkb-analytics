@@ -93,13 +93,6 @@ function placementColor(p) {
   return PLACEMENT_COLORS[p] ?? '#aaa';
 }
 
-function isWithinWindow(eventDate) {
-  const date = new Date(eventDate);
-  const now = new Date();
-  const daysSince = (now - date) / (1000 * 60 * 60 * 24);
-  return daysSince >= 0 && daysSince <= 7;
-}
-
 export default function TournamentResults() {
   const [tab, setTab] = useState('record');
   const [events, setEvents] = useState([]);
@@ -123,8 +116,7 @@ export default function TournamentResults() {
 
   if (loading) return <div style={S.page}><p>Loading...</p></div>;
 
-  const windowEvents = events.filter(e => isWithinWindow(e.event_date));
-  const historyEvents = events.filter(e => !isWithinWindow(e.event_date) && new Date(e.event_date) < new Date());
+  const pastEvents = events.filter(e => e.event_date && new Date(e.event_date) <= new Date());
 
   return (
     <div style={S.page}>
@@ -135,14 +127,14 @@ export default function TournamentResults() {
       </div>
 
       {tab === 'record'
-        ? <RecordTab windowEvents={windowEvents} members={members} />
-        : <HistoryTab historyEvents={historyEvents} />
+        ? <RecordTab pastEvents={pastEvents} members={members} />
+        : <HistoryTab historyEvents={pastEvents} />
       }
     </div>
   );
 }
 
-function RecordTab({ windowEvents, members }) {
+function RecordTab({ pastEvents, members }) {
   const [selectedEventId, setSelectedEventId] = useState('');
   const [divisions, setDivisions] = useState([]);
   const [existingResults, setExistingResults] = useState([]);
@@ -260,10 +252,10 @@ function RecordTab({ windowEvents, members }) {
     setSaving(false);
   }
 
-  if (windowEvents.length === 0) {
+  if (pastEvents.length === 0) {
     return (
       <div style={S.card}>
-        <p style={S.emptyText}>No tournaments within the 7-day recording window.</p>
+        <p style={S.emptyText}>No past tournaments found.</p>
       </div>
     );
   }
@@ -276,7 +268,7 @@ function RecordTab({ windowEvents, members }) {
         <label style={S.label}>Tournament</label>
         <select style={S.select} value={selectedEventId} onChange={handleEventChange}>
           <option value="">— Select a tournament —</option>
-          {windowEvents.map(e => (
+          {pastEvents.map(e => (
             <option key={e.event_id} value={e.event_id}>
               {e.event_name} ({new Date(e.event_date).toLocaleDateString('en-US', { timeZone: 'UTC' })})
             </option>
