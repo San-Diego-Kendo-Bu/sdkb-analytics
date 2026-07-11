@@ -130,8 +130,8 @@ exports.handler = async (event) => {
         return { statusCode: 500, body: "Internal error" };
     }
 
-    const stripeKey = secretObj.STRIPE_TEST_SECRET_KEY;
-    const webhookSecret = secretObj.STRIPE_WEBHOOK_SECRET;
+    const stripeKey = secretObj.STRIPE_PROD_SECRET_KEY;
+    const webhookSecret = secretObj.STRIPE_PROD_WEBHOOK_SECRET;
 
     if (!webhookSecret) {
         console.error("STRIPE_WEBHOOK_SECRET not found in secret");

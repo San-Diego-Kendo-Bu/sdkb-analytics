@@ -78,8 +78,8 @@ exports.handler = async (event) => {
             getSecretValue(PK_SECRET_ID),
         ]);
 
-        const stripe = new Stripe(secretObj.STRIPE_TEST_SECRET_KEY);
-        const publishableKey = pkObj.STRIPE_TEST_PUBLISHABLE_KEY;
+        const stripe = new Stripe(secretObj.STRIPE_PROD_SECRET_KEY);
+        const publishableKey = pkObj.STRIPE_PROD_PUBLISHABLE_KEY;
 
         const intent = await stripe.paymentIntents.create({
             amount: amountCents,

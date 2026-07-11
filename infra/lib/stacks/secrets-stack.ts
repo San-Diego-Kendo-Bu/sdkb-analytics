@@ -14,10 +14,10 @@ export class SecretsStack extends Stack {
     super(scope, id, props);
 
     this.stripeSecret = Secret.fromSecretNameV2(
-      this, "StripeSecret", "test/stripe"
+      this, "StripeSecret", "prod/stripe"
     );
     this.stripeSecret_pk = Secret.fromSecretNameV2(
-      this, "StripeSecretPK", "test/stripe-pk"
+      this, "StripeSecretPK", "prod/stripe"
     );
     this.gmailSecret = Secret.fromSecretNameV2(
       this, "GmailSecret", "club/gmail"
