@@ -34,13 +34,13 @@ function AdminControl(){
 
     return (
         <div>
-            <div style={{ background: '#1a1a2e', padding: '0.75rem 2%' }}>
+            <div style={{ background: 'var(--bg-secondary)', padding: '0.75rem 2%', borderBottom: '1px solid var(--border)' }}>
                 <button
                     onClick={() => setPage("Dashboard")}
                     style={{
                         background: 'transparent',
-                        border: '1px solid #555',
-                        color: '#ccc',
+                        border: '1px solid var(--border-btn)',
+                        color: 'var(--text-secondary)',
                         borderRadius: '6px',
                         padding: '0.3rem 0.9rem',
                         cursor: 'pointer',

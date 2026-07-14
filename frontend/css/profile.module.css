@@ -1,6 +1,6 @@
 .page {
   min-height: 100vh;
-  background: #1a1a2e;
+  background: var(--bg-primary);
   padding: 2rem 1rem;
 }
 
@@ -12,10 +12,9 @@
   gap: 1.25rem;
 }
 
-/* ---- Header card ---- */
 .headerCard {
-  background: #22223a;
-  border: 1px solid #2e2e50;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
   border-radius: 12px;
   padding: 1.5rem;
   display: flex;
@@ -37,103 +36,62 @@
   flex-shrink: 0;
 }
 
-.nameBlock {
-  display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
-}
+.nameBlock { display: flex; flex-direction: column; gap: 0.2rem; }
 
-.fullName {
-  font-size: 1.3rem;
-  font-weight: 700;
-  color: #e8e8f0;
-}
+.fullName { font-size: 1.3rem; font-weight: 700; color: var(--text-body); }
 
-.zekken {
-  font-size: 1rem;
-  color: #87CEEB;
-  letter-spacing: 0.05em;
-}
+.zekken { font-size: 1rem; color: #87CEEB; letter-spacing: 0.05em; }
 
-/* ---- Info grid ---- */
 .infoCard {
-  background: #22223a;
-  border: 1px solid #2e2e50;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
   border-radius: 12px;
   padding: 1.25rem 1.5rem;
 }
 
-.infoGrid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1rem 1.5rem;
-}
+.infoGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem 1.5rem; }
 
-.infoItem {
-  display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
-}
+.infoItem { display: flex; flex-direction: column; gap: 0.2rem; }
 
 .infoLabel {
   font-size: 0.7rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: #6b6b9a;
+  color: var(--text-dim);
 }
 
-.infoValue {
-  font-size: 0.95rem;
-  color: #e8e8f0;
-}
+.infoValue { font-size: 0.95rem; color: var(--text-body); }
 
-.birthdayRow {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
+.birthdayRow { display: flex; align-items: center; gap: 0.5rem; }
 
 .editBtn {
   background: transparent;
-  border: 1px solid #3e3e5e;
-  color: #6b6b9a;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
   border-radius: 4px;
   padding: 0.1rem 0.5rem;
   font-size: 0.72rem;
   cursor: pointer;
 }
 
-.editBtn:hover {
-  border-color: #87ceeb;
-  color: #87ceeb;
-}
+.editBtn:hover { border-color: #87ceeb; color: #87ceeb; }
 
-.birthdayEdit {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-}
+.birthdayEdit { display: flex; flex-direction: column; gap: 0.35rem; }
 
 .birthdayInput {
-  background: #1a1a2e;
-  border: 1px solid #3e3e5e;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
   border-radius: 5px;
-  color: #e8e8f0;
+  color: var(--text-body);
   padding: 0.3rem 0.5rem;
   font-size: 0.85rem;
   width: 100%;
 }
 
-.birthdayInput:focus {
-  outline: none;
-  border-color: #87ceeb;
-}
+.birthdayInput:focus { outline: none; border-color: #87ceeb; }
 
-.birthdayActions {
-  display: flex;
-  gap: 0.4rem;
-}
+.birthdayActions { display: flex; gap: 0.4rem; }
 
 .saveSmallBtn {
   background: #87ceeb;
@@ -148,18 +106,15 @@
 
 .cancelSmallBtn {
   background: transparent;
-  border: 1px solid #3e3e5e;
-  color: #6b6b9a;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
   border-radius: 4px;
   padding: 0.2rem 0.65rem;
   font-size: 0.78rem;
   cursor: pointer;
 }
 
-.birthdayError {
-  font-size: 0.75rem;
-  color: #dc3545;
-}
+.birthdayError { font-size: 0.75rem; color: #dc3545; }
 
 .statusBadge {
   display: inline-block;
@@ -170,10 +125,9 @@
   text-transform: capitalize;
 }
 
-/* ---- Events card ---- */
 .eventsCard {
-  background: #22223a;
-  border: 1px solid #2e2e50;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
   border-radius: 12px;
   padding: 1.25rem 1.5rem;
 }
@@ -190,27 +144,19 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: #6b6b9a;
+  color: var(--text-dim);
 }
 
-.eventsTotal {
-  font-size: 0.9rem;
-  color: #87CEEB;
-  font-weight: 600;
-}
+.eventsTotal { font-size: 0.9rem; color: #87CEEB; font-weight: 600; }
 
-.breakdownGrid {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 0.75rem;
-}
+.breakdownGrid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.75rem; }
 
 .breakdownItem {
-  background: #1a1a2e;
+  background: var(--bg-primary);
   border-radius: 8px;
   padding: 0.85rem 0.75rem;
   text-align: center;
-  border: 1px solid #2e2e50;
+  border: 1px solid var(--border-subtle);
   position: relative;
   cursor: default;
 }
@@ -220,8 +166,8 @@
   bottom: calc(100% + 8px);
   left: 50%;
   transform: translateX(-50%);
-  background: #2a2a3e;
-  border: 1px solid #3e3e5e;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
   border-radius: 8px;
   padding: 0.5rem 0.75rem;
   min-width: 180px;
@@ -239,7 +185,7 @@
   left: 50%;
   transform: translateX(-50%);
   border: 6px solid transparent;
-  border-top-color: #3e3e5e;
+  border-top-color: var(--border);
 }
 
 .tooltipRow {
@@ -250,40 +196,22 @@
   padding: 0.2rem 0;
 }
 
-.tooltipRow + .tooltipRow {
-  border-top: 1px solid #33334a;
-}
+.tooltipRow + .tooltipRow { border-top: 1px solid var(--border); }
 
-.tooltipName {
-  font-size: 0.8rem;
-  color: #e8e8f0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
+.tooltipName { font-size: 0.8rem; color: var(--text-body); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-.tooltipDate {
-  font-size: 0.75rem;
-  color: #6b6b9a;
-  white-space: nowrap;
-  flex-shrink: 0;
-}
+.tooltipDate { font-size: 0.75rem; color: var(--text-dim); white-space: nowrap; flex-shrink: 0; }
 
 .tooltipMore {
   font-size: 0.75rem;
-  color: #6b6b9a;
+  color: var(--text-dim);
   text-align: center;
   padding-top: 0.3rem;
   margin-top: 0.2rem;
-  border-top: 1px solid #33334a;
+  border-top: 1px solid var(--border);
 }
 
-.breakdownCount {
-  font-size: 1.75rem;
-  font-weight: 700;
-  color: #e8e8f0;
-  line-height: 1;
-}
+.breakdownCount { font-size: 1.75rem; font-weight: 700; color: var(--text-body); line-height: 1; }
 
 .breakdownLabel {
   font-size: 0.7rem;
@@ -293,21 +221,16 @@
   margin-top: 0.35rem;
 }
 
-/* ---- Achievements ---- */
-.achievementsList {
-  display: flex;
-  flex-direction: column;
-  gap: 0.6rem;
-}
+.achievementsList { display: flex; flex-direction: column; gap: 0.6rem; }
 
 .achievementRow {
   display: flex;
   align-items: center;
   gap: 0.85rem;
-  background: #1a1a2e;
+  background: var(--bg-primary);
   border-radius: 8px;
   padding: 0.65rem 0.85rem;
-  border: 1px solid #2e2e50;
+  border: 1px solid var(--border-subtle);
 }
 
 .placementBadge {
@@ -319,35 +242,14 @@
   flex-shrink: 0;
 }
 
-.achievementInfo {
-  display: flex;
-  flex-direction: column;
-  gap: 0.15rem;
-  min-width: 0;
-}
+.achievementInfo { display: flex; flex-direction: column; gap: 0.15rem; min-width: 0; }
 
-.achievementEvent {
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: #e8e8f0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
+.achievementEvent { font-size: 0.9rem; font-weight: 600; color: var(--text-body); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-.achievementMeta {
-  font-size: 0.75rem;
-  color: #6b6b9a;
-}
+.achievementMeta { font-size: 0.75rem; color: var(--text-dim); }
 
-.loading {
-  color: #6b6b9a;
-  text-align: center;
-  padding: 3rem 0;
-}
+.loading { color: var(--text-dim); text-align: center; padding: 3rem 0; }
 
 @media (max-width: 600px) {
-  .infoGrid {
-    grid-template-columns: 1fr;
-  }
+  .infoGrid { grid-template-columns: 1fr; }
 }

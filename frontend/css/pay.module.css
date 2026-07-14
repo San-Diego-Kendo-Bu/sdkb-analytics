@@ -1,75 +1,37 @@
 .page {
   padding: 2%;
-  background: #1a1a2e;
+  background: var(--bg-primary);
   min-height: 100vh;
-  color: #fff;
+  color: var(--text-primary);
 }
 
-.container {
-  max-width: 700px;
-  margin: 0 auto;
-}
+.container { max-width: 700px; margin: 0 auto; }
 
-.heading {
-  font-size: 1.6rem;
-  font-weight: 700;
-  margin: 0 0 1.25rem 0;
-  color: #fff;
-}
+.heading { font-size: 1.6rem; font-weight: 700; margin: 0 0 1.25rem 0; color: var(--text-primary); }
 
 .card {
-  background: #2a2a3e;
-  border: 1px solid #3a3a52;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
   border-radius: 8px;
   padding: 20px 24px;
   margin-bottom: 16px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-  color: #fff;
+  color: var(--text-primary);
 }
 
-.cardInfo {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  flex-wrap: wrap;
-  margin-bottom: 8px;
-}
+.cardInfo { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 8px; }
 
-.cardInfo strong {
-  flex: 1 1 auto;
-  font-size: 1rem;
-  color: #fff;
-}
+.cardInfo strong { flex: 1 1 auto; font-size: 1rem; color: var(--text-primary); }
 
-.amountRow {
-  display: flex;
-  align-items: baseline;
-  gap: 12px;
-  flex-wrap: wrap;
-  margin-bottom: 12px;
-}
+.amountRow { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
 
-.amount {
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: #75b798;
-}
+.amount { font-size: 1.1rem; font-weight: 600; color: #75b798; }
 
-.totalAmount {
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: #f5a8a8;
-}
+.totalAmount { font-size: 1.25rem; font-weight: 700; color: #f5a8a8; }
 
-.amountBreakdown {
-  font-size: 0.8rem;
-  color: #888;
-}
+.amountBreakdown { font-size: 0.8rem; color: var(--text-muted); }
 
-.due {
-  font-size: 0.875rem;
-  color: #888;
-}
+.due { font-size: 0.875rem; color: var(--text-muted); }
 
 .status {
   font-size: 0.75rem;
@@ -81,10 +43,7 @@
   color: #75b798;
 }
 
-.overdue {
-  background: #2a0e0e;
-  color: #f5a8a8;
-}
+.overdue { background: #2a0e0e; color: #f5a8a8; }
 
 .payBtn {
   background-color: #0d6efd;
@@ -97,33 +56,20 @@
   transition: background-color 0.15s;
 }
 
-.payBtn:hover:not(:disabled) {
-  background-color: #0b5ed7;
-}
+.payBtn:hover:not(:disabled) { background-color: #0b5ed7; }
+.payBtn:disabled { opacity: 0.65; cursor: not-allowed; }
 
-.payBtn:disabled {
-  opacity: 0.65;
-  cursor: not-allowed;
-}
-
-.stripeForm {
-  border-top: 1px solid #3a3a52;
-  padding-top: 16px;
-}
+.stripeForm { border-top: 1px solid var(--border); padding-top: 16px; }
 
 .cardElementWrapper {
-  border: 1px solid #3a3a52;
+  border: 1px solid var(--border);
   border-radius: 6px;
   padding: 12px 14px;
   margin-bottom: 12px;
-  background: #1e1e32;
+  background: var(--bg-tertiary);
 }
 
-.formActions {
-  display: flex;
-  gap: 10px;
-  margin-top: 12px;
-}
+.formActions { display: flex; gap: 10px; margin-top: 12px; }
 
 .confirmBtn {
   background-color: #157347;
@@ -136,100 +82,64 @@
   transition: background-color 0.15s;
 }
 
-.confirmBtn:hover:not(:disabled) {
-  background-color: #125f3a;
-}
-
-.confirmBtn:disabled {
-  opacity: 0.65;
-  cursor: not-allowed;
-}
+.confirmBtn:hover:not(:disabled) { background-color: #125f3a; }
+.confirmBtn:disabled { opacity: 0.65; cursor: not-allowed; }
 
 .cancelBtn {
   background-color: transparent;
-  color: #ccc;
-  border: 1px solid #555;
+  color: var(--text-secondary);
+  border: 1px solid var(--border-btn);
   border-radius: 6px;
   padding: 8px 20px;
   font-size: 0.9rem;
   cursor: pointer;
 }
 
-.cancelBtn:hover:not(:disabled) {
-  background-color: #1e1e32;
-  border-color: #aaa;
-  color: #fff;
-}
+.cancelBtn:hover:not(:disabled) { background-color: var(--bg-tertiary); border-color: var(--text-muted); color: var(--text-primary); }
+.cancelBtn:disabled { opacity: 0.65; cursor: not-allowed; }
 
-.cancelBtn:disabled {
-  opacity: 0.65;
-  cursor: not-allowed;
-}
-
-.fieldError {
-  color: #f5a8a8;
-  font-size: 0.85rem;
-  margin-top: 6px;
-}
+.fieldError { color: #f5a8a8; font-size: 0.85rem; margin-top: 6px; }
 
 .emptyCard {
-  background: #2a2a3e;
-  border: 1px solid #3a3a52;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
   border-radius: 8px;
   padding: 2rem;
   text-align: center;
-  color: #888;
+  color: var(--text-muted);
   margin-bottom: 16px;
 }
 
-.loadingText {
-  color: #888;
-  padding: 1rem 0;
-}
+.loadingText { color: var(--text-muted); padding: 1rem 0; }
+.loadingInline { color: var(--text-muted); margin-bottom: 0; font-size: 0.9rem; }
 
-.loadingInline {
-  color: #888;
-  margin-bottom: 0;
-  font-size: 0.9rem;
-}
-
-.completedSection {
-  margin-top: 2rem;
-  border: 1px solid #3a3a52;
-  border-radius: 8px;
-  overflow: hidden;
-}
+.completedSection { margin-top: 2rem; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
 
 .completedToggle {
   width: 100%;
-  background: #1e1e32;
+  background: var(--bg-tertiary);
   border: none;
   padding: 12px 20px;
   text-align: left;
   font-size: 0.95rem;
   font-weight: 600;
-  color: #fff;
+  color: var(--text-primary);
   cursor: pointer;
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.completedToggle:hover {
-  background: #2a2a3e;
-}
+.completedToggle:hover { background: var(--bg-secondary); }
 
-.completedBody {
-  padding: 16px 20px;
-  border-top: 1px solid #3a3a52;
-}
+.completedBody { padding: 16px 20px; border-top: 1px solid var(--border); }
 
 .completedSearch {
   width: 100%;
-  background: #1a1a2e;
-  border: 1px solid #444;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-input);
   border-radius: 6px;
-  color: #fff;
+  color: var(--text-primary);
   padding: 8px 12px;
   font-size: 0.875rem;
   margin-bottom: 12px;
@@ -237,39 +147,16 @@
   outline: none;
 }
 
-.completedSearch::placeholder {
-  color: #666;
-}
+.completedSearch::placeholder { color: var(--text-muted); }
+.completedSearch:focus { border-color: var(--border-btn); }
 
-.completedSearch:focus {
-  border-color: #666;
-}
+.completedCard { background: var(--bg-tertiary); border-radius: 6px; padding: 12px 16px; margin-bottom: 8px; color: var(--text-primary); }
 
-.completedCard {
-  background: #1e1e32;
-  border-radius: 6px;
-  padding: 12px 16px;
-  margin-bottom: 8px;
-  color: #fff;
-}
+.completedCardInfo { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
 
-.completedCardInfo {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 4px;
-}
+.completedCardInfo strong { color: var(--text-primary); }
 
-.completedCardInfo strong {
-  color: #fff;
-}
-
-.completedCardMeta {
-  display: flex;
-  gap: 8px;
-  font-size: 0.85rem;
-  color: #888;
-}
+.completedCardMeta { display: flex; gap: 8px; font-size: 0.85rem; color: var(--text-muted); }
 
 .overdueTag {
   font-size: 0.7rem;
@@ -282,49 +169,24 @@
   font-weight: 500;
 }
 
-.pagination {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-top: 12px;
-  justify-content: center;
-}
+.pagination { display: flex; align-items: center; gap: 12px; margin-top: 12px; justify-content: center; }
 
 .pageBtn {
   background: transparent;
-  border: 1px solid #444;
+  border: 1px solid var(--border-input);
   border-radius: 6px;
   padding: 6px 14px;
   font-size: 0.85rem;
   cursor: pointer;
-  color: #ccc;
+  color: var(--text-secondary);
 }
 
-.pageBtn:hover:not(:disabled) {
-  background: #1e1e32;
-  border-color: #aaa;
-  color: #fff;
-}
+.pageBtn:hover:not(:disabled) { background: var(--bg-tertiary); border-color: var(--text-muted); color: var(--text-primary); }
+.pageBtn:disabled { opacity: 0.4; cursor: not-allowed; }
 
-.pageBtn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
+.pageInfo { font-size: 0.85rem; color: var(--text-muted); min-width: 48px; text-align: center; }
 
-.pageInfo {
-  font-size: 0.85rem;
-  color: #888;
-  min-width: 48px;
-  text-align: center;
-}
-
-.emptyCompleted {
-  color: #888;
-  font-size: 0.9rem;
-  text-align: center;
-  padding: 1rem 0;
-  margin: 0;
-}
+.emptyCompleted { color: var(--text-muted); font-size: 0.9rem; text-align: center; padding: 1rem 0; margin: 0; }
 
 .toast {
   position: fixed;

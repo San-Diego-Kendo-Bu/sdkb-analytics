@@ -147,9 +147,6 @@ function EditEventForm({ form, setForm, onSave, onCancel, availablePayments = []
           <label className={styles.label}>Divisions (comma-separated)</label>
           <input className={styles.input} placeholder="e.g. kyu, yudansha" value={form.divisions}
             onChange={e => setForm(f => ({ ...f, divisions: e.target.value }))} />
-          <label className={styles.label}>Sign Up Deadline</label>
-          <input className={styles.input} type="datetime-local" value={form.event_deadline}
-            onChange={e => setForm(f => ({ ...f, event_deadline: e.target.value }))} />
           <label className={styles.label}>
             <input type="checkbox" checked={form.shinpan_needed}
               onChange={e => setForm(f => ({ ...f, shinpan_needed: e.target.checked }))} />{' '}
@@ -231,7 +228,7 @@ function Events() {
         const evs = data.body.map(e => ({
           event_id: e.event_id,
           title: e.event_name,
-          description: '',
+          description: e.description ?? '',
           start_datetime: e.event_date,
           end_datetime: e.event_deadline,
           location: e.event_location,
@@ -305,6 +302,7 @@ function Events() {
     }
     const payload = {
       event_name: newForm.title,
+      description: newForm.description || null,
       event_type: newForm.type,
       event_date: toIso(newForm.start_datetime),
       event_location: newForm.location,
@@ -379,6 +377,7 @@ function Events() {
     const eventPayload = {
       event_id: editingId,
       event_name: editForm.title,
+      description: editForm.description || null,
       event_type: editForm.type,
       event_date: toIso(editForm.start_datetime),
       event_deadline: toIso(editForm.end_datetime),
@@ -391,7 +390,7 @@ function Events() {
       configPayload = {
         ...configPayload,
         shinpan_needed: editForm.shinpan_needed,
-        event_deadline: toIso(editForm.event_deadline),
+        event_deadline: toIso(editForm.end_datetime),
         divisions: editForm.divisions.split(',').map(s => s.trim()).filter(Boolean),
         teams_included: editForm.teams_included,
       };

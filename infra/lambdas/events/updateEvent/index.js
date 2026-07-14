@@ -10,6 +10,7 @@ const FIELDS = [
     "event_deadline",
     "created_at",
     "event_location",
+    "description",
     "payment_id"
 ];
 const DATE_FIELDS = ["event_date", "event_deadline", "created_at"];
@@ -118,15 +119,7 @@ exports.handler = async (event) => {
             UPDATE ${EVENTS_TABLE}
             SET ${setClause}
             WHERE event_id = $${updateKeys.length + 1}
-            RETURNING
-                event_id,
-                event_date,
-                event_name,
-                event_type,
-                event_deadline,
-                created_at,
-                event_location,
-                payment_id
+            RETURNING *
             `,
             values
         );

@@ -46,12 +46,27 @@ function formatDateRange(start, end, location) {
   return `${startStr} · ${timeStr} · ${location}`;
 }
 
+function calcAge(birthday) {
+  if (!birthday) return null;
+  const dob = new Date(birthday);
+  const today = new Date();
+  let age = today.getFullYear() - dob.getFullYear();
+  const m = today.getMonth() - dob.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) age--;
+  return age;
+}
+
 function SignUpForm({ ev, config, member, onSubmit, onCancel, submitting }) {
   const [division, setDivision] = useState('');
   const [doingTeams, setDoingTeams] = useState(false);
   const [shinpanning, setShinpanning] = useState(false);
   const [testingFor, setTestingFor] = useState('');
   const [divisionError, setDivisionError] = useState(false);
+  const [weightLbs, setWeightLbs] = useState('');
+  const [heightFt, setHeightFt] = useState('');
+  const [heightIn, setHeightIn] = useState('');
+
+  const age = calcAge(member?.birthday);
 
   function handleSubmit() {
     if (ev.type === 'tournament' && config?.divisions?.length > 0 && !division) {
@@ -64,6 +79,11 @@ function SignUpForm({ ev, config, member, onSubmit, onCancel, submitting }) {
       extra.division = division;
       extra.doing_teams = doingTeams;
       extra.shinpanning = shinpanning;
+      extra.weight = weightLbs ? parseFloat(weightLbs) : null;
+      extra.height = (heightFt || heightIn)
+        ? parseInt(heightFt || 0) * 12 + parseInt(heightIn || 0)
+        : null;
+      extra.age = age;
     } else if (ev.type === 'shinsa') {
       extra.testing_for = testingFor;
     }
@@ -88,6 +108,21 @@ function SignUpForm({ ev, config, member, onSubmit, onCancel, submitting }) {
           ) : (
             <input className={styles.input} placeholder="Division" value={division}
               onChange={e => setDivision(e.target.value)} />
+          )}
+          <label className={styles.label}>Weight (lbs)</label>
+          <input className={styles.input} type="number" min="0" placeholder="e.g. 150"
+            value={weightLbs} onChange={e => setWeightLbs(e.target.value)} />
+          <label className={styles.label}>Height</label>
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <input className={styles.input} type="number" min="0" max="8" placeholder="ft"
+              value={heightFt} onChange={e => setHeightFt(e.target.value)} style={{ flex: 1 }} />
+            <input className={styles.input} type="number" min="0" max="11" placeholder="in"
+              value={heightIn} onChange={e => setHeightIn(e.target.value)} style={{ flex: 1 }} />
+          </div>
+          {age !== null && (
+            <div className={styles.label} style={{ marginTop: '0.5rem' }}>
+              Age: <strong>{age}</strong>
+            </div>
           )}
           {config?.teams_included && (
             <label className={styles.label}>
@@ -172,7 +207,7 @@ function EventsSignup({ onPayNavigate }) {
         const fullData = await fullRes.json();
         const memberItem = fullData.items?.[0];
         if (memberItem) {
-          memberRankRef.current = { rank_type: memberItem.rank_type, rank_number: memberItem.rank_number };
+          memberRankRef.current = { rank_type: memberItem.rank_type, rank_number: memberItem.rank_number, birthday: memberItem.birthday ?? null };
         }
 
         const fetchReg = (path) => fetch(`${BASE_URL}${path}`)
@@ -223,6 +258,7 @@ function EventsSignup({ onPayNavigate }) {
           location: e.event_location,
           type: e.event_type,
           payment_id: e.payment_id ?? null,
+          description: e.description ?? '',
         }));
         setEvents(evs);
         return evs;
@@ -428,6 +464,7 @@ function EventsSignup({ onPayNavigate }) {
                       )}
                     </div>
                     <p className={styles.cardMeta}>{dateRange}</p>
+                    {ev.description && <p className={styles.cardDesc}>{ev.description}</p>}
                     {cfg && (
                       <div className={styles.configSection}>
                         {ev.type === 'tournament' && (<>

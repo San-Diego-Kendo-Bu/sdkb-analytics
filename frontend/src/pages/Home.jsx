@@ -63,6 +63,12 @@ export default function App() {
   const [isSignedIn, setIsSignedIn] = useState(false);
   const [pendingPaymentId, setPendingPaymentId] = useState(null);
   const [showAbout, setShowAbout] = useState(false);
+  const [isDark, setIsDark] = useState(() => localStorage.getItem('theme') !== 'light');
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+    localStorage.setItem('theme', isDark ? 'dark' : 'light');
+  }, [isDark]);
 
   useEffect(() => {
     async function checkUser() {
@@ -146,7 +152,7 @@ export default function App() {
   }, []);
 
   return (
-    <div style={{ background: '#1a1a2e', minHeight: activeTab === 'Nafudakake' ? 0 : '100vh' }}>
+    <div style={{ background: 'var(--bg-primary)', minHeight: activeTab === 'Nafudakake' ? 0 : '100vh' }}>
       <nav style={{ background: '#87CEEB', borderBottom: '1px solid #5ba8cc', padding: '0.5rem 0', marginBottom: 0 }} className='navbar navbar-expand-lg'>
         <div className='container-fluid'>
           <a
@@ -190,6 +196,11 @@ export default function App() {
             </ul>
             <div className='d-flex gap-2 align-items-center'>
               <button
+                onClick={() => setIsDark(d => !d)}
+                title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+                style={{ background: 'transparent', border: '1px solid #1a1a2e', color: '#1a1a2e', borderRadius: '50%', width: 28, height: 28, fontSize: '0.85rem', cursor: 'pointer', lineHeight: 1, padding: 0, flexShrink: 0 }}
+              >{isDark ? '☀' : '☾'}</button>
+              <button
                 onClick={() => setShowAbout(true)}
                 style={{ background: 'transparent', border: '1px solid #1a1a2e', color: '#1a1a2e', borderRadius: '50%', width: 28, height: 28, fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer', lineHeight: 1, padding: 0, flexShrink: 0 }}
               >?</button>
@@ -216,11 +227,11 @@ export default function App() {
         >
           <div
             onClick={e => e.stopPropagation()}
-            style={{ background: '#2a2a3e', borderRadius: 12, padding: '2rem', maxWidth: 480, width: '100%', color: '#e0e0e0', position: 'relative', lineHeight: 1.7 }}
+            style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: 12, padding: '2rem', maxWidth: 480, width: '100%', color: 'var(--text-body)', position: 'relative', lineHeight: 1.7 }}
           >
             <button
               onClick={() => setShowAbout(false)}
-              style={{ position: 'absolute', top: '0.75rem', right: '0.75rem', background: 'transparent', border: 'none', color: '#aaa', fontSize: '1.2rem', cursor: 'pointer' }}
+              style={{ position: 'absolute', top: '0.75rem', right: '0.75rem', background: 'transparent', border: 'none', color: 'var(--text-muted)', fontSize: '1.2rem', cursor: 'pointer' }}
             >✕</button>
             <p style={{ margin: 0, fontSize: '0.95rem' }}>
               This app was created by a group of students and full-time developers who generously volunteered their free time to give back to their former dojo, San Diego Kendo Bu. I would especially like to thank our UCSD alumni Gabe I., Rahul P., Ben L., and Aidan M. for their invaluable contributions. Whether your contributions were large or small, each of you played an important role in making this app a reality.

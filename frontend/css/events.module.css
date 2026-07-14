@@ -1,8 +1,8 @@
 .page {
   padding: 2%;
-  background-color: #1a1a2e;
+  background-color: var(--bg-primary);
   min-height: 100vh;
-  color: #fff;
+  color: var(--text-primary);
 }
 
 .header {
@@ -19,7 +19,7 @@
 }
 
 .count {
-  color: #aaa;
+  color: var(--text-muted);
   font-size: 0.9rem;
 }
 
@@ -30,21 +30,21 @@
 }
 
 .search {
-  background: #2a2a3e;
-  border: 1px solid #444;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-input);
   border-radius: 6px;
-  color: #fff;
+  color: var(--text-primary);
   padding: 0.5rem 1rem;
   font-size: 0.9rem;
   width: 260px;
 }
 
-.search::placeholder { color: #888; }
-.search:focus { outline: none; border-color: #666; }
+.search::placeholder { color: var(--text-muted); }
+.search:focus { outline: none; border-color: var(--border-btn); }
 
 .newBtn {
-  background: #fff;
-  color: #1a1a2e;
+  background: var(--btn-invert-bg);
+  color: var(--btn-invert-text);
   border: none;
   border-radius: 6px;
   padding: 0.5rem 1rem;
@@ -54,7 +54,7 @@
   white-space: nowrap;
 }
 
-.newBtn:hover { background: #ddd; }
+.newBtn:hover { opacity: 0.85; }
 
 .filters {
   display: flex;
@@ -64,28 +64,28 @@
 }
 
 .filtersLabel {
-  color: #aaa;
+  color: var(--text-muted);
   font-size: 0.9rem;
   margin-right: 0.25rem;
 }
 
 .filterBtn {
   background: transparent;
-  border: 1px solid #444;
+  border: 1px solid var(--border-input);
   border-radius: 20px;
-  color: #ccc;
+  color: var(--text-secondary);
   padding: 0.3rem 1rem;
   cursor: pointer;
   font-size: 0.85rem;
   transition: all 0.2s;
 }
 
-.filterBtn:hover { border-color: #aaa; color: #fff; }
+.filterBtn:hover { border-color: var(--text-muted); color: var(--text-primary); }
 
 .filterActive {
-  background: #fff;
-  color: #1a1a2e;
-  border-color: #fff;
+  background: var(--btn-invert-bg);
+  color: var(--btn-invert-text);
+  border-color: var(--btn-invert-bg);
   font-weight: 600;
 }
 
@@ -96,7 +96,7 @@
 }
 
 .card {
-  background: #2a2a3e;
+  background: var(--bg-secondary);
   border-radius: 10px;
   padding: 1.25rem 1.5rem;
   display: flex;
@@ -120,7 +120,7 @@
 
 .dateMonth {
   font-size: 0.75rem;
-  color: #aaa;
+  color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -149,18 +149,18 @@
   font-size: 0.75rem;
   padding: 0.2rem 0.6rem;
   border-radius: 12px;
-  background: #3a3a52;
-  color: #ccc;
+  background: var(--tag-bg);
+  color: var(--tag-text);
 }
 
 .cardDesc {
-  color: #bbb;
+  color: var(--text-secondary);
   font-size: 0.875rem;
   margin: 0 0 0.3rem 0;
 }
 
 .cardMeta {
-  color: #888;
+  color: var(--text-muted);
   font-size: 0.8rem;
   margin: 0 0 0.75rem 0;
 }
@@ -170,8 +170,8 @@
   align-items: center;
   gap: 0.5rem;
   flex-wrap: wrap;
-  background: #1a1a2e;
-  border: 1px solid #2e2e50;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-subtle);
   border-radius: 6px;
   padding: 0.45rem 0.75rem;
   margin-bottom: 0.6rem;
@@ -180,9 +180,9 @@
 
 .paymentIcon { flex-shrink: 0; }
 
-.paymentTitle { color: #ccc; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.paymentTitle { color: var(--text-secondary); flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-.paymentAmount { color: #e8e8f0; font-weight: 600; flex-shrink: 0; }
+.paymentAmount { color: var(--text-body); font-weight: 600; flex-shrink: 0; }
 
 .paidBadge {
   background: #0d3321;
@@ -213,8 +213,8 @@
 
 .editBtn {
   background: transparent;
-  border: 1px solid #555;
-  color: #ccc;
+  border: 1px solid var(--border-btn);
+  color: var(--text-secondary);
   border-radius: 6px;
   padding: 0.25rem 0.75rem;
   cursor: pointer;
@@ -222,12 +222,12 @@
   transition: border-color 0.2s, color 0.2s;
 }
 
-.editBtn:hover { border-color: #aaa; color: #fff; }
+.editBtn:hover { border-color: var(--text-muted); color: var(--text-primary); }
 
 .deleteBtn {
   background: transparent;
-  border: 1px solid #555;
-  color: #ccc;
+  border: 1px solid var(--border-btn);
+  color: var(--text-secondary);
   border-radius: 6px;
   padding: 0.25rem 0.75rem;
   cursor: pointer;
@@ -238,7 +238,7 @@
 .deleteBtn:hover { border-color: #d32f2f; color: #d32f2f; }
 
 .formBox {
-  background: #2a2a3e;
+  background: var(--bg-secondary);
   border-radius: 10px;
   padding: 1.25rem 1.5rem;
   margin-bottom: 1rem;
@@ -255,20 +255,20 @@
 }
 
 .input {
-  background: #1a1a2e;
-  border: 1px solid #444;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-input);
   border-radius: 6px;
-  color: #fff;
+  color: var(--text-primary);
   padding: 0.4rem 0.75rem;
   font-size: 0.875rem;
   width: 100%;
   box-sizing: border-box;
 }
 
-.input:focus { outline: none; border-color: #666; }
+.input:focus { outline: none; border-color: var(--border-btn); }
 
 .label {
-  color: #aaa;
+  color: var(--text-muted);
   font-size: 0.8rem;
   margin-bottom: -0.4rem;
 }
@@ -276,8 +276,8 @@
 .formActions { display: flex; gap: 0.5rem; margin-top: 0.25rem; }
 
 .saveBtn {
-  background: #fff;
-  color: #1a1a2e;
+  background: var(--btn-invert-bg);
+  color: var(--btn-invert-text);
   border: none;
   border-radius: 6px;
   padding: 0.4rem 1rem;
@@ -286,22 +286,22 @@
   font-size: 0.875rem;
 }
 
-.saveBtn:hover { background: #ddd; }
+.saveBtn:hover { opacity: 0.85; }
 
 .cancelBtn {
   background: transparent;
-  border: 1px solid #555;
-  color: #ccc;
+  border: 1px solid var(--border-btn);
+  color: var(--text-secondary);
   border-radius: 6px;
   padding: 0.4rem 1rem;
   cursor: pointer;
   font-size: 0.875rem;
 }
 
-.cancelBtn:hover { border-color: #aaa; color: #fff; }
+.cancelBtn:hover { border-color: var(--text-muted); color: var(--text-primary); }
 
 .empty {
-  color: #888;
+  color: var(--text-muted);
   text-align: center;
   padding: 3rem 0;
   font-size: 0.95rem;
@@ -313,9 +313,9 @@
   gap: 0.4rem;
   margin: 0.5rem 0 0.75rem 0;
   padding: 0.6rem 0.75rem;
-  background: #1e1e32;
+  background: var(--bg-tertiary);
   border-radius: 8px;
-  border-left: 3px solid #4a4a6a;
+  border-left: 3px solid var(--border);
 }
 
 .configRow {
@@ -326,7 +326,7 @@
 }
 
 .configLabel {
-  color: #888;
+  color: var(--text-muted);
   min-width: 80px;
   flex-shrink: 0;
 }
@@ -338,8 +338,8 @@
 }
 
 .configTag {
-  background: #3a3a52;
-  color: #ccc;
+  background: var(--tag-bg);
+  color: var(--tag-text);
   border-radius: 10px;
   padding: 0.15rem 0.55rem;
   font-size: 0.75rem;

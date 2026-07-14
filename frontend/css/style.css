@@ -1,3 +1,43 @@
+:root {
+    --bg-primary: #1a1a2e;
+    --bg-secondary: #2a2a3e;
+    --bg-tertiary: #1e1e32;
+    --bg-card: #22223a;
+    --border: #3a3a52;
+    --border-subtle: #2e2e50;
+    --border-input: #444;
+    --border-btn: #555;
+    --text-primary: #fff;
+    --text-body: #e8e8f0;
+    --text-secondary: #ccc;
+    --text-muted: #888;
+    --text-dim: #6b6b9a;
+    --tag-bg: #3a3a52;
+    --tag-text: #ccc;
+    --btn-invert-bg: #fff;
+    --btn-invert-text: #1a1a2e;
+}
+
+[data-theme="light"] {
+    --bg-primary: #f0f2f5;
+    --bg-secondary: #ffffff;
+    --bg-tertiary: #f8f9fa;
+    --bg-card: #ffffff;
+    --border: #dee2e6;
+    --border-subtle: #e9ecef;
+    --border-input: #ced4da;
+    --border-btn: #adb5bd;
+    --text-primary: #1a1a2e;
+    --text-body: #2c2c3e;
+    --text-secondary: #495057;
+    --text-muted: #6c757d;
+    --text-dim: #868e96;
+    --tag-bg: #e9ecef;
+    --tag-text: #495057;
+    --btn-invert-bg: #1a1a2e;
+    --btn-invert-text: #fff;
+}
+
 * {
     margin: 0;
     padding: 0;
@@ -7,7 +47,8 @@
 body {
     font-family: 'Arial', sans-serif;
     min-height: 100vh;
-    background-color: #1a1a2e;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
 }
 
 .top-bar{

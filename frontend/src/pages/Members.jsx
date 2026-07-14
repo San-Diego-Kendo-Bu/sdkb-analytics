@@ -43,6 +43,13 @@ function MemberModal({ selection, onClose }) {
     details.push(['Division',      reg.division    ?? '—']);
     details.push(['Shinpanning',   reg.shinpanning  ? 'Yes' : 'No']);
     details.push(['Doing Teams',   reg.doing_teams  ? 'Yes' : 'No']);
+    if (reg.weight != null) details.push(['Weight', `${reg.weight} lbs`]);
+    if (reg.height != null) {
+      const ft = Math.floor(reg.height / 12);
+      const inches = reg.height % 12;
+      details.push(['Height', `${ft}'${inches}"`]);
+    }
+    if (reg.age != null) details.push(['Age', String(reg.age)]);
   } else if (reg._type === 'shinsa') {
     details.push(['Testing For', reg.testing_for ?? '—']);
   }

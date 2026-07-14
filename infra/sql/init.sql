@@ -17,6 +17,7 @@ CREATE TABLE IF NOT EXISTS events (
     event_deadline TIMESTAMPTZ NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     event_location TEXT NOT NULL,
+    description TEXT,
     payment_id BIGINT REFERENCES payments(payment_id) ON DELETE SET NULL
 );
 
@@ -71,6 +72,9 @@ CREATE TABLE IF NOT EXISTS tournament_registrations (
     shinpanning BOOLEAN NOT NULL,
     division TEXT NOT NULL,
     doing_teams BOOLEAN NOT NULL,
+    weight NUMERIC,
+    height NUMERIC,
+    age INTEGER,
     PRIMARY KEY (event_id, member_id)
 );
 

@@ -1,16 +1,15 @@
 .container {
   padding: 2%;
-  background: #1a1a2e;
+  background: var(--bg-primary);
   min-height: 100vh;
-  color: #fff;
+  color: var(--text-primary);
 }
 
-/* ---- Tabs ---- */
 .tabs {
   display: flex;
   gap: 4px;
   margin-bottom: 20px;
-  border-bottom: 2px solid #3a3a52;
+  border-bottom: 2px solid var(--border);
   padding-bottom: 0;
 }
 
@@ -19,16 +18,14 @@
   border: none;
   padding: 8px 18px;
   font-size: 0.9rem;
-  color: #888;
+  color: var(--text-muted);
   cursor: pointer;
   border-bottom: 2px solid transparent;
   margin-bottom: -2px;
   transition: color 0.15s, border-color 0.15s;
 }
 
-.tab:hover {
-  color: #fff;
-}
+.tab:hover { color: var(--text-primary); }
 
 .activeTab {
   color: #6ea8fe;
@@ -36,7 +33,6 @@
   font-weight: 600;
 }
 
-/* ---- Event bins ---- */
 .binGrid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
@@ -47,7 +43,7 @@
   border: 1.5px solid;
   border-radius: 8px;
   overflow: hidden;
-  background: #2a2a3e;
+  background: var(--bg-secondary);
   box-shadow: 0 1px 4px rgba(0,0,0,0.3);
 }
 
@@ -69,63 +65,35 @@
   white-space: nowrap;
 }
 
-.eventName {
-  font-size: 0.9rem;
-  font-weight: 600;
-  flex: 1;
-}
+.eventName { font-size: 0.9rem; font-weight: 600; flex: 1; }
 
-.eventDate {
-  font-size: 0.78rem;
-  color: #888;
-  margin-left: auto;
-  white-space: nowrap;
-}
+.eventDate { font-size: 0.78rem; color: var(--text-muted); margin-left: auto; white-space: nowrap; }
 
-.memberList {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
+.memberList { list-style: none; margin: 0; padding: 0; }
 
 .memberRow {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 8px 14px;
-  border-top: 1px solid #3a3a52;
+  border-top: 1px solid var(--border);
   cursor: pointer;
   transition: background 0.12s;
 }
 
-.memberRow:hover {
-  background: #1e1e32;
-}
+.memberRow:hover { background: var(--bg-tertiary); }
 
-.memberName {
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: #fff;
-}
+.memberName { font-size: 0.875rem; font-weight: 500; color: var(--text-primary); }
 
-.detailHint {
-  font-size: 0.78rem;
-  color: #888;
-  text-align: right;
-}
+.detailHint { font-size: 0.78rem; color: var(--text-muted); text-align: right; }
 
-/* ---- Payment bins ---- */
-.paymentSection {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
+.paymentSection { display: flex; flex-direction: column; gap: 16px; }
 
 .paymentBin {
-  border: 1px solid #3a3a52;
+  border: 1px solid var(--border);
   border-radius: 8px;
   overflow: hidden;
-  background: #2a2a3e;
+  background: var(--bg-secondary);
   box-shadow: 0 1px 4px rgba(0,0,0,0.3);
 }
 
@@ -134,27 +102,19 @@
   align-items: center;
   gap: 12px;
   padding: 12px 16px;
-  background: #1e1e32;
-  border-bottom: 1px solid #3a3a52;
+  background: var(--bg-tertiary);
+  border-bottom: 1px solid var(--border);
   flex-wrap: wrap;
-  color: #fff;
+  color: var(--text-primary);
 }
 
-.paymentValue {
-  font-size: 1rem;
-  font-weight: 600;
-  color: #75b798;
-}
+.paymentValue { font-size: 1rem; font-weight: 600; color: #75b798; }
 
-.paymentDue {
-  font-size: 0.8rem;
-  color: #888;
-  margin-left: auto;
-}
+.paymentDue { font-size: 0.8rem; color: var(--text-muted); margin-left: auto; }
 
 .paymentGroup {
   padding: 10px 16px;
-  border-top: 1px solid #3a3a52;
+  border-top: 1px solid var(--border);
   display: flex;
   align-items: flex-start;
   gap: 10px;
@@ -172,20 +132,10 @@
   align-self: center;
 }
 
-.memberTags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
+.memberTags { display: flex; flex-wrap: wrap; gap: 6px; }
 
-.memberTag {
-  font-size: 0.8rem;
-  padding: 3px 10px;
-  border-radius: 12px;
-  font-weight: 500;
-}
+.memberTag { font-size: 0.8rem; padding: 3px 10px; border-radius: 12px; font-weight: 500; }
 
-/* ---- Modal ---- */
 .modalOverlay {
   position: fixed;
   inset: 0;
@@ -197,15 +147,15 @@
 }
 
 .modalBox {
-  background: #2a2a3e;
-  border: 1px solid #3a3a52;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
   border-radius: 10px;
   width: 100%;
   max-width: 420px;
   padding: 24px;
   box-shadow: 0 8px 32px rgba(0,0,0,0.5);
   position: relative;
-  color: #fff;
+  color: var(--text-primary);
 }
 
 .modalHeader {
@@ -215,31 +165,21 @@
   margin-bottom: 20px;
 }
 
-.modalName {
-  font-size: 1.1rem;
-  font-weight: 700;
-  color: #fff;
-}
+.modalName { font-size: 1.1rem; font-weight: 700; color: var(--text-primary); }
 
-.modalEvent {
-  font-size: 0.85rem;
-  color: #888;
-  margin-top: 2px;
-}
+.modalEvent { font-size: 0.85rem; color: var(--text-muted); margin-top: 2px; }
 
 .modalClose {
   background: none;
   border: none;
   font-size: 1rem;
-  color: #888;
+  color: var(--text-muted);
   cursor: pointer;
   line-height: 1;
   padding: 0 0 0 12px;
 }
 
-.modalClose:hover {
-  color: #fff;
-}
+.modalClose:hover { color: var(--text-primary); }
 
 .detailGrid {
   display: grid;
@@ -248,52 +188,36 @@
   margin: 0;
 }
 
-.detailKey {
-  font-size: 0.85rem;
-  color: #888;
-  font-weight: 500;
-}
+.detailKey { font-size: 0.85rem; color: var(--text-muted); font-weight: 500; }
 
-.detailVal {
-  font-size: 0.85rem;
-  font-weight: 600;
-  margin: 0;
-  color: #fff;
-}
+.detailVal { font-size: 0.85rem; font-weight: 600; margin: 0; color: var(--text-primary); }
 
-/* ---- Directory grid ---- */
 .dirHeader {
   display: grid;
   grid-template-columns: 1fr 120px 1fr 110px 90px 90px;
   padding: 0.5rem 1rem;
   font-size: 0.75rem;
-  color: #888;
+  color: var(--text-muted);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  border-bottom: 1px solid #3a3a52;
+  border-bottom: 1px solid var(--border);
 }
 
 .dirRow {
   display: grid;
   grid-template-columns: 1fr 120px 1fr 110px 90px 90px;
   padding: 0.65rem 1rem;
-  border-bottom: 1px solid #3a3a52;
+  border-bottom: 1px solid var(--border);
   font-size: 0.875rem;
   align-items: center;
   transition: background 0.12s;
 }
 
-.dirRow:hover { background: #1e1e32; }
+.dirRow:hover { background: var(--bg-tertiary); }
 
 @media (max-width: 600px) {
-  .dirHeader {
-    grid-template-columns: 1fr 90px 90px;
-  }
-  .dirRow {
-    grid-template-columns: 1fr 90px 90px;
-  }
-  .dirCellHide {
-    display: none;
-  }
+  .dirHeader { grid-template-columns: 1fr 90px 90px; }
+  .dirRow { grid-template-columns: 1fr 90px 90px; }
+  .dirCellHide { display: none; }
 }

@@ -43,6 +43,7 @@ exports.handler = async (event) => {
         const eventDate = parameters.event_date;
         const eventDeadline = parameters.event_deadline;
         const eventLocation = parameters.event_location;
+        const description = parameters.description ?? null;
         const paymentId = parameters.payment_id ? parseInt(parameters.payment_id, 10) : null;
 
         const conflict = await query(
@@ -67,18 +68,11 @@ exports.handler = async (event) => {
                 event_deadline,
                 created_at,
                 event_location,
+                description,
                 payment_id
             )
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-            RETURNING
-                event_id,
-                event_date,
-                event_name,
-                event_type,
-                event_deadline,
-                created_at,
-                event_location,
-                payment_id
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+            RETURNING *
             `,
             [
                 newEventId,
@@ -88,6 +82,7 @@ exports.handler = async (event) => {
                 eventDeadline,
                 createdAt,
                 eventLocation,
+                description,
                 paymentId,
             ]
         );

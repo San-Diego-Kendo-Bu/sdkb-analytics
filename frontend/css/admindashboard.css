@@ -1,7 +1,7 @@
 .admin-dashboard {
-  background: #1a1a2e;
+  background: var(--bg-primary);
   min-height: 100vh;
-  color: #fff;
+  color: var(--text-primary);
 }
 
 .page-header {
@@ -9,13 +9,13 @@
 }
 
 .page-header h1 {
-  color: #fff;
+  color: var(--text-primary);
   font-size: 1.6rem;
   font-weight: 700;
 }
 
 .page-header p {
-  color: #aaa;
+  color: var(--text-muted);
   font-size: 0.95rem;
   margin: 0;
 }

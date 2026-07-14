@@ -159,14 +159,9 @@ function generateSlip(frontText, backText, memberId, isAdmin) {
     const front = document.createElement('div');
     front.className = 'front';
 
-    var kanjiSize;
-    if (frontText.length <= 4) kanjiSize = 'kanjiLarge';
-    else if (frontText.length <= 12) kanjiSize = 'kanjiMed';
-    else kanjiSize = 'kanjiSmall';
-
     for (const char of frontText) {
         const span = document.createElement('span');
-        span.className = kanjiSize;
+        span.className = 'kanjiMed';
         span.textContent = char;
         front.appendChild(span);
     }
