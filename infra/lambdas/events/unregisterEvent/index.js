@@ -4,6 +4,7 @@ const { verifyMemberExists } = require("../../shared_utils/members");
 const TOURNAMENT_REGISTRATION_TABLE = "tournament_registrations";
 const SHINSA_REGISTRATION_TABLE = "shinsa_registrations";
 const SEMINAR_REGISTRATION_TABLE = "seminar_registrations";
+const SPECIAL_EVENT_REGISTRATION_TABLE = "special_event_registrations";
 
 exports.handler = async (event) => {
     try {
@@ -54,6 +55,15 @@ exports.handler = async (event) => {
             result = await query(
                 `
                 DELETE FROM ${SEMINAR_REGISTRATION_TABLE}
+                WHERE event_id = $1 AND member_id = $2
+                RETURNING event_id, member_id, registration_date
+                `,
+                [eventId, memberId]
+            );
+        } else if (configType === "special_event") {
+            result = await query(
+                `
+                DELETE FROM ${SPECIAL_EVENT_REGISTRATION_TABLE}
                 WHERE event_id = $1 AND member_id = $2
                 RETURNING event_id, member_id, registration_date
                 `,

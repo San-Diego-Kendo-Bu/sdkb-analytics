@@ -5,6 +5,7 @@ const { getCurrentTimeUTC } = require("../../shared_utils/dates");
 const TOURNAMENT_REGISTRATION_TABLE = "tournament_registrations";
 const SHINSA_REGISTRATION_TABLE = "shinsa_registrations";
 const SEMINAR_REGISTRATION_TABLE = "seminar_registrations";
+const SPECIAL_EVENT_REGISTRATION_TABLE = "special_event_registrations";
 
 exports.handler = async (event) => {
     try {
@@ -84,6 +85,19 @@ exports.handler = async (event) => {
             const result = await query(
                 `
                 INSERT INTO ${SEMINAR_REGISTRATION_TABLE} (
+                    event_id, member_id, registration_date
+                )
+                VALUES ($1, $2, $3)
+                RETURNING event_id, member_id, registration_date
+                `,
+                [eventId, memberId, registeredDate]
+            );
+            registrationData = result.rows[0];
+
+        } else if (configType === "special_event") {
+            const result = await query(
+                `
+                INSERT INTO ${SPECIAL_EVENT_REGISTRATION_TABLE} (
                     event_id, member_id, registration_date
                 )
                 VALUES ($1, $2, $3)

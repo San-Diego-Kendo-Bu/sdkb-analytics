@@ -3,6 +3,7 @@ const { query } = require("../../shared_utils/db");
 const TOURNAMENTS_TABLE = "tournaments";
 const SHINSA_TABLE = "shinsa_exams";
 const SEMINAR_TABLE = "seminars";
+const SPECIAL_EVENTS_TABLE = "special_events";
 const EVENTS_TABLE = "events";
 
 exports.handler = async (event) => {
@@ -40,12 +41,17 @@ exports.handler = async (event) => {
             );
         } else if (eventType === "shinsa") {
             configResult = await query(
-                `SELECT event_id, shinsa_levels FROM ${SHINSA_TABLE} WHERE event_id = $1 LIMIT 1`,
+                `SELECT event_id, shinsa_levels, external_signup_url FROM ${SHINSA_TABLE} WHERE event_id = $1 LIMIT 1`,
                 [eventId]
             );
         } else if (eventType === "seminar") {
             configResult = await query(
-                `SELECT event_id, seminar_guests, bring_your_lunch FROM ${SEMINAR_TABLE} WHERE event_id = $1 LIMIT 1`,
+                `SELECT event_id, seminar_guests, bring_your_lunch, external_signup_url FROM ${SEMINAR_TABLE} WHERE event_id = $1 LIMIT 1`,
+                [eventId]
+            );
+        } else if (eventType === "special_event") {
+            configResult = await query(
+                `SELECT event_id, bring_your_lunch FROM ${SPECIAL_EVENTS_TABLE} WHERE event_id = $1 LIMIT 1`,
                 [eventId]
             );
         } else {

@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS events (
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     event_location TEXT NOT NULL,
     description TEXT,
+    maps_link TEXT,
     payment_id BIGINT REFERENCES payments(payment_id) ON DELETE SET NULL
 );
 
@@ -39,6 +40,19 @@ CREATE TABLE IF NOT EXISTS seminar_registrations (
 CREATE TABLE IF NOT EXISTS seminars (
     event_id BIGINT PRIMARY KEY REFERENCES events(event_id) ON DELETE CASCADE,
     seminar_guests TEXT[] NOT NULL DEFAULT '{}',
+    bring_your_lunch BOOLEAN NOT NULL,
+    external_signup_url TEXT
+);
+
+CREATE TABLE IF NOT EXISTS special_event_registrations (
+    event_id BIGINT NOT NULL REFERENCES events(event_id) ON DELETE CASCADE,
+    member_id BIGINT NOT NULL,
+    registration_date TIMESTAMPTZ NOT NULL,
+    PRIMARY KEY (event_id, member_id)
+);
+
+CREATE TABLE IF NOT EXISTS special_events (
+    event_id BIGINT PRIMARY KEY REFERENCES events(event_id) ON DELETE CASCADE,
     bring_your_lunch BOOLEAN NOT NULL
 );
 
@@ -52,7 +66,8 @@ CREATE TABLE IF NOT EXISTS shinsa_registrations (
 
 CREATE TABLE IF NOT EXISTS shinsa_exams (
     event_id BIGINT PRIMARY KEY REFERENCES events(event_id) ON DELETE CASCADE,
-    shinsa_levels TEXT[] NOT NULL DEFAULT '{}'
+    shinsa_levels TEXT[] NOT NULL DEFAULT '{}',
+    external_signup_url TEXT
 );
 
 CREATE TABLE IF NOT EXISTS submitted_payments (

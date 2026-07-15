@@ -12,11 +12,16 @@ const REGISTER_API          = `${BASE_URL}/events/register`;
 const PAYMENTS_API          = `${BASE_URL}/payments`;
 const ASSIGNED_PAYMENTS_API = `${BASE_URL}/assignedpayments`;
 const SUBMITTED_PAYMENTS_API = `${BASE_URL}/submittedpayments`;
+const SPECIAL_EVENT_API      = `${BASE_URL}/events/specialEventRegistrations`;
 
 const STATUS_COLORS = {
   Active: '#28a745',
   Past: '#6c757d',
 };
+
+function fmtType(type) {
+  return type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+}
 
 function getStatus(start, end) {
   const now = new Date();
@@ -159,6 +164,10 @@ function SignUpForm({ ev, config, member, onSubmit, onCancel, submitting }) {
         <p className={styles.cardDesc}>Click confirm to register for this seminar.</p>
       )}
 
+      {ev.type === 'special_event' && (
+        <p className={styles.cardDesc}>Click confirm to register for this event.</p>
+      )}
+
       <div className={styles.formActions}>
         <button className={styles.saveBtn} onClick={handleSubmit} disabled={submitting}>
           {submitting ? 'Registering...' : 'Confirm'}
@@ -178,6 +187,8 @@ function EventsSignup({ onPayNavigate }) {
   const [error, setError] = useState(null);
   const [signingUpId, setSigningUpId] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const [externalClickedIds, setExternalClickedIds] = useState(new Set());
+  const [externalChecked, setExternalChecked] = useState(new Set());
   const [registeredIds, setRegisteredIds] = useState(new Set());
   const [toast, setToast] = useState(null);
   const [paymentMap, setPaymentMap] = useState({});
@@ -214,10 +225,11 @@ function EventsSignup({ onPayNavigate }) {
           .then(r => r.json())
           .catch(() => ({ body: [] }));
 
-        const [tourn, shinsa, seminar, payData, asgnData, submittedData] = await Promise.all([
+        const [tourn, shinsa, seminar, special, payData, asgnData, submittedData] = await Promise.all([
           fetchReg('/events/tournamentRegistrations'),
           fetchReg('/events/shinsaRegistrations'),
           fetchReg('/events/seminarRegistrations'),
+          fetchReg('/events/specialEventRegistrations'),
           fetch(PAYMENTS_API).then(r => r.json()).catch(() => ({ data: [] })),
           fetch(ASSIGNED_PAYMENTS_API).then(r => r.json()).catch(() => ({ data: [] })),
           fetch(SUBMITTED_PAYMENTS_API).then(r => r.json()).catch(() => ({ data: [] })),
@@ -228,6 +240,7 @@ function EventsSignup({ onPayNavigate }) {
           ...(tourn.body || []).filter(match).map(r => r.event_id),
           ...(shinsa.body || []).filter(match).map(r => r.event_id),
           ...(seminar.body || []).filter(match).map(r => r.event_id),
+          ...(special.body || []).filter(match).map(r => r.event_id),
         ]);
         setRegisteredIds(ids);
 
@@ -259,6 +272,7 @@ function EventsSignup({ onPayNavigate }) {
           type: e.event_type,
           payment_id: e.payment_id ?? null,
           description: e.description ?? '',
+          maps_link: e.maps_link ?? '',
         }));
         setEvents(evs);
         return evs;
@@ -288,7 +302,7 @@ function EventsSignup({ onPayNavigate }) {
       const matchSearch = ev.title.toLowerCase().includes(search.toLowerCase());
       return matchFilter && matchSearch;
     })
-    .sort((a, b) => new Date(b.start_datetime) - new Date(a.start_datetime));
+    .sort((a, b) => new Date(a.start_datetime) - new Date(b.start_datetime));
 
   function showToast(msg) {
     setToast(msg);
@@ -301,7 +315,13 @@ function EventsSignup({ onPayNavigate }) {
       alert('Please sign in to register for events.');
       return;
     }
-    setSigningUpId(ev.event_id);
+    const cfg = configs[ev.event_id];
+    if (cfg?.external_signup_url) {
+      window.open(cfg.external_signup_url, '_blank', 'noopener,noreferrer');
+      setExternalClickedIds(prev => new Set([...prev, ev.event_id]));
+    } else {
+      setSigningUpId(ev.event_id);
+    }
   }
 
   async function resolveMemberId() {
@@ -458,13 +478,18 @@ function EventsSignup({ onPayNavigate }) {
                     <div className={styles.cardTop}>
                       <span className={styles.cardTitle}>{ev.title}</span>
                       <span className={styles.badge} style={{ backgroundColor: STATUS_COLORS[status] }}>{status}</span>
-                      <span className={styles.typeBadge}>{ev.type}</span>
+                      <span className={styles.typeBadge}>{fmtType(ev.type)}</span>
                       {isRegistered && (
                         <span className={styles.badge} style={{ backgroundColor: '#157347' }}>Registered</span>
                       )}
                     </div>
                     <p className={styles.cardMeta}>{dateRange}</p>
                     {ev.description && <p className={styles.cardDesc}>{ev.description}</p>}
+                    {ev.maps_link && (
+                      <a href={ev.maps_link} target="_blank" rel="noopener noreferrer" className={styles.mapsLink}>
+                        📍 View on Google Maps
+                      </a>
+                    )}
                     {cfg && (
                       <div className={styles.configSection}>
                         {ev.type === 'tournament' && (<>
@@ -501,6 +526,12 @@ function EventsSignup({ onPayNavigate }) {
                             </div>
                           </div>
                         )}
+                        {(ev.type === 'seminar' || ev.type === 'special_event') && cfg.bring_your_lunch && (
+                          <div className={styles.configRow}>
+                            <span className={styles.configLabel}>Bring lunch</span>
+                            <span className={styles.configBoolTrue}>Yes</span>
+                          </div>
+                        )}
                       </div>
                     )}
                     {ev.payment_id && paymentMap[String(ev.payment_id)] && (() => {
@@ -523,10 +554,44 @@ function EventsSignup({ onPayNavigate }) {
                       );
                     })()}
                     <div className={styles.cardActions}>
-                      {status !== 'Past' && !isRegistered && (
+                      {status !== 'Past' && !isRegistered && !externalClickedIds.has(ev.event_id) && (
                         <button className={styles.signupBtn} onClick={() => handleSignUpClick(ev)}>
                           Sign Up
                         </button>
+                      )}
+                      {status !== 'Past' && !isRegistered && externalClickedIds.has(ev.event_id) && (
+                        <div className={styles.externalConfirm}>
+                          <label className={styles.externalCheckLabel}>
+                            <input
+                              type="checkbox"
+                              checked={externalChecked.has(ev.event_id)}
+                              onChange={e => setExternalChecked(prev => {
+                                const next = new Set(prev);
+                                e.target.checked ? next.add(ev.event_id) : next.delete(ev.event_id);
+                                return next;
+                              })}
+                            />
+                            {' '}I have completed sign-up on the external site
+                          </label>
+                          <div className={styles.externalActions}>
+                            <button
+                              className={styles.signupBtn}
+                              disabled={!externalChecked.has(ev.event_id)}
+                              onClick={() => setSigningUpId(ev.event_id)}
+                            >
+                              Register via Portal
+                            </button>
+                            <button
+                              className={styles.cancelBtn}
+                              onClick={() => {
+                                setExternalClickedIds(prev => { const next = new Set(prev); next.delete(ev.event_id); return next; });
+                                setExternalChecked(prev => { const next = new Set(prev); next.delete(ev.event_id); return next; });
+                              }}
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
                       )}
                       {isRegistered && (
                         <button className={styles.deleteBtn} onClick={() => handleUnregister(ev)} disabled={submitting}>

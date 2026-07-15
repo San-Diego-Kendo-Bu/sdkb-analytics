@@ -16,16 +16,21 @@ const STATUS_COLORS = {
 };
 
 const EMPTY_NEW = {
-  title: '', description: '', start_datetime: '', end_datetime: '',
+  title: '', description: '', maps_link: '', start_datetime: '', end_datetime: '',
   location: '', type: '', payment_id: '',
 };
 
 const EMPTY_EDIT = {
-  title: '', description: '', start_datetime: '', end_datetime: '',
+  title: '', description: '', maps_link: '', start_datetime: '', end_datetime: '',
   location: '', type: '', payment_id: '',
   shinpan_needed: false, event_deadline: '', divisions: '',
   teams_included: false, shinsa_levels: '', seminar_guests: '', bring_your_lunch: false,
+  external_signup_url: '',
 };
+
+function fmtType(type) {
+  return type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+}
 
 function getStatus(start, end) {
   const now = new Date();
@@ -71,6 +76,8 @@ function NewEventForm({ form, setForm, onSave, onCancel, availablePayments = [] 
         onChange={e => setForm(f => ({ ...f, title: e.target.value }))} />
       <input className={styles.input} placeholder="Description" value={form.description}
         onChange={e => setForm(f => ({ ...f, description: e.target.value }))} />
+      <input className={styles.input} placeholder="Google Maps link (optional)" value={form.maps_link}
+        onChange={e => setForm(f => ({ ...f, maps_link: e.target.value }))} />
       <label className={styles.label}>Event Date</label>
       <input className={styles.input} type="datetime-local" value={form.start_datetime}
         onChange={e => setForm(f => ({ ...f, start_datetime: e.target.value }))} />
@@ -85,6 +92,7 @@ function NewEventForm({ form, setForm, onSave, onCancel, availablePayments = [] 
         <option value="tournament">Tournament</option>
         <option value="shinsa">Shinsa</option>
         <option value="seminar">Seminar</option>
+        <option value="special_event">Special Event</option>
       </select>
       <label className={styles.label}>Payment</label>
       <select className={styles.input} value={form.payment_id}
@@ -114,6 +122,8 @@ function EditEventForm({ form, setForm, onSave, onCancel, availablePayments = []
         onChange={e => setForm(f => ({ ...f, title: e.target.value }))} />
       <input className={styles.input} placeholder="Description" value={form.description}
         onChange={e => setForm(f => ({ ...f, description: e.target.value }))} />
+      <input className={styles.input} placeholder="Google Maps link (optional)" value={form.maps_link}
+        onChange={e => setForm(f => ({ ...f, maps_link: e.target.value }))} />
       <label className={styles.label}>Event Date</label>
       <input className={styles.input} type="datetime-local" value={form.start_datetime}
         onChange={e => setForm(f => ({ ...f, start_datetime: e.target.value }))} />
@@ -122,12 +132,11 @@ function EditEventForm({ form, setForm, onSave, onCancel, availablePayments = []
         onChange={e => setForm(f => ({ ...f, end_datetime: e.target.value }))} />
       <input className={styles.input} placeholder="Location" value={form.location}
         onChange={e => setForm(f => ({ ...f, location: e.target.value }))} />
-      <select className={styles.input} value={form.type}
-        onChange={e => setForm(f => ({ ...f, type: e.target.value }))}>
-        <option value="">Select type</option>
+      <select className={styles.input} value={form.type} disabled style={{ opacity: 0.6, cursor: 'not-allowed' }}>
         <option value="tournament">Tournament</option>
         <option value="shinsa">Shinsa</option>
         <option value="seminar">Seminar</option>
+        <option value="special_event">Special Event</option>
       </select>
       <label className={styles.label}>Payment</label>
       <select className={styles.input} value={form.payment_id}
@@ -166,6 +175,9 @@ function EditEventForm({ form, setForm, onSave, onCancel, availablePayments = []
           <label className={styles.label}>Shinsa Levels (comma-separated)</label>
           <input className={styles.input} placeholder="e.g. 1dan, 2dan" value={form.shinsa_levels}
             onChange={e => setForm(f => ({ ...f, shinsa_levels: e.target.value }))} />
+          <label className={styles.label}>External Sign-Up URL (optional)</label>
+          <input className={styles.input} placeholder="https://..." value={form.external_signup_url}
+            onChange={e => setForm(f => ({ ...f, external_signup_url: e.target.value }))} />
           <label className={styles.label}>
             <input type="checkbox" checked={form.shinpan_needed}
               onChange={e => setForm(f => ({ ...f, shinpan_needed: e.target.checked }))} />{' '}
@@ -180,6 +192,20 @@ function EditEventForm({ form, setForm, onSave, onCancel, availablePayments = []
           <label className={styles.label}>Seminar Guests (comma-separated)</label>
           <input className={styles.input} placeholder="e.g. ariga, kunimoto" value={form.seminar_guests}
             onChange={e => setForm(f => ({ ...f, seminar_guests: e.target.value }))} />
+          <label className={styles.label}>External Sign-Up URL (optional)</label>
+          <input className={styles.input} placeholder="https://..." value={form.external_signup_url}
+            onChange={e => setForm(f => ({ ...f, external_signup_url: e.target.value }))} />
+          <label className={styles.label}>
+            <input type="checkbox" checked={form.bring_your_lunch}
+              onChange={e => setForm(f => ({ ...f, bring_your_lunch: e.target.checked }))} />{' '}
+            Bring your lunch
+          </label>
+        </>
+      )}
+
+      {form.type === 'special_event' && (
+        <>
+          <p className={styles.formTitle} style={{ fontSize: '0.85rem', marginTop: '0.75rem', marginBottom: 0 }}>Special Event Config</p>
           <label className={styles.label}>
             <input type="checkbox" checked={form.bring_your_lunch}
               onChange={e => setForm(f => ({ ...f, bring_your_lunch: e.target.checked }))} />{' '}
@@ -229,6 +255,7 @@ function Events() {
           event_id: e.event_id,
           title: e.event_name,
           description: e.description ?? '',
+          maps_link: e.maps_link ?? '',
           start_datetime: e.event_date,
           end_datetime: e.event_deadline,
           location: e.event_location,
@@ -265,7 +292,7 @@ function Events() {
         ev.description.toLowerCase().includes(search.toLowerCase());
       return matchFilter && matchSearch;
     })
-    .sort((a, b) => new Date(b.start_datetime) - new Date(a.start_datetime));
+    .sort((a, b) => new Date(a.start_datetime) - new Date(b.start_datetime));
 
   const linkedPaymentIds = new Set(events.map(e => e.payment_id).filter(Boolean));
   const baseAvailablePayments = payments.filter(p =>
@@ -303,6 +330,7 @@ function Events() {
     const payload = {
       event_name: newForm.title,
       description: newForm.description || null,
+      maps_link: newForm.maps_link || null,
       event_type: newForm.type,
       event_date: toIso(newForm.start_datetime),
       event_location: newForm.location,
@@ -346,18 +374,21 @@ function Events() {
           ...configFields,
           shinpan_needed: existing.shinpan_needed ?? false,
           shinsa_levels: existing.shinsa_levels?.join(', ') ?? '',
+          external_signup_url: existing.external_signup_url ?? '',
         };
       } else if (ev.type === 'seminar') {
         configFields = {
           ...configFields,
           seminar_guests: existing.seminar_guests?.join(', ') ?? '',
           bring_your_lunch: existing.bring_your_lunch ?? false,
+          external_signup_url: existing.external_signup_url ?? '',
         };
       }
     }
     setEditForm({
       title: ev.title,
       description: ev.description,
+      maps_link: ev.maps_link ?? '',
       start_datetime: toInputValue(ev.start_datetime),
       end_datetime: toInputValue(ev.end_datetime),
       location: ev.location,
@@ -378,6 +409,7 @@ function Events() {
       event_id: editingId,
       event_name: editForm.title,
       description: editForm.description || null,
+      maps_link: editForm.maps_link || null,
       event_type: editForm.type,
       event_date: toIso(editForm.start_datetime),
       event_deadline: toIso(editForm.end_datetime),
@@ -399,11 +431,18 @@ function Events() {
         ...configPayload,
         shinpan_needed: editForm.shinpan_needed,
         shinsa_levels: editForm.shinsa_levels.split(',').map(s => s.trim()).filter(Boolean),
+        external_signup_url: editForm.external_signup_url || null,
       };
     } else if (editForm.type === 'seminar') {
       configPayload = {
         ...configPayload,
         seminar_guests: editForm.seminar_guests.split(',').map(s => s.trim()).filter(Boolean),
+        bring_your_lunch: editForm.bring_your_lunch,
+        external_signup_url: editForm.external_signup_url || null,
+      };
+    } else if (editForm.type === 'special_event') {
+      configPayload = {
+        ...configPayload,
         bring_your_lunch: editForm.bring_your_lunch,
       };
     }
@@ -414,15 +453,15 @@ function Events() {
     userManager.getUser()
       .then(user => {
         const headers = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${user.id_token}` };
-        return Promise.all([
-          fetch(EVENTS_API, { method: 'PATCH', headers, body: JSON.stringify(eventPayload) }),
-          fetch(CONFIGURE_API, { method: 'POST', headers, body: JSON.stringify(configPayload) }),
-        ]);
-      })
-      .then(([evRes, cfgRes]) => {
-        if (!evRes.ok) return evRes.json().then(b => { throw new Error(b.message || b.error || `HTTP ${evRes.status}`); });
-        if (!cfgRes.ok) return cfgRes.json().then(b => { throw new Error(b.message || b.error || `HTTP ${cfgRes.status}`); });
-        return Promise.all([fetch(EVENTS_API), fetch(`${CONFIGURE_API}?event_id=${savedId}`)]);
+        return fetch(EVENTS_API, { method: 'PATCH', headers, body: JSON.stringify(eventPayload) })
+          .then(evRes => {
+            if (!evRes.ok) return evRes.json().then(b => { throw new Error(b.message || b.error || `HTTP ${evRes.status}`); });
+            return fetch(CONFIGURE_API, { method: 'POST', headers, body: JSON.stringify(configPayload) });
+          })
+          .then(cfgRes => {
+            if (!cfgRes.ok) return cfgRes.json().then(b => { throw new Error(b.message || b.error || `HTTP ${cfgRes.status}`); });
+            return Promise.all([fetch(EVENTS_API), fetch(`${CONFIGURE_API}?event_id=${savedId}`)]);
+          });
       })
       .then(([evRes, cfgRes]) => Promise.all([evRes.json(), cfgRes.json()]))
       .then(([evData, cfgData]) => {
@@ -522,10 +561,15 @@ function Events() {
                       <span className={styles.badge} style={{ backgroundColor: STATUS_COLORS[status] }}>
                         {status}
                       </span>
-                      <span className={styles.typeBadge}>{ev.type}</span>
+                      <span className={styles.typeBadge}>{fmtType(ev.type)}</span>
                     </div>
                     <p className={styles.cardDesc}>{ev.description}</p>
                     <p className={styles.cardMeta}>{dateRange}</p>
+                    {ev.maps_link && (
+                      <a href={ev.maps_link} target="_blank" rel="noopener noreferrer" className={styles.mapsLink}>
+                        📍 View on Google Maps
+                      </a>
+                    )}
                     {configs[ev.event_id] && (() => {
                       const cfg = configs[ev.event_id];
                       return (
@@ -578,6 +622,12 @@ function Events() {
                               </div>
                             )}
                           </>)}
+                          {ev.type === 'special_event' && cfg.bring_your_lunch != null && (
+                            <div className={styles.configRow}>
+                              <span className={styles.configLabel}>Bring lunch</span>
+                              <span className={cfg.bring_your_lunch ? styles.configBoolTrue : styles.configBoolFalse}>{cfg.bring_your_lunch ? 'Yes' : 'No'}</span>
+                            </div>
+                          )}
                           <div className={styles.configRow}>
                             <span className={styles.configLabel}>Payment</span>
                             {ev.payment_id ? (

@@ -11,6 +11,7 @@ const FIELDS = [
     "created_at",
     "event_location",
     "description",
+    "maps_link",
     "payment_id"
 ];
 const DATE_FIELDS = ["event_date", "event_deadline", "created_at"];

@@ -162,8 +162,18 @@
 .cardMeta {
   color: var(--text-muted);
   font-size: 0.8rem;
-  margin: 0 0 0.75rem 0;
+  margin: 0 0 0.5rem 0;
 }
+
+.mapsLink {
+  display: inline-block;
+  font-size: 0.8rem;
+  color: #6ea8fe;
+  text-decoration: none;
+  margin-bottom: 0.75rem;
+}
+
+.mapsLink:hover { text-decoration: underline; }
 
 .paymentRow {
   display: flex;
@@ -210,6 +220,12 @@
 .payNowBtn:hover { background: #0b5ed7; }
 
 .cardActions { display: flex; gap: 0.5rem; }
+
+.externalConfirm { display: flex; flex-direction: column; gap: 0.6rem; }
+
+.externalCheckLabel { display: flex; align-items: flex-start; gap: 0.5rem; font-size: 0.875rem; color: var(--text-secondary); cursor: pointer; }
+
+.externalActions { display: flex; gap: 0.5rem; }
 
 .editBtn {
   background: transparent;

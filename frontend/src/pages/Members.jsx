@@ -8,14 +8,20 @@ const EVENTS_API      = `${BASE_URL}/events`;
 const TOURNAMENT_API  = `${BASE_URL}/events/tournamentRegistrations`;
 const SHINSA_API      = `${BASE_URL}/events/shinsaRegistrations`;
 const SEMINAR_API     = `${BASE_URL}/events/seminarRegistrations`;
+const SPECIAL_API     = `${BASE_URL}/events/specialEventRegistrations`;
 const ASSIGNED_API    = `${BASE_URL}/assignedpayments`;
 const SUBMITTED_API   = `${BASE_URL}/submittedpayments`;
 const PAYMENTS_API    = `${BASE_URL}/payments`;
 
+function fmtType(type) {
+  return type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+}
+
 const TYPE_STYLE = {
-  tournament: { bg: '#1a2744', border: '#0d6efd', text: '#6ea8fe', badgeBg: '#0d6efd' },
-  shinsa:     { bg: '#2e1d0e', border: '#fd7e14', text: '#fd9843', badgeBg: '#fd7e14' },
-  seminar:    { bg: '#0e2a1a', border: '#198754', text: '#75b798', badgeBg: '#198754' },
+  tournament:    { bg: '#1a2744', border: '#0d6efd', text: '#6ea8fe', badgeBg: '#0d6efd' },
+  shinsa:        { bg: '#2e1d0e', border: '#fd7e14', text: '#fd9843', badgeBg: '#fd7e14' },
+  seminar:       { bg: '#0e2a1a', border: '#198754', text: '#75b798', badgeBg: '#198754' },
+  special_event: { bg: '#2a1a2e', border: '#9c5fc7', text: '#c99fe8', badgeBg: '#9c5fc7' },
 };
 
 function getRegSummary(r) {
@@ -73,7 +79,7 @@ function MemberModal({ selection, onClose }) {
                   marginRight: 6,
                 }}
               >
-                {reg._type}
+                {fmtType(reg._type)}
               </span>
               {event.event_name}
             </div>
@@ -134,7 +140,7 @@ function EventsTab({ bins, memberMap, onSelect }) {
                 <div key={event.event_id} className={styles.eventBin} style={{ borderColor: ts.border }}>
                   <div className={styles.eventHeader} style={{ background: ts.bg }}>
                     <span className={styles.typeBadge} style={{ background: ts.badgeBg, color: '#fff' }}>
-                      {event.event_type}
+                      {fmtType(event.event_type)}
                     </span>
                     <span className={styles.eventName} style={{ color: ts.text }}>{event.event_name}</span>
                     {event.event_date && (
@@ -465,7 +471,7 @@ export default function Members() {
     try {
       const endpoints = [
         MEMBERS_API, EVENTS_API,
-        TOURNAMENT_API, SHINSA_API, SEMINAR_API,
+        TOURNAMENT_API, SHINSA_API, SEMINAR_API, SPECIAL_API,
         ASSIGNED_API, SUBMITTED_API, PAYMENTS_API,
       ];
 
@@ -473,7 +479,7 @@ export default function Members() {
         endpoints.map(url => fetch(url).then(r => r.json()))
       );
 
-      const labels = ['members','events','tournament','shinsa','seminar','assigned','submitted','payments'];
+      const labels = ['members','events','tournament','shinsa','seminar','special','assigned','submitted','payments'];
       settled.forEach((s, i) => {
         if (s.status === 'rejected') console.error(`Members: failed to fetch ${labels[i]}:`, s.reason);
         else console.log(`Members: ${labels[i]}`, s.value);
@@ -481,20 +487,22 @@ export default function Members() {
 
       const get = i => settled[i].status === 'fulfilled' ? settled[i].value : {};
 
-      const membersData  = get(0);
-      const eventsData   = get(1);
-      const tournData    = get(2);
-      const shinsaData   = get(3);
-      const semData      = get(4);
-      const assignedData = get(5);
-      const submittedData= get(6);
-      const paymentsData = get(7);
+      const membersData   = get(0);
+      const eventsData    = get(1);
+      const tournData     = get(2);
+      const shinsaData    = get(3);
+      const semData       = get(4);
+      const specialData   = get(5);
+      const assignedData  = get(6);
+      const submittedData = get(7);
+      const paymentsData  = get(8);
 
       const members   = membersData.items   ?? [];
       const events    = eventsData.body     ?? [];
       const tourn     = tournData.body      ?? [];
       const shinsa    = shinsaData.body     ?? [];
       const seminar   = semData.body        ?? [];
+      const special   = specialData.body    ?? [];
       const assigned  = assignedData.data   ?? [];
       const submitted = submittedData.data  ?? [];
       const payments  = paymentsData.data   ?? [];
@@ -513,6 +521,7 @@ export default function Members() {
       for (const r of tourn)   regsByEventId[r.event_id]?.regs.push({ ...r, _type: 'tournament' });
       for (const r of shinsa)  regsByEventId[r.event_id]?.regs.push({ ...r, _type: 'shinsa' });
       for (const r of seminar) regsByEventId[r.event_id]?.regs.push({ ...r, _type: 'seminar' });
+      for (const r of special) regsByEventId[r.event_id]?.regs.push({ ...r, _type: 'special_event' });
 
       const eventBins = Object.values(regsByEventId).filter(b => b.regs.length > 0);
       console.log('Members: eventBins count', eventBins.length, eventBins);

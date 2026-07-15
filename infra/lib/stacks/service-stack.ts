@@ -138,6 +138,12 @@ export class ServiceStack extends Stack {
       ...commonNodejs,
     });
 
+    const getSpecialEventRegistrationsLambda = new NodejsFunction(this, "GetSpecialEventRegistrationsLambda", {
+      entry: path.join(__dirname, "../../lambdas/events/getSpecialEventRegistrations/index.js"),
+      handler: "handler",
+      ...commonNodejs,
+    });
+
     const getShinsaRegistrationsLambda = new NodejsFunction(this, "GetShinsaRegistrationsLambda", {
       entry: path.join(__dirname, "../../lambdas/events/getShinsaRegistrations/index.js"),
       handler: "handler",
@@ -337,6 +343,7 @@ export class ServiceStack extends Stack {
     props.databaseStack.grantDatabaseAccess(updateEventLambda);
     props.databaseStack.grantDatabaseAccess(removeEventLambda);
     props.databaseStack.grantDatabaseAccess(getSeminarRegistrationsLambda);
+    props.databaseStack.grantDatabaseAccess(getSpecialEventRegistrationsLambda);
     props.databaseStack.grantDatabaseAccess(getShinsaRegistrationsLambda);
     props.databaseStack.grantDatabaseAccess(getTournamentRegistrationsLambda);
     props.databaseStack.grantDatabaseAccess(registerEventLambda);
@@ -652,6 +659,11 @@ export class ServiceStack extends Stack {
       path: "/events/seminarRegistrations",
       methods: [HttpMethod.GET],
       integration: new HttpLambdaIntegration("EventsGetSeminarRegistrationsInt", getSeminarRegistrationsLambda),
+    });
+    httpApi.addRoutes({
+      path: "/events/specialEventRegistrations",
+      methods: [HttpMethod.GET],
+      integration: new HttpLambdaIntegration("EventsGetSpecialEventRegistrationsInt", getSpecialEventRegistrationsLambda),
     });
     httpApi.addRoutes({
       path: "/events",

@@ -4,6 +4,7 @@ const { normalizeGroups } = require("../../shared_utils/normalize_claim");
 const TOURNAMENTS_TABLE = "tournaments";
 const SHINSA_TABLE = "shinsa_exams";
 const SEMINAR_TABLE = "seminars";
+const SPECIAL_EVENTS_TABLE = "special_events";
 const EVENTS_TABLE = "events";
 
 exports.handler = async (event) => {
@@ -82,19 +83,22 @@ exports.handler = async (event) => {
 
         if (configType === "shinsa") {
             const shinsaLevels = parameters.shinsa_levels;
+            const externalSignupUrl = parameters.external_signup_url ?? null;
 
             const result = await query(
                 `
                 INSERT INTO ${SHINSA_TABLE} (
                     event_id,
-                    shinsa_levels
+                    shinsa_levels,
+                    external_signup_url
                 )
-                VALUES ($1, $2)
+                VALUES ($1, $2, $3)
                 ON CONFLICT (event_id) DO UPDATE SET
-                    shinsa_levels = EXCLUDED.shinsa_levels
-                RETURNING event_id, shinsa_levels
+                    shinsa_levels = EXCLUDED.shinsa_levels,
+                    external_signup_url = EXCLUDED.external_signup_url
+                RETURNING event_id, shinsa_levels, external_signup_url
                 `,
-                [eventId, shinsaLevels]
+                [eventId, shinsaLevels, externalSignupUrl]
             );
 
             return {
@@ -114,21 +118,55 @@ exports.handler = async (event) => {
         if (configType === "seminar") {
             const seminarGuests = parameters.seminar_guests;
             const bringYourLunch = parameters.bring_your_lunch;
+            const externalSignupUrl = parameters.external_signup_url ?? null;
 
             const result = await query(
                 `
                 INSERT INTO ${SEMINAR_TABLE} (
                     event_id,
                     seminar_guests,
-                    bring_your_lunch
+                    bring_your_lunch,
+                    external_signup_url
                 )
-                VALUES ($1, $2, $3)
+                VALUES ($1, $2, $3, $4)
                 ON CONFLICT (event_id) DO UPDATE SET
                     seminar_guests = EXCLUDED.seminar_guests,
-                    bring_your_lunch = EXCLUDED.bring_your_lunch
-                RETURNING event_id, seminar_guests, bring_your_lunch
+                    bring_your_lunch = EXCLUDED.bring_your_lunch,
+                    external_signup_url = EXCLUDED.external_signup_url
+                RETURNING event_id, seminar_guests, bring_your_lunch, external_signup_url
                 `,
-                [eventId, seminarGuests, bringYourLunch]
+                [eventId, seminarGuests, bringYourLunch, externalSignupUrl]
+            );
+
+            return {
+                statusCode: 200,
+                headers: {
+                    "Content-Type": "application/json",
+                    "Access-Control-Allow-Origin": "*"
+                },
+                body: JSON.stringify({
+                    message: "Configured Event Successfully",
+                    config_type: configType,
+                    data: result.rows[0],
+                })
+            };
+        }
+
+        if (configType === "special_event") {
+            const bringYourLunch = parameters.bring_your_lunch;
+
+            const result = await query(
+                `
+                INSERT INTO ${SPECIAL_EVENTS_TABLE} (
+                    event_id,
+                    bring_your_lunch
+                )
+                VALUES ($1, $2)
+                ON CONFLICT (event_id) DO UPDATE SET
+                    bring_your_lunch = EXCLUDED.bring_your_lunch
+                RETURNING event_id, bring_your_lunch
+                `,
+                [eventId, bringYourLunch]
             );
 
             return {

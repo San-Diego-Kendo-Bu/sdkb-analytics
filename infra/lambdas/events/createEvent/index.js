@@ -44,6 +44,7 @@ exports.handler = async (event) => {
         const eventDeadline = parameters.event_deadline;
         const eventLocation = parameters.event_location;
         const description = parameters.description ?? null;
+        const mapsLink = parameters.maps_link ?? null;
         const paymentId = parameters.payment_id ? parseInt(parameters.payment_id, 10) : null;
 
         const conflict = await query(
@@ -69,9 +70,10 @@ exports.handler = async (event) => {
                 created_at,
                 event_location,
                 description,
+                maps_link,
                 payment_id
             )
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
             RETURNING *
             `,
             [
@@ -83,6 +85,7 @@ exports.handler = async (event) => {
                 createdAt,
                 eventLocation,
                 description,
+                mapsLink,
                 paymentId,
             ]
         );
