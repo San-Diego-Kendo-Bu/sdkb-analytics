@@ -3,7 +3,7 @@ const { query } = require("../../shared_utils/db");
 exports.handler = async () => {
     try {
         const result = await query(
-            `SELECT announcement_id, subject, body, pdf_url, created_at
+            `SELECT announcement_id, subject, body, pdf_url, COALESCE(target, 'all') AS target, created_at
              FROM announcements
              ORDER BY created_at DESC`,
             []

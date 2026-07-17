@@ -62,7 +62,7 @@ function calcAge(birthday) {
 }
 
 function SignUpForm({ ev, config, member, onSubmit, onCancel, submitting }) {
-  const [division, setDivision] = useState('');
+  const [divisions, setDivisions] = useState([]);
   const [doingTeams, setDoingTeams] = useState(false);
   const [shinpanning, setShinpanning] = useState(false);
   const [testingFor, setTestingFor] = useState('');
@@ -73,15 +73,20 @@ function SignUpForm({ ev, config, member, onSubmit, onCancel, submitting }) {
 
   const age = calcAge(member?.birthday);
 
+  function toggleDivision(d) {
+    setDivisions(prev => prev.includes(d) ? prev.filter(x => x !== d) : [...prev, d]);
+    setDivisionError(false);
+  }
+
   function handleSubmit() {
-    if (ev.type === 'tournament' && config?.divisions?.length > 0 && !division) {
+    if (ev.type === 'tournament' && config?.divisions?.length > 0 && divisions.length === 0) {
       setDivisionError(true);
       return;
     }
     setDivisionError(false);
     const extra = {};
     if (ev.type === 'tournament') {
-      extra.division = division;
+      extra.divisions = divisions;
       extra.doing_teams = doingTeams;
       extra.shinpanning = shinpanning;
       extra.weight = weightLbs ? parseFloat(weightLbs) : null;
@@ -101,18 +106,22 @@ function SignUpForm({ ev, config, member, onSubmit, onCancel, submitting }) {
 
       {ev.type === 'tournament' && (
         <>
-          <label className={styles.label}>Division</label>
+          <label className={styles.label}>Division(s)</label>
           {config?.divisions?.length > 0 ? (
             <>
-              <select className={styles.input} value={division} onChange={e => { setDivision(e.target.value); setDivisionError(false); }}>
-                <option value="">Select division</option>
-                {config.divisions.map(d => <option key={d} value={d}>{d}</option>)}
-              </select>
-              {divisionError && <span className={styles.fieldError}>Please select a division.</span>}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', marginBottom: '0.25rem' }}>
+                {config.divisions.map(d => (
+                  <label key={d} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.875rem', color: 'var(--text-primary)' }}>
+                    <input type="checkbox" checked={divisions.includes(d)} onChange={() => toggleDivision(d)} />
+                    {d}
+                  </label>
+                ))}
+              </div>
+              {divisionError && <span className={styles.fieldError}>Please select at least one division.</span>}
             </>
           ) : (
-            <input className={styles.input} placeholder="Division" value={division}
-              onChange={e => setDivision(e.target.value)} />
+            <input className={styles.input} placeholder="Division" value={divisions[0] ?? ''}
+              onChange={e => setDivisions(e.target.value ? [e.target.value] : [])} />
           )}
           <label className={styles.label}>Weight (lbs)</label>
           <input className={styles.input} type="number" min="0" placeholder="e.g. 150"
@@ -191,6 +200,10 @@ function EventsSignup({ onPayNavigate }) {
   const [externalChecked, setExternalChecked] = useState(new Set());
   const [registeredIds, setRegisteredIds] = useState(new Set());
   const [toast, setToast] = useState(null);
+  const [viewMode, setViewMode] = useState('events');
+  const [allRegs, setAllRegs] = useState(null);
+  const [allMembersMap, setAllMembersMap] = useState({});
+  const [signupsLoading, setSignupsLoading] = useState(false);
   const [paymentMap, setPaymentMap] = useState({});
   const [assignedPaymentIds, setAssignedPaymentIds] = useState(new Set());
   const [paidPaymentIds, setPaidPaymentIds] = useState(new Set());
@@ -390,6 +403,70 @@ function EventsSignup({ onPayNavigate }) {
     }
   }
 
+  async function loadSignups() {
+    if (allRegs !== null) return;
+    setSignupsLoading(true);
+    try {
+      const [tournData, shinsaData, seminarData, specialData, membersData] = await Promise.all([
+        fetch(`${BASE_URL}/events/tournamentRegistrations`).then(r => r.json()).catch(() => ({ body: [] })),
+        fetch(`${BASE_URL}/events/shinsaRegistrations`).then(r => r.json()).catch(() => ({ body: [] })),
+        fetch(`${BASE_URL}/events/seminarRegistrations`).then(r => r.json()).catch(() => ({ body: [] })),
+        fetch(`${BASE_URL}/events/specialEventRegistrations`).then(r => r.json()).catch(() => ({ body: [] })),
+        fetch(MEMBERS_API).then(r => r.json()).catch(() => ({ items: [] })),
+      ]);
+      setAllRegs({
+        tournament: tournData.body ?? [],
+        shinsa: shinsaData.body ?? [],
+        seminar: seminarData.body ?? [],
+        special: specialData.body ?? [],
+      });
+      const map = {};
+      for (const m of (membersData.items ?? [])) map[String(m.member_id)] = m;
+      setAllMembersMap(map);
+    } catch (err) {
+      console.error('loadSignups error:', err);
+    }
+    setSignupsLoading(false);
+  }
+
+  function getEventSignups(ev) {
+    if (!allRegs) return [];
+    const eid = String(ev.event_id);
+    if (ev.type === 'tournament') {
+      return allRegs.tournament.filter(r => String(r.event_id) === eid).map(r => ({
+        member: allMembersMap[String(r.member_id)],
+        member_id: r.member_id,
+        detail: [
+          r.divisions?.length ? r.divisions.join(', ') : null,
+          r.shinpanning && 'Shinpanning',
+          r.doing_teams && 'Teams',
+        ].filter(Boolean).join(' · '),
+      }));
+    }
+    if (ev.type === 'shinsa') {
+      return allRegs.shinsa.filter(r => String(r.event_id) === eid).map(r => ({
+        member: allMembersMap[String(r.member_id)],
+        member_id: r.member_id,
+        detail: r.testing_for ? `Testing: ${r.testing_for}` : '',
+      }));
+    }
+    if (ev.type === 'seminar') {
+      return allRegs.seminar.filter(r => String(r.event_id) === eid).map(r => ({
+        member: allMembersMap[String(r.member_id)],
+        member_id: r.member_id,
+        detail: '',
+      }));
+    }
+    if (ev.type === 'special_event') {
+      return allRegs.special.filter(r => String(r.event_id) === eid).map(r => ({
+        member: allMembersMap[String(r.member_id)],
+        member_id: r.member_id,
+        detail: '',
+      }));
+    }
+    return [];
+  }
+
   async function handleUnregister(ev) {
     if (isOffHours()) { showToast(OFF_HOURS_MSG); return; }
     setSubmitting(true);
@@ -433,7 +510,23 @@ function EventsSignup({ onPayNavigate }) {
         />
       </div>
 
-      <div className={styles.filters}>
+      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
+        {[['events', 'Events'], ['signups', "Who's Signed Up"]].map(([val, label]) => (
+          <button
+            key={val}
+            onClick={() => { setViewMode(val); if (val === 'signups') loadSignups(); }}
+            style={{
+              padding: '5px 16px', borderRadius: 20, fontSize: '0.85rem', fontWeight: 600,
+              border: viewMode === val ? 'none' : '1px solid var(--border)',
+              background: viewMode === val ? '#6ea8fe' : 'transparent',
+              color: viewMode === val ? '#1a1a2e' : 'var(--text-muted)',
+              cursor: 'pointer', transition: 'all 0.12s',
+            }}
+          >{label}</button>
+        ))}
+      </div>
+
+      {viewMode === 'events' && <div className={styles.filters}>
         <span className={styles.filtersLabel}>Filter:</span>
         {['All', 'Active', 'Past'].map(f => (
           <button
@@ -442,9 +535,49 @@ function EventsSignup({ onPayNavigate }) {
             onClick={() => setFilter(f)}
           >{f}</button>
         ))}
-      </div>
+      </div>}
 
-      <div className={styles.list}>
+      {viewMode === 'signups' && (
+        <div className={styles.list}>
+          {signupsLoading && <p className={styles.empty}>Loading sign-ups...</p>}
+          {!signupsLoading && allRegs && (() => {
+            const upcomingEvents = events.filter(ev => getStatus(ev.start_datetime, ev.end_datetime) === 'Active');
+            const eventsWithSignups = upcomingEvents.map(ev => ({ ev, signups: getEventSignups(ev) })).filter(x => x.signups.length > 0);
+            if (eventsWithSignups.length === 0) return <p className={styles.empty}>No sign-ups yet.</p>;
+            return eventsWithSignups.map(({ ev, signups }) => {
+              const { day, month } = formatDateBadge(ev.start_datetime);
+              return (
+                <div key={ev.event_id} className={styles.card}>
+                  <div className={styles.dateBadge}>
+                    <span className={styles.dateDay}>{day}</span>
+                    <span className={styles.dateMonth}>{month}</span>
+                  </div>
+                  <div className={styles.cardBody}>
+                    <div className={styles.cardTop}>
+                      <span className={styles.cardTitle}>{ev.title}</span>
+                      <span className={styles.typeBadge}>{fmtType(ev.type)}</span>
+                      <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{signups.length} registered</span>
+                    </div>
+                    <ul style={{ margin: '0.5rem 0 0 0', padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                      {signups.map((s, i) => {
+                        const name = s.member ? `${s.member.first_name} ${s.member.last_name}` : `Member #${s.member_id}`;
+                        return (
+                          <li key={i} style={{ fontSize: '0.875rem', color: 'var(--text-primary)', display: 'flex', gap: '0.5rem', alignItems: 'baseline' }}>
+                            <span style={{ fontWeight: 500 }}>{name}</span>
+                            {s.detail && <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>{s.detail}</span>}
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                </div>
+              );
+            });
+          })()}
+        </div>
+      )}
+
+      {viewMode === 'events' && <div className={styles.list}>
         {loading && <p className={styles.empty}>Loading events...</p>}
         {!loading && isOffHours() && <OffHoursCard />}
         {!isOffHours() && error && <p className={styles.empty}>Error: {error}</p>}
@@ -571,7 +704,7 @@ function EventsSignup({ onPayNavigate }) {
                                 return next;
                               })}
                             />
-                            {' '}I have completed sign-up on the external site
+                            {' '}I intend on signing up on the external form
                           </label>
                           <div className={styles.externalActions}>
                             <button
@@ -579,7 +712,7 @@ function EventsSignup({ onPayNavigate }) {
                               disabled={!externalChecked.has(ev.event_id)}
                               onClick={() => setSigningUpId(ev.event_id)}
                             >
-                              Register via Portal
+                              Register my intent
                             </button>
                             <button
                               className={styles.cancelBtn}
@@ -605,7 +738,7 @@ function EventsSignup({ onPayNavigate }) {
             </div>
           );
         })}
-      </div>
+      </div>}
     </div>
   );
 }

@@ -100,9 +100,10 @@ export class DatabaseStack extends Stack {
       })
     );
 
-    new scheduler.CfnSchedule(this, "StopAtMidnightPT", {
+    // Weekdays (Mon–Fri): stop at 1 AM, start at 7 AM PT
+    new scheduler.CfnSchedule(this, "StopWeekdaysPT", {
       flexibleTimeWindow: { mode: "OFF" },
-      scheduleExpression: "cron(0 0 * * ? *)",
+      scheduleExpression: "cron(0 1 ? * MON-FRI *)",
       scheduleExpressionTimezone: "America/Los_Angeles",
       target: {
         arn: controlDbLambda.functionArn,
@@ -111,9 +112,32 @@ export class DatabaseStack extends Stack {
       },
     });
 
-    new scheduler.CfnSchedule(this, "StartAtSevenPT", {
+    new scheduler.CfnSchedule(this, "StartWeekdaysPT", {
       flexibleTimeWindow: { mode: "OFF" },
-      scheduleExpression: "cron(0 7 * * ? *)",
+      scheduleExpression: "cron(0 7 ? * MON-FRI *)",
+      scheduleExpressionTimezone: "America/Los_Angeles",
+      target: {
+        arn: controlDbLambda.functionArn,
+        roleArn: schedulerRole.roleArn,
+        input: JSON.stringify({ action: "start" }),
+      },
+    });
+
+    // Weekends (Sat–Sun): stop at 2 AM, start at 5 AM PT
+    new scheduler.CfnSchedule(this, "StopWeekendsPT", {
+      flexibleTimeWindow: { mode: "OFF" },
+      scheduleExpression: "cron(0 2 ? * SAT,SUN *)",
+      scheduleExpressionTimezone: "America/Los_Angeles",
+      target: {
+        arn: controlDbLambda.functionArn,
+        roleArn: schedulerRole.roleArn,
+        input: JSON.stringify({ action: "stop" }),
+      },
+    });
+
+    new scheduler.CfnSchedule(this, "StartWeekendsPT", {
+      flexibleTimeWindow: { mode: "OFF" },
+      scheduleExpression: "cron(0 5 ? * SAT,SUN *)",
       scheduleExpressionTimezone: "America/Los_Angeles",
       target: {
         arn: controlDbLambda.functionArn,

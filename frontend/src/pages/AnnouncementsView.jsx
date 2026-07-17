@@ -1,19 +1,20 @@
 import { useState, useEffect } from 'react';
 import { isOffHours } from '../js/offHours';
 import OffHoursCard from '../react_components/OffHoursCard';
+import { userManager } from '../js/cognitoManager';
 
 const BASE_URL = 'https://qh3c0tz6s9.execute-api.us-east-2.amazonaws.com';
 
 const COLORS = {
-  page:        '#1a1a2e',
-  card:        '#2a2a3e',
-  cardInner:   '#1e1e32',
-  border:      '#3a3a52',
-  borderLight: '#444',
-  text:        '#fff',
-  textMuted:   '#bbb',
-  textFaint:   '#888',
-  textLabel:   '#aaa',
+  page:        'var(--bg-primary)',
+  card:        'var(--bg-secondary)',
+  cardInner:   'var(--bg-tertiary)',
+  border:      'var(--border)',
+  borderLight: 'var(--border-input)',
+  text:        'var(--text-primary)',
+  textMuted:   'var(--text-secondary)',
+  textFaint:   'var(--text-muted)',
+  textLabel:   'var(--text-muted)',
 };
 
 function formatDate(iso) {
@@ -219,12 +220,36 @@ export default function AnnouncementsView() {
   const [announcements, setAnnouncements] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [canSeeSensei, setCanSeeSensei] = useState(false);
 
   useEffect(() => {
     if (isOffHours()) { setLoading(false); return; }
-    fetch(`${BASE_URL}/announcements`)
-      .then(r => r.json())
-      .then(d => setAnnouncements(d.announcements ?? []))
+
+    const accessCheck = userManager.getUser().then(async user => {
+      if (!user) return false;
+      try {
+        const email = user.profile?.email;
+        const [adminData, membersData] = await Promise.all([
+          fetch(`${BASE_URL}/admins`, { headers: { Authorization: `Bearer ${user.id_token}` } }).then(r => r.json()).catch(() => ({})),
+          fetch(`${BASE_URL}/members`).then(r => r.json()).catch(() => ({})),
+        ]);
+        if (adminData.isAdmin) return true;
+        if (email) {
+          const me = (membersData.items ?? []).find(m => m.email?.toLowerCase() === email.toLowerCase());
+          if (me) return me.rank_type === 'shihan' || (me.rank_type === 'dan' && Number(me.rank_number) >= 4);
+        }
+        return false;
+      } catch { return false; }
+    });
+
+    Promise.all([
+      fetch(`${BASE_URL}/announcements`).then(r => r.json()),
+      accessCheck,
+    ])
+      .then(([d, access]) => {
+        setCanSeeSensei(access);
+        setAnnouncements(d.announcements ?? []);
+      })
       .catch(() => setError('Failed to load announcements.'))
       .finally(() => setLoading(false));
   }, []);
@@ -240,13 +265,16 @@ export default function AnnouncementsView() {
       <p style={{ color: '#e05252' }}>{error}</p>
     </div>
   );
-  if (announcements.length === 0) return (
+
+  const visible = canSeeSensei ? announcements : announcements.filter(a => (a.target ?? 'all') === 'all');
+
+  if (visible.length === 0) return (
     <div style={{ background: COLORS.page, minHeight: '100vh', padding: '2%' }}>
       <p style={{ color: COLORS.textFaint }}>No announcements yet.</p>
     </div>
   );
 
-  const groups = groupByMonth(announcements);
+  const groups = groupByMonth(visible);
 
   return (
     <div style={{ background: COLORS.page, minHeight: '100vh', padding: '2%', color: COLORS.text }}>

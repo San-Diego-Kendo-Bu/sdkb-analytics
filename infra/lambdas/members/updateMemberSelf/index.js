@@ -6,7 +6,7 @@ const ddb = DynamoDBDocumentClient.from(client);
 const MEMBERS_TABLE = "members";
 
 // Fields a member is allowed to update on themselves
-const ALLOWED_FIELDS = new Set(['birthday']);
+const ALLOWED_FIELDS = new Set(['birthday', 'auskf_number']);
 
 exports.handler = async (event) => {
   const claims = event.requestContext?.authorizer?.jwt?.claims ?? {};

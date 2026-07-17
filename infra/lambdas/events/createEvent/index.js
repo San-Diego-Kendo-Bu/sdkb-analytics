@@ -7,6 +7,8 @@ const {
 const { query } = require("../../shared_utils/db");
 const { normalizeGroups } = require("../../shared_utils/normalize_claim");
 const { getCurrentTimeUTC } = require("../../shared_utils/dates");
+const { getAllMembers } = require("../../shared_utils/members");
+const { sendEmails } = require("../../shared_utils/mailer");
 
 const EVENTS_TABLE = "events";
 const REGION = process.env.AWS_REGION;
@@ -91,6 +93,32 @@ exports.handler = async (event) => {
         );
 
         const data = result.rows[0];
+
+        // Notify all members about the new event (non-blocking on failure)
+        try {
+            const members = await getAllMembers();
+            const emails = [...new Set(members.filter(m => m.status !== "inactive").map(m => m.email).filter(Boolean))];
+            if (emails.length > 0) {
+                const eventDateStr = new Date(eventDate).toLocaleDateString("en-US", {
+                    weekday: "long", year: "numeric", month: "long", day: "numeric",
+                });
+                const deadlineStr = new Date(eventDeadline).toLocaleDateString("en-US", {
+                    weekday: "long", year: "numeric", month: "long", day: "numeric",
+                });
+                const subject = `New Event: ${eventName}`;
+                const html = `
+<h2>${eventName}</h2>
+<p><strong>Date:</strong> ${eventDateStr}</p>
+<p><strong>Location:</strong> ${eventLocation}</p>
+<p><strong>Sign-up Deadline:</strong> ${deadlineStr}</p>
+${description ? `<p>${description}</p>` : ""}
+<p>Log in to the SDKB portal to sign up: <a href="https://sdkbportal.org">sdkbportal.org</a></p>`;
+                const text = `New Event: ${eventName}\nDate: ${eventDateStr}\nLocation: ${eventLocation}\nSign-up Deadline: ${deadlineStr}${description ? `\n\n${description}` : ""}\n\nLog in to the SDKB portal to sign up: https://sdkbportal.org`;
+                await sendEmails(emails, subject, html, text);
+            }
+        } catch (emailErr) {
+            console.error("Event notification email error:", emailErr);
+        }
 
         return {
             statusCode: 200,

@@ -177,6 +177,7 @@
 }
 
 .input:focus { outline: none; border-color: var(--border-btn); }
+.input option { background: var(--bg-tertiary); color: var(--text-primary); }
 
 .label { color: var(--text-muted); font-size: 0.8rem; margin-bottom: -0.4rem; }
 

@@ -85,7 +85,7 @@ CREATE TABLE IF NOT EXISTS tournament_registrations (
     member_id BIGINT NOT NULL,
     registration_date TIMESTAMPTZ NOT NULL,
     shinpanning BOOLEAN NOT NULL,
-    division TEXT NOT NULL,
+    divisions TEXT[] NOT NULL DEFAULT '{}',
     doing_teams BOOLEAN NOT NULL,
     weight NUMERIC,
     height NUMERIC,
@@ -110,6 +110,31 @@ CREATE TABLE IF NOT EXISTS announcements (
     subject TEXT NOT NULL,
     body TEXT NOT NULL,
     pdf_url TEXT,
+    target TEXT NOT NULL DEFAULT 'all',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS families (
+    family_id BIGINT PRIMARY KEY,
+    family_name TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS family_members (
+    family_id BIGINT NOT NULL REFERENCES families(family_id) ON DELETE CASCADE,
+    member_id BIGINT NOT NULL,
+    PRIMARY KEY (family_id, member_id)
+);
+
+CREATE TABLE IF NOT EXISTS recurring_payments (
+    payment_id BIGINT PRIMARY KEY REFERENCES payments(payment_id) ON DELETE CASCADE,
+    interval_months INTEGER NOT NULL,
+    broadcast_target TEXT NOT NULL,
+    next_due_date TIMESTAMPTZ NOT NULL,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    designated_parents JSONB,
+    youth_payment_value NUMERIC,
+    student_payment_value NUMERIC,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 

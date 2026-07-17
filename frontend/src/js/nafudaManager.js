@@ -2,14 +2,42 @@ import { userManager } from "./cognitoManager.js";
 import { rankToNum, compareRank, formatName, formatRank, rankToKanji } from "./nafudaTools.js";
 import * as buttonLogic from "./buttonLogic.js";
 
+const NAFUDA_ORDER_API = 'https://qh3c0tz6s9.execute-api.us-east-2.amazonaws.com/nafudaorder';
+
 let selectedMember = null;
 let members = null;
 let renderedSlips = [];
+let nafudaOrder = {};
+let dragSource = null;
+
+async function loadNafudaOrder() {
+    try {
+        const res = await fetch(NAFUDA_ORDER_API);
+        if (res.ok) {
+            const data = await res.json();
+            nafudaOrder = data.order ?? {};
+        }
+    } catch { nafudaOrder = {}; }
+}
+
+async function saveNafudaOrder(user) {
+    try {
+        await fetch(NAFUDA_ORDER_API, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${user.id_token}` },
+            body: JSON.stringify({ order: nafudaOrder }),
+        });
+    } catch (err) {
+        console.error('Failed to save nafuda order:', err);
+    }
+}
 
 async function renderTable() {
     try {
         const user = await userManager.getUser();
-        
+
+        await loadNafudaOrder();
+
         const [membersResponse, adminResponse] = await Promise.all([
             fetch('https://qh3c0tz6s9.execute-api.us-east-2.amazonaws.com/members'),
             user ? fetch('https://qh3c0tz6s9.execute-api.us-east-2.amazonaws.com/admins', {
@@ -20,39 +48,113 @@ async function renderTable() {
                 }
             }) : Promise.resolve(null)
         ]);
-        
+
         if (!membersResponse.ok) throw new Error(`HTTP error ${membersResponse.status}`);
-        
+
         const data = await membersResponse.json();
         members = data.items.filter(m => m.status !== 'inactive');
         members.sort(compareRank);
-        
-        // Extract admin status from response
+
         let isAdmin = false;
         if (adminResponse && adminResponse.ok) {
             const adminData = await adminResponse.json();
             isAdmin = adminData.isAdmin;
         }
 
+        // Group members by rank bracket, preserving compareRank sort order
+        const rankGroups = new Map();
+        const rankKeyOrder = [];
+        for (const member of members) {
+            const rankKey = `${member.rank_type}_${member.rank_number}`;
+            if (!rankGroups.has(rankKey)) {
+                rankGroups.set(rankKey, []);
+                rankKeyOrder.push(rankKey);
+            }
+            rankGroups.get(rankKey).push(member);
+        }
+
+        // Apply saved drag order within each bracket
+        for (const rankKey of rankKeyOrder) {
+            const group = rankGroups.get(rankKey);
+            const savedOrder = nafudaOrder[rankKey];
+            if (savedOrder && savedOrder.length > 0) {
+                const idToMember = new Map(group.map(m => [m.member_id, m]));
+                const ordered = [];
+                for (const id of savedOrder) {
+                    if (idToMember.has(id)) { ordered.push(idToMember.get(id)); idToMember.delete(id); }
+                }
+                for (const m of idToMember.values()) ordered.push(m);
+                rankGroups.set(rankKey, ordered);
+            }
+        }
+
         const slips = [];
         let curRank = null;
 
-        for (const member of members) {
-            const memberId = member['member_id'];
-            const rankNum = member['rank_number'];
-            const rankType = member['rank_type'];
-            const firstName = member['first_name'];
-            const lastName = member['last_name'];
-            const zekkenText = member['zekken_text'];
+        for (const rankKey of rankKeyOrder) {
+            for (const member of rankGroups.get(rankKey)) {
+                const memberId = member['member_id'];
+                const rankNum = member['rank_number'];
+                const rankType = member['rank_type'];
+                const firstName = member['first_name'];
+                const lastName = member['last_name'];
+                const zekkenText = member['zekken_text'];
 
-            if (curRank == null || curRank !== rankToNum(rankNum, rankType)) {
-                const rankSlip = generateSlip(rankToKanji(rankNum, rankType), formatRank(rankNum, rankType), -1, isAdmin);
-                slips.push(rankSlip);
-                curRank = rankToNum(rankNum, rankType);
+                if (curRank == null || curRank !== rankToNum(rankNum, rankType)) {
+                    slips.push(generateSlip(rankToKanji(rankNum, rankType), formatRank(rankNum, rankType), -1, isAdmin));
+                    curRank = rankToNum(rankNum, rankType);
+                }
+
+                const memberSlip = generateSlip(formatName(firstName, lastName), zekkenText, memberId, isAdmin);
+
+                if (isAdmin) {
+                    memberSlip.setAttribute('draggable', 'true');
+
+                    memberSlip.addEventListener('dragstart', (e) => {
+                        dragSource = { memberId, rankKey };
+                        e.dataTransfer.effectAllowed = 'move';
+                        memberSlip.style.opacity = '0.4';
+                    });
+
+                    memberSlip.addEventListener('dragend', () => {
+                        memberSlip.style.opacity = '';
+                    });
+
+                    memberSlip.addEventListener('dragover', (e) => {
+                        if (dragSource && dragSource.rankKey === rankKey) {
+                            e.preventDefault();
+                            e.dataTransfer.dropEffect = 'move';
+                            memberSlip.style.outline = '2px solid #ffc107';
+                        }
+                    });
+
+                    memberSlip.addEventListener('dragleave', () => {
+                        memberSlip.style.outline = '';
+                    });
+
+                    memberSlip.addEventListener('drop', async (e) => {
+                        e.preventDefault();
+                        memberSlip.style.outline = '';
+                        if (!dragSource || dragSource.rankKey !== rankKey || dragSource.memberId === memberId) return;
+
+                        const currentOrder = rankGroups.get(rankKey).map(m => m.member_id);
+                        const fromIdx = currentOrder.indexOf(dragSource.memberId);
+                        const toIdx = currentOrder.indexOf(memberId);
+                        if (fromIdx === -1 || toIdx === -1) return;
+
+                        const newOrder = [...currentOrder];
+                        newOrder.splice(fromIdx, 1);
+                        newOrder.splice(toIdx, 0, dragSource.memberId);
+
+                        nafudaOrder[rankKey] = newOrder;
+                        dragSource = null;
+                        await saveNafudaOrder(user);
+                        await renderTable();
+                    });
+                }
+
+                slips.push(memberSlip);
             }
-
-            const memberSlip = generateSlip(formatName(firstName, lastName), zekkenText, memberId, isAdmin);
-            slips.push(memberSlip);
         }
 
         renderedSlips = slips;
@@ -308,11 +410,12 @@ function displayRemoveResults(matchingMembers) {
     matchingMembers.forEach(member => {
         const memberDiv = document.createElement('div');
         memberDiv.style.cssText = `
-            border: 1px solid #ccc;
+            border: 1px solid var(--border);
             padding: 10px;
             margin: 5px 0;
             border-radius: 5px;
-            background-color: #f9f9f9;
+            background-color: var(--bg-tertiary);
+            color: var(--text-primary);
         `;
 
         const memberInfo = document.createElement('div');
@@ -336,6 +439,7 @@ function displayRemoveResults(matchingMembers) {
         `;
 
         removeButton.addEventListener('click', async () => {
+            if (!confirm(`Remove ${member.first_name} ${member.last_name} from the system? This cannot be undone.`)) return;
             try {
                 const user = await userManager.getUser();
                 if (!user || user.expired) {
@@ -389,11 +493,12 @@ function displaySearchResults(matchingMembers) {
     matchingMembers.forEach(member => {
         const memberDiv = document.createElement('div');
         memberDiv.style.cssText = `
-            border: 1px solid #ccc;
+            border: 1px solid var(--border);
             padding: 10px;
             margin: 5px 0;
             border-radius: 5px;
-            background-color: #f9f9f9;
+            background-color: var(--bg-tertiary);
+            color: var(--text-primary);
             cursor: pointer;
         `;
 
@@ -526,6 +631,8 @@ function setupEventListeners() {
     });
 
     document.getElementById('removeButton').addEventListener('click', async () => {
+        const name = `${selectedMember.first_name} ${selectedMember.last_name}`;
+        if (!confirm(`Remove ${name} from the system? This cannot be undone.`)) return;
         try {
             await buttonLogic.removeButtonLogic(selectedMember);
             closeModal();

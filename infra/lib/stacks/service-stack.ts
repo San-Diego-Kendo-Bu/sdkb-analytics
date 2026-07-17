@@ -82,6 +82,18 @@ export class ServiceStack extends Stack {
       ...commonNodejs,
     });
 
+    const getNafudaOrderLambda = new NodejsFunction(this, "GetNafudaOrderLambda", {
+      entry: path.join(__dirname, "../../lambdas/nafuda/getNafudaOrder/index.js"),
+      handler: "handler",
+      ...commonNodejs,
+    });
+
+    const setNafudaOrderLambda = new NodejsFunction(this, "SetNafudaOrderLambda", {
+      entry: path.join(__dirname, "../../lambdas/nafuda/setNafudaOrder/index.js"),
+      handler: "handler",
+      ...commonNodejs,
+    });
+
     const getAdminLambda = new NodejsFunction(this, "GetAdminLambda", {
       entry: path.join(__dirname, "../../lambdas/admins/getAdmin/index.js"),
       handler: "handler",
@@ -171,6 +183,10 @@ export class ServiceStack extends Stack {
       entry: path.join(__dirname, "../../lambdas/assigned_payments/assignPayment/index.js"),
       handler: "handler",
       ...commonNodejs,
+      bundling: { ...commonNodejs.bundling, nodeModules: ["nodemailer"] },
+      memorySize: 256,
+      timeout: Duration.seconds(30),
+      environment: { GMAIL_SECRET_ID: props.gmailSecret.secretName },
     });
 
     const unassignPaymentLambda = new NodejsFunction(this, "UnassignPaymentLambda", {
@@ -216,6 +232,10 @@ export class ServiceStack extends Stack {
       entry: path.join(__dirname, "../../lambdas/events/createEvent/index.js"),
       handler: "handler",
       ...commonNodejs,
+      bundling: { ...commonNodejs.bundling, nodeModules: ["nodemailer"] },
+      memorySize: 256,
+      timeout: Duration.seconds(60),
+      environment: { GMAIL_SECRET_ID: props.gmailSecret.secretName },
     });
 
     const configureEventLambda = new NodejsFunction(this, "ConfigureEventLambda", {
@@ -252,6 +272,72 @@ export class ServiceStack extends Stack {
       entry: path.join(__dirname, "../../lambdas/broadcasted_payments/broadcast_payment/index.js"),
       handler: "handler",
       ...commonNodejs,
+      bundling: { ...commonNodejs.bundling, nodeModules: ["nodemailer"] },
+      memorySize: 256,
+      timeout: Duration.seconds(60),
+      environment: { GMAIL_SECRET_ID: props.gmailSecret.secretName },
+    });
+
+    const getFamiliesLambda = new NodejsFunction(this, "GetFamiliesLambda", {
+      entry: path.join(__dirname, "../../lambdas/families/getFamilies/index.js"),
+      handler: "handler",
+      ...commonNodejs,
+    });
+
+    const createFamilyLambda = new NodejsFunction(this, "CreateFamilyLambda", {
+      entry: path.join(__dirname, "../../lambdas/families/createFamily/index.js"),
+      handler: "handler",
+      ...commonNodejs,
+    });
+
+    const updateFamilyLambda = new NodejsFunction(this, "UpdateFamilyLambda", {
+      entry: path.join(__dirname, "../../lambdas/families/updateFamily/index.js"),
+      handler: "handler",
+      ...commonNodejs,
+    });
+
+    const deleteFamilyLambda = new NodejsFunction(this, "DeleteFamilyLambda", {
+      entry: path.join(__dirname, "../../lambdas/families/deleteFamily/index.js"),
+      handler: "handler",
+      ...commonNodejs,
+    });
+
+    const getRecurringsLambda = new NodejsFunction(this, "GetRecurringsLambda", {
+      entry: path.join(__dirname, "../../lambdas/recurring_payments/getRecurrings/index.js"),
+      handler: "handler",
+      ...commonNodejs,
+    });
+
+    const createRecurringLambda = new NodejsFunction(this, "CreateRecurringLambda", {
+      entry: path.join(__dirname, "../../lambdas/recurring_payments/createRecurring/index.js"),
+      handler: "handler",
+      ...commonNodejs,
+    });
+
+    const deleteRecurringLambda = new NodejsFunction(this, "DeleteRecurringLambda", {
+      entry: path.join(__dirname, "../../lambdas/recurring_payments/deleteRecurring/index.js"),
+      handler: "handler",
+      ...commonNodejs,
+    });
+
+    const processRecurringsLambda = new NodejsFunction(this, "ProcessRecurringsLambda", {
+      entry: path.join(__dirname, "../../lambdas/recurring_payments/processRecurrings/index.js"),
+      handler: "handler",
+      ...commonNodejs,
+      bundling: { ...commonNodejs.bundling, nodeModules: ["nodemailer"] },
+      memorySize: 256,
+      timeout: Duration.seconds(120),
+      environment: { GMAIL_SECRET_ID: props.gmailSecret.secretName },
+    });
+
+    const paymentDeadlineReminderLambda = new NodejsFunction(this, "PaymentDeadlineReminderLambda", {
+      entry: path.join(__dirname, "../../lambdas/notifications/paymentDeadlineReminder/index.js"),
+      handler: "handler",
+      ...commonNodejs,
+      bundling: { ...commonNodejs.bundling, nodeModules: ["nodemailer"] },
+      memorySize: 256,
+      timeout: Duration.seconds(60),
+      environment: { GMAIL_SECRET_ID: props.gmailSecret.secretName },
     });
 
     const stripeWebhookLambda = new NodejsFunction(this, "StripeWebhookLambda", {
@@ -326,6 +412,15 @@ export class ServiceStack extends Stack {
       environment: { GMAIL_SECRET_ID: props.gmailSecret.secretName },
     });
 
+    props.databaseStack.grantDatabaseAccess(getRecurringsLambda);
+    props.databaseStack.grantDatabaseAccess(createRecurringLambda);
+    props.databaseStack.grantDatabaseAccess(deleteRecurringLambda);
+    props.databaseStack.grantDatabaseAccess(processRecurringsLambda);
+    props.databaseStack.grantDatabaseAccess(getFamiliesLambda);
+    props.databaseStack.grantDatabaseAccess(createFamilyLambda);
+    props.databaseStack.grantDatabaseAccess(updateFamilyLambda);
+    props.databaseStack.grantDatabaseAccess(deleteFamilyLambda);
+    props.databaseStack.grantDatabaseAccess(paymentDeadlineReminderLambda);
     props.databaseStack.grantDatabaseAccess(stripeWebhookLambda);
     props.databaseStack.grantDatabaseAccess(broadcastPaymentLambda);
     props.databaseStack.grantDatabaseAccess(createPaymentLambda);
@@ -433,6 +528,14 @@ export class ServiceStack extends Stack {
       actions: ["dynamodb:Query"],
       resources: [members, `${members}/index/dedup_key-index`],
     }));
+    modifyMemberLambda.role?.addToPrincipalPolicy(new iam.PolicyStatement({
+      actions: ["dynamodb:GetItem"],
+      resources: [members],
+    }));
+    modifyMemberLambda.role?.addToPrincipalPolicy(new iam.PolicyStatement({
+      actions: ["cognito-idp:AdminUpdateUserAttributes"],
+      resources: [props.userPool.userPoolArn],
+    }));
 
     assignPaymentLambda.role?.addToPrincipalPolicy(new iam.PolicyStatement({
       actions: ["dynamodb:Query"],
@@ -446,6 +549,15 @@ export class ServiceStack extends Stack {
     updateMemberSelfLambda.role?.addToPrincipalPolicy(new iam.PolicyStatement({
       actions: ["dynamodb:UpdateItem"],
       resources: [members],
+    }));
+
+    getNafudaOrderLambda.role?.addToPrincipalPolicy(new iam.PolicyStatement({
+      actions: ["dynamodb:GetItem"],
+      resources: [config],
+    }));
+    setNafudaOrderLambda.role?.addToPrincipalPolicy(new iam.PolicyStatement({
+      actions: ["dynamodb:PutItem"],
+      resources: [config],
     }));
 
     stripeWebhookLambda.role?.addToPrincipalPolicy(new iam.PolicyStatement({
@@ -465,6 +577,46 @@ export class ServiceStack extends Stack {
       resources: [members],
     }));
     props.gmailSecret.grantRead(sendAnnouncementLambda);
+    props.gmailSecret.grantRead(createEventLambda);
+    props.gmailSecret.grantRead(assignPaymentLambda);
+    props.gmailSecret.grantRead(broadcastPaymentLambda);
+    props.gmailSecret.grantRead(paymentDeadlineReminderLambda);
+    props.gmailSecret.grantRead(processRecurringsLambda);
+
+    // createEvent needs to scan members to send new-event emails
+    createEventLambda.role?.addToPrincipalPolicy(new iam.PolicyStatement({
+      actions: ["dynamodb:Scan"],
+      resources: [members],
+    }));
+
+    // paymentDeadlineReminder needs to scan members to look up emails
+    paymentDeadlineReminderLambda.role?.addToPrincipalPolicy(new iam.PolicyStatement({
+      actions: ["dynamodb:Scan"],
+      resources: [members],
+    }));
+
+    createFamilyLambda.role?.addToPrincipalPolicy(new iam.PolicyStatement({
+      actions: ["dynamodb:UpdateItem"],
+      resources: [config],
+    }));
+
+    createRecurringLambda.role?.addToPrincipalPolicy(new iam.PolicyStatement({
+      actions: ["dynamodb:UpdateItem"],
+      resources: [config],
+    }));
+    createRecurringLambda.role?.addToPrincipalPolicy(new iam.PolicyStatement({
+      actions: ["dynamodb:Scan"],
+      resources: [members],
+    }));
+
+    processRecurringsLambda.role?.addToPrincipalPolicy(new iam.PolicyStatement({
+      actions: ["dynamodb:UpdateItem"],
+      resources: [config],
+    }));
+    processRecurringsLambda.role?.addToPrincipalPolicy(new iam.PolicyStatement({
+      actions: ["dynamodb:Scan"],
+      resources: [members],
+    }));
 
     createEventLambda.role?.addToPrincipalPolicy(new iam.PolicyStatement({
       actions: ["dynamodb:UpdateItem"],
@@ -492,6 +644,7 @@ export class ServiceStack extends Stack {
           CorsHttpMethod.POST,
           CorsHttpMethod.PATCH,
           CorsHttpMethod.DELETE,
+          CorsHttpMethod.PUT,
         ],
         allowOrigins: ["*"],
       },
@@ -529,6 +682,17 @@ export class ServiceStack extends Stack {
       path: "/members/self",
       methods: [HttpMethod.PATCH],
       integration: new HttpLambdaIntegration("MembersSelfPatchInt", updateMemberSelfLambda),
+      ...(auth ? { authorizer: auth } : {}),
+    });
+    httpApi.addRoutes({
+      path: "/nafudaorder",
+      methods: [HttpMethod.GET],
+      integration: new HttpLambdaIntegration("NafudaOrderGetInt", getNafudaOrderLambda),
+    });
+    httpApi.addRoutes({
+      path: "/nafudaorder",
+      methods: [HttpMethod.PUT],
+      integration: new HttpLambdaIntegration("NafudaOrderPutInt", setNafudaOrderLambda),
       ...(auth ? { authorizer: auth } : {}),
     });
     httpApi.addRoutes({
@@ -697,6 +861,51 @@ export class ServiceStack extends Stack {
       ...(auth ? { authorizer: auth } : {}),
     });
 
+    // Recurring Payments
+    httpApi.addRoutes({
+      path: "/recurringpayments",
+      methods: [HttpMethod.GET],
+      integration: new HttpLambdaIntegration("RecurringGetInt", getRecurringsLambda),
+      ...(auth ? { authorizer: auth } : {}),
+    });
+    httpApi.addRoutes({
+      path: "/recurringpayments",
+      methods: [HttpMethod.POST],
+      integration: new HttpLambdaIntegration("RecurringPostInt", createRecurringLambda),
+      ...(auth ? { authorizer: auth } : {}),
+    });
+    httpApi.addRoutes({
+      path: "/recurringpayments",
+      methods: [HttpMethod.DELETE],
+      integration: new HttpLambdaIntegration("RecurringDeleteInt", deleteRecurringLambda),
+      ...(auth ? { authorizer: auth } : {}),
+    });
+
+    // Families
+    httpApi.addRoutes({
+      path: "/families",
+      methods: [HttpMethod.GET],
+      integration: new HttpLambdaIntegration("FamiliesGetInt", getFamiliesLambda),
+    });
+    httpApi.addRoutes({
+      path: "/families",
+      methods: [HttpMethod.POST],
+      integration: new HttpLambdaIntegration("FamiliesPostInt", createFamilyLambda),
+      ...(auth ? { authorizer: auth } : {}),
+    });
+    httpApi.addRoutes({
+      path: "/families",
+      methods: [HttpMethod.PATCH],
+      integration: new HttpLambdaIntegration("FamiliesPatchInt", updateFamilyLambda),
+      ...(auth ? { authorizer: auth } : {}),
+    });
+    httpApi.addRoutes({
+      path: "/families",
+      methods: [HttpMethod.DELETE],
+      integration: new HttpLambdaIntegration("FamiliesDeleteInt", deleteFamilyLambda),
+      ...(auth ? { authorizer: auth } : {}),
+    });
+
     // Stripe webhook (no authorizer — Stripe signs requests with HMAC)
     httpApi.addRoutes({
       path: "/webhooks/stripe",
@@ -739,6 +948,28 @@ export class ServiceStack extends Stack {
         target: target,
         enabled: false,
         description: 'This schedule periodically calls clearOvrPaymentsLambda. Functions as a scheduled database cleanup for payments.',
+    });
+
+    const processRecurringsScheduleRole = new iam.Role(this, 'processRecurringsScheduleRole', {
+      assumedBy: new iam.ServicePrincipal('scheduler.amazonaws.com'),
+    });
+    processRecurringsLambda.grantInvoke(processRecurringsScheduleRole);
+    new scheduler.Schedule(this, 'ProcessRecurringsSchedule', {
+      schedule: scheduler.ScheduleExpression.cron({ hour: '8', minute: '0' }),
+      target: new targets.LambdaInvoke(processRecurringsLambda, { role: processRecurringsScheduleRole }),
+      enabled: true,
+      description: 'Daily 8am UTC: creates payment instances for any active recurring configs whose next_due_date has arrived, assigns to members, and sends emails.',
+    });
+
+    const paymentReminderScheduleRole = new iam.Role(this, 'paymentReminderScheduleRole', {
+      assumedBy: new iam.ServicePrincipal('scheduler.amazonaws.com'),
+    });
+    paymentDeadlineReminderLambda.grantInvoke(paymentReminderScheduleRole);
+    new scheduler.Schedule(this, 'PaymentDeadlineReminderSchedule', {
+      schedule: scheduler.ScheduleExpression.rate(Duration.days(1)),
+      target: new targets.LambdaInvoke(paymentDeadlineReminderLambda, { role: paymentReminderScheduleRole }),
+      enabled: true,
+      description: 'Daily check for assigned payments due in 3 days; sends email reminders to members.',
     });
 
     // Cognito permissions

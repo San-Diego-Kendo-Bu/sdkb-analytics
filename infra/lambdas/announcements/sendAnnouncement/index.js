@@ -36,7 +36,7 @@ exports.handler = async (event) => {
     if (!isAdmin) return { statusCode: 403, body: "Forbidden" };
 
     try {
-        const { subject, body, attachment_urls, pdf_url } = JSON.parse(event.body || "{}");
+        const { subject, body, attachment_urls, pdf_url, target } = JSON.parse(event.body || "{}");
 
         if (!subject || !body) {
             return {
@@ -59,7 +59,9 @@ exports.handler = async (event) => {
         });
 
         const members = await getAllMembers();
-        const emails = [...new Set(members.map((m) => m.email).filter(Boolean))];
+        const isSensei = (m) => m.rank_type === "shihan" || (m.rank_type === "dan" && Number(m.rank_number) >= 4);
+        const eligible = members.filter((m) => m.status !== "inactive" && (target === "senseis" ? isSensei(m) : true));
+        const emails = [...new Set(eligible.map((m) => m.email).filter(Boolean))];
 
         const attachments = (
             await Promise.all(
@@ -116,11 +118,12 @@ exports.handler = async (event) => {
 
         // Store as JSON array in pdf_url column; old plain-string rows remain readable
         const dbPdfUrl = urls.length > 0 ? JSON.stringify(urls) : null;
+        const dbTarget = target === 'senseis' ? 'senseis' : 'all';
 
         await query(
-            `INSERT INTO announcements (announcement_id, subject, body, pdf_url, created_at)
-             VALUES ($1, $2, $3, $4, NOW())`,
-            [Date.now(), subject, body, dbPdfUrl]
+            `INSERT INTO announcements (announcement_id, subject, body, pdf_url, target, created_at)
+             VALUES ($1, $2, $3, $4, $5, NOW())`,
+            [Date.now(), subject, body, dbPdfUrl, dbTarget]
         );
 
         return {

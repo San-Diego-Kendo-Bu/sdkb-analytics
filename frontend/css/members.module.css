@@ -194,7 +194,7 @@
 
 .dirHeader {
   display: grid;
-  grid-template-columns: 1fr 120px 1fr 110px 90px 90px;
+  grid-template-columns: 1fr 120px 1fr 110px 90px 100px 90px 90px;
   padding: 0.5rem 1rem;
   font-size: 0.75rem;
   color: var(--text-muted);
@@ -206,7 +206,7 @@
 
 .dirRow {
   display: grid;
-  grid-template-columns: 1fr 120px 1fr 110px 90px 90px;
+  grid-template-columns: 1fr 120px 1fr 110px 90px 100px 90px 90px;
   padding: 0.65rem 1rem;
   border-bottom: 1px solid var(--border);
   font-size: 0.875rem;
@@ -217,7 +217,7 @@
 .dirRow:hover { background: var(--bg-tertiary); }
 
 @media (max-width: 600px) {
-  .dirHeader { grid-template-columns: 1fr 90px 90px; }
-  .dirRow { grid-template-columns: 1fr 90px 90px; }
+  .dirHeader { grid-template-columns: 1fr 100px 90px 90px; }
+  .dirRow { grid-template-columns: 1fr 100px 90px 90px; }
   .dirCellHide { display: none; }
 }

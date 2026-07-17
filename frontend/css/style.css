@@ -219,7 +219,7 @@ body {
     color:#b8860b;
     border-style: solid;
     border-color: #b8860b;
-    background-color: white;
+    background-color: var(--bg-secondary);
     margin-left: auto;
 }
 
@@ -368,7 +368,7 @@ body {
     color:#b8860b;
     border-style: solid;
     border-color: #b8860b;
-    background-color: white;
+    background-color: var(--bg-secondary);
     margin-left: auto;
 }
 
@@ -376,7 +376,7 @@ body {
     color:#b8860b;
     border-style: solid;
     border-color: #b8860b;
-    background-color: white;
+    background-color: var(--bg-secondary);
     margin-left: auto;
 }
 
@@ -398,9 +398,10 @@ body {
 }
 
 #modalForm {
-    background: white;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
     padding: 20px 30px;
-    border: 2px solid #333;
+    border: 1px solid var(--border);
     border-radius: 10px;
     box-shadow: 0 0 20px rgba(0,0,0,0.3);
     display: flex;
@@ -413,6 +414,18 @@ body {
     display: flex;
     flex-direction: column;
     font-size: 0.9em;
+}
+#modalForm input,
+#modalForm select {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-input);
+    border-radius: 4px;
+    padding: 4px 6px;
+}
+#modalForm select option {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
 }
 
 #modalForm header{
@@ -432,9 +445,10 @@ body {
 }
 
 .formOverlay{
-    background: white;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
     padding: 20px 30px;
-    border: 2px solid #333;
+    border: 1px solid var(--border);
     border-radius: 10px;
     box-shadow: 0 0 20px rgba(0,0,0,0.3);
     display: none;
@@ -447,6 +461,18 @@ body {
     display: flex;
     flex-direction: column;
     font-size: 0.9em;
+}
+.formOverlay input,
+.formOverlay select {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-input);
+    border-radius: 4px;
+    padding: 4px 6px;
+}
+.formOverlay select option {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
 }
 .slip-row {
     display: flex;

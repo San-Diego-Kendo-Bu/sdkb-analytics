@@ -1,7 +1,8 @@
 const { query } = require("../../shared_utils/db");
-const { getAllMemberIds } = require("../../shared_utils/members");
+const { getAllMembers } = require("../../shared_utils/members");
 const { getCurrentTimeUTC } = require("../../shared_utils/dates");
 const { normalizeGroups } = require("../../shared_utils/normalize_claim");
+const { sendEmails } = require("../../shared_utils/mailer");
 
 const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
 const {
@@ -106,13 +107,17 @@ exports.handler = async (event) => {
         console.log("Payment created:", newPaymentId);
 
         // --- 2. GET MEMBERS ---
-        let memberIds = [];
+        const allMembers = await getAllMembers();
+        let filteredMembers = [];
 
         if (dojoDue) {
-            memberIds = await getAllMemberIds(true, true, false);
+            filteredMembers = allMembers.filter(m => m.status !== "exempt" && m.status === "active");
         } else if (federationDue) {
-            memberIds = await getAllMemberIds(false, true, false);
+            filteredMembers = allMembers.filter(m => m.status !== "guest" && m.status !== "inactive");
         }
+
+        const memberIds = filteredMembers.map(m => m.member_id);
+        const memberEmails = [...new Set(filteredMembers.map(m => m.email).filter(Boolean))];
 
         // --- 3. ASSIGN PAYMENT ---
         for (const memberId of memberIds) {
@@ -133,6 +138,22 @@ exports.handler = async (event) => {
                     "due"
                 ]
             );
+        }
+
+        // --- 4. EMAIL NOTIFICATIONS ---
+        if (memberEmails.length > 0) {
+            try {
+                const dueDateStr = new Date(dueDate).toLocaleDateString("en-US", {
+                    weekday: "long", year: "numeric", month: "long", day: "numeric",
+                });
+                const amount = `$${parseFloat(paymentValue).toFixed(2)}`;
+                const subject = `Payment Assigned: ${title}`;
+                const html = `<p>A payment has been assigned to your account.</p><p><strong>Title:</strong> ${title}</p><p><strong>Amount:</strong> ${amount}</p><p><strong>Due Date:</strong> ${dueDateStr}</p><p>Log in to the SDKB portal to submit your payment: <a href="https://sdkbportal.org">sdkbportal.org</a></p>`;
+                const text = `Payment Assigned: ${title}\n\nAmount: ${amount}\nDue Date: ${dueDateStr}\n\nLog in to the SDKB portal to submit your payment: https://sdkbportal.org`;
+                await sendEmails(memberEmails, subject, html, text);
+            } catch (emailErr) {
+                console.error("Broadcast payment email error:", emailErr);
+            }
         }
 
         return {

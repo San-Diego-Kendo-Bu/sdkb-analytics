@@ -2,17 +2,21 @@ const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
 const {
   DynamoDBDocumentClient,
   QueryCommand,
-  UpdateCommand
+  UpdateCommand,
+  GetCommand,
 } = require("@aws-sdk/lib-dynamodb");
+const { CognitoIdentityProviderClient, AdminUpdateUserAttributesCommand } = require("@aws-sdk/client-cognito-identity-provider");
 
 const { normalizeGroups } = require("../../shared_utils/normalize_claim");
 
 // Init DynamoDB
 const client = new DynamoDBClient({});
 const ddb = DynamoDBDocumentClient.from(client);
+const cognito = new CognitoIdentityProviderClient({ region: "us-east-2" });
 
 const MEMBERS_TABLE = "members";
 const DEDUP_INDEX = "dedup_key-index";
+const USER_POOL_ID = "us-east-2_pOKlRyKnT";
 
 const lc = v => (v ?? "").toString().trim().toLowerCase();
 
@@ -72,6 +76,26 @@ exports.handler = async (event) => {
         statusCode: 200,
         body: JSON.stringify({ message: "Duplicate detected. Update skipped." })
       };
+    }
+
+    // If email is changing, also update Cognito so password reset goes to the right address
+    if (data.email) {
+      try {
+        const memberRecord = await ddb.send(new GetCommand({ TableName: MEMBERS_TABLE, Key: { member_id } }));
+        const username = memberRecord.Item?.username;
+        if (username) {
+          await cognito.send(new AdminUpdateUserAttributesCommand({
+            UserPoolId: USER_POOL_ID,
+            Username: username,
+            UserAttributes: [
+              { Name: "email", Value: data.email.trim() },
+              { Name: "email_verified", Value: "true" },
+            ],
+          }));
+        }
+      } catch (cognitoErr) {
+        console.error("Cognito email update failed:", cognitoErr);
+      }
     }
 
     // Build UpdateExpression dynamically

@@ -1,7 +1,8 @@
-const { verifyMemberExists } = require("../../shared_utils/members");
+const { getMemberById } = require("../../shared_utils/members");
 const { getCurrentTimeUTC } = require("../../shared_utils/dates");
 const { normalizeGroups } = require("../../shared_utils/normalize_claim");
 const { query } = require("../../shared_utils/db");
+const { sendEmails } = require("../../shared_utils/mailer");
 
 const REQUIRED_FIELDS = ["member_id", "payment_id"];
 
@@ -33,13 +34,14 @@ exports.handler = async (event) => {
         const assignedOn = getCurrentTimeUTC();
         const status = parameters['due_status'] === 'overdue' ? 'overdue' : 'due';
 
-        const memberFound = await verifyMemberExists(memberId);
-        if (!memberFound) {
+        const memberItems = await getMemberById(memberId);
+        if (memberItems.length === 0) {
             return { statusCode: 400, body: "Invalid member ID." };
         }
+        const memberEmail = memberItems[0]?.email;
 
         const paymentCheck = await query(
-            `SELECT 1 FROM payments WHERE payment_id = $1`,
+            `SELECT title, due_date, payment_value FROM payments WHERE payment_id = $1`,
             [paymentId]
         );
 
@@ -49,6 +51,7 @@ exports.handler = async (event) => {
                 body: "Invalid payment ID.",
             };
         }
+        const payment = paymentCheck.rows[0];
 
         const alreadyPaid = await query(
             `SELECT 1 FROM submitted_payments WHERE member_id = $1 AND payment_id = $2 LIMIT 1`,
@@ -75,6 +78,22 @@ exports.handler = async (event) => {
             `,
             [memberId, paymentId, assignedOn, status]
         );
+
+        // Notify the member about their new payment assignment
+        if (memberEmail) {
+            try {
+                const dueDateStr = new Date(payment.due_date).toLocaleDateString("en-US", {
+                    weekday: "long", year: "numeric", month: "long", day: "numeric",
+                });
+                const amount = `$${parseFloat(payment.payment_value).toFixed(2)}`;
+                const subject = `Payment Assigned: ${payment.title}`;
+                const html = `<p>A payment has been assigned to your account.</p><p><strong>Title:</strong> ${payment.title}</p><p><strong>Amount:</strong> ${amount}</p><p><strong>Due Date:</strong> ${dueDateStr}</p><p>Log in to the SDKB portal to submit your payment: <a href="https://sdkbportal.org">sdkbportal.org</a></p>`;
+                const text = `Payment Assigned: ${payment.title}\n\nAmount: ${amount}\nDue Date: ${dueDateStr}\n\nLog in to the SDKB portal to submit your payment: https://sdkbportal.org`;
+                await sendEmails([memberEmail], subject, html, text);
+            } catch (emailErr) {
+                console.error("Payment assignment email error:", emailErr);
+            }
+        }
 
         return {
             statusCode: 200,

@@ -107,6 +107,7 @@ exports.handler = async (event) => {
     await query("DELETE FROM assigned_payments       WHERE member_id = $1", [mid]);
     await query("DELETE FROM submitted_payments      WHERE member_id = $1", [mid]);
     await query("DELETE FROM tournament_results      WHERE member_id = $1", [mid]);
+    await query("DELETE FROM family_members          WHERE member_id = $1", [mid]);
 
     const stripe = await getStripe();
     const responseItems = [];

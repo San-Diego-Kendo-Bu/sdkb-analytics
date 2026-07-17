@@ -8,22 +8,22 @@ const PLACEMENT_COLORS = { First: '#ffd700', Second: '#c0c0c0', Third: '#cd7f32'
 const pc = (p) => PLACEMENT_COLORS[p] ?? '#aaa';
 
 const S = {
-  page: { padding: '2%', background: '#1a1a2e', minHeight: '100vh', color: '#fff' },
+  page: { padding: '2%', background: 'var(--bg-primary)', minHeight: '100vh', color: 'var(--text-primary)' },
   title: { fontSize: '1.6rem', fontWeight: 700, margin: '0 0 1.5rem 0' },
-  yearCard: { marginBottom: '0.75rem', borderRadius: '10px', overflow: 'hidden', border: '1px solid #333' },
+  yearCard: { marginBottom: '0.75rem', borderRadius: '10px', overflow: 'hidden', border: '1px solid var(--border)' },
   yearHeader: (open) => ({
     padding: '0.85rem 1.1rem', display: 'flex', justifyContent: 'space-between',
-    alignItems: 'center', background: '#2a2a3e', cursor: 'pointer',
-    borderBottom: open ? '1px solid #333' : 'none',
+    alignItems: 'center', background: 'var(--bg-secondary)', cursor: 'pointer',
+    borderBottom: open ? '1px solid var(--border)' : 'none',
   }),
-  yearBody: { padding: '0.75rem', background: '#1a1a2e' },
-  eventCard: { background: '#0d0d1a', border: '1px solid #2a2a3e', borderRadius: '8px', marginBottom: '0.5rem', overflow: 'hidden' },
+  yearBody: { padding: '0.75rem', background: 'var(--bg-primary)' },
+  eventCard: { background: 'var(--bg-tertiary)', border: '1px solid var(--border)', borderRadius: '8px', marginBottom: '0.5rem', overflow: 'hidden' },
   eventHeader: { padding: '0.6rem 1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' },
-  eventBody: { padding: '0.75rem 1rem', borderTop: '1px solid #1a1a2e' },
+  eventBody: { padding: '0.75rem 1rem', borderTop: '1px solid var(--border-subtle)' },
   divLabel: { color: '#6ea8fe', fontWeight: 600, fontSize: '0.8rem', marginBottom: '0.35rem', textTransform: 'uppercase', letterSpacing: '0.04em' },
-  resultRow: { display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.3rem 0', borderBottom: '1px solid #111' },
+  resultRow: { display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.3rem 0', borderBottom: '1px solid var(--border-subtle)' },
   badge: (color) => ({ background: color + '22', color, border: `1px solid ${color}55`, borderRadius: 4, padding: '0.1rem 0.5rem', fontSize: '0.75rem', fontWeight: 600, flexShrink: 0 }),
-  emptyText: { color: '#666', fontStyle: 'italic', fontSize: '0.85rem', margin: 0 },
+  emptyText: { color: 'var(--text-muted)', fontStyle: 'italic', fontSize: '0.85rem', margin: 0 },
 };
 
 function groupByDivision(rows) {
@@ -119,7 +119,7 @@ export default function ResultsSummary() {
           <div key={year} style={S.yearCard}>
             <div style={S.yearHeader(isYearOpen)} onClick={() => toggleYear(year)}>
               <span style={{ fontSize: '1.1rem', fontWeight: 700 }}>{year}</span>
-              <span style={{ color: '#aaa', fontSize: '0.85rem' }}>
+              <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
                 {events.length} tournament{events.length !== 1 ? 's' : ''}
                 {isYearOpen && totalEntries > 0 ? ` · ${totalEntries} entr${totalEntries !== 1 ? 'ies' : 'y'}` : ''}
                 {' '}{isYearOpen ? '▲' : '▼'}
@@ -138,7 +138,7 @@ export default function ResultsSummary() {
                     <div key={eid} style={S.eventCard}>
                       <div style={S.eventHeader} onClick={() => toggleEvent(eid)}>
                         <span style={{ fontWeight: 600, fontSize: '0.95rem' }}>{e.event_name}</span>
-                        <span style={{ color: '#aaa', fontSize: '0.8rem' }}>
+                        <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
                           {new Date(e.event_date).toLocaleDateString('en-US', { timeZone: 'UTC', month: 'short', day: 'numeric' })}
                           {' · '}{rows.length} entr{rows.length !== 1 ? 'ies' : 'y'}
                           {' '}{isEventOpen ? '▲' : '▼'}
@@ -152,8 +152,8 @@ export default function ResultsSummary() {
                               {divRows.map(r => (
                                 <div key={r.result_id} style={S.resultRow}>
                                   <span style={S.badge(pc(r.placement))}>{r.placement}</span>
-                                  <span style={{ flex: 1, fontSize: '0.875rem', color: '#e0e0e0' }}>{r.member_name}</span>
-                                  {r.is_teams && <span style={{ color: '#aaa', fontSize: '0.75rem' }}>Team</span>}
+                                  <span style={{ flex: 1, fontSize: '0.875rem', color: 'var(--text-body)' }}>{r.member_name}</span>
+                                  {r.is_teams && <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>Team</span>}
                                 </div>
                               ))}
                             </div>

@@ -48,7 +48,7 @@ exports.handler = async (event) => {
 
         if (configType === "tournament") {
             const shinpanning = parameters.shinpanning;
-            const division = parameters.division;
+            const divisions = parameters.divisions ?? [];
             const doingTeams = parameters.doing_teams;
             const weight = parameters.weight ?? null;
             const height = parameters.height ?? null;
@@ -57,12 +57,12 @@ exports.handler = async (event) => {
             const result = await query(
                 `
                 INSERT INTO ${TOURNAMENT_REGISTRATION_TABLE} (
-                    event_id, member_id, registration_date, shinpanning, division, doing_teams, weight, height, age
+                    event_id, member_id, registration_date, shinpanning, divisions, doing_teams, weight, height, age
                 )
                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
                 RETURNING *
                 `,
-                [eventId, memberId, registeredDate, shinpanning, division, doingTeams, weight, height, age]
+                [eventId, memberId, registeredDate, shinpanning, divisions, doingTeams, weight, height, age]
             );
             registrationData = result.rows[0];
 

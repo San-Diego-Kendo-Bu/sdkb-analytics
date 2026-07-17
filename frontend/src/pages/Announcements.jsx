@@ -81,8 +81,7 @@ export default function Announcements() {
     setAttachments(prev => prev.filter((_, i) => i !== index));
   }
 
-  async function handleSend(e) {
-    e.preventDefault();
+  async function handleSend(target = 'all') {
     if (isOffHours()) { setError(OFF_HOURS_MSG); return; }
     if (!subject.trim() || !body.trim()) {
       setError('Subject and message are required.');
@@ -102,6 +101,7 @@ export default function Announcements() {
           subject,
           body,
           attachment_urls: attachments.map(a => a.url),
+          target,
         }),
       });
       const data = await res.json();
@@ -124,7 +124,7 @@ export default function Announcements() {
         Sends an email to all members. Attach files if needed.
       </p>
 
-      <form onSubmit={handleSend} style={{ maxWidth: 560 }}>
+      <form onSubmit={e => e.preventDefault()} style={{ maxWidth: 560 }}>
         <div style={{ marginBottom: '1rem' }}>
           <label style={labelStyle}>Subject</label>
           <input
@@ -216,22 +216,42 @@ export default function Announcements() {
           </div>
         )}
 
-        <button
-          type="submit"
-          disabled={sending || uploading || !subject.trim() || !body.trim()}
-          style={{
-            background: sending || uploading || !subject.trim() || !body.trim() ? '#333' : '#fff',
-            color: sending || uploading || !subject.trim() || !body.trim() ? '#666' : '#1a1a2e',
-            border: 'none',
-            borderRadius: 6,
-            padding: '0.5rem 1.25rem',
-            fontWeight: 600,
-            cursor: sending || uploading || !subject.trim() || !body.trim() ? 'not-allowed' : 'pointer',
-            fontSize: '0.9rem',
-          }}
-        >
-          {sending ? 'Sending...' : 'Send to All Members'}
-        </button>
+        <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            disabled={sending || uploading || !subject.trim() || !body.trim()}
+            onClick={() => handleSend('all')}
+            style={{
+              background: sending || uploading || !subject.trim() || !body.trim() ? '#333' : '#fff',
+              color: sending || uploading || !subject.trim() || !body.trim() ? '#666' : '#1a1a2e',
+              border: 'none',
+              borderRadius: 6,
+              padding: '0.5rem 1.25rem',
+              fontWeight: 600,
+              cursor: sending || uploading || !subject.trim() || !body.trim() ? 'not-allowed' : 'pointer',
+              fontSize: '0.9rem',
+            }}
+          >
+            {sending ? 'Sending...' : 'Send to All Members'}
+          </button>
+          <button
+            type="button"
+            disabled={sending || uploading || !subject.trim() || !body.trim()}
+            onClick={() => handleSend('senseis')}
+            style={{
+              background: sending || uploading || !subject.trim() || !body.trim() ? '#333' : '#2a1f00',
+              color: sending || uploading || !subject.trim() || !body.trim() ? '#666' : '#ffc107',
+              border: sending || uploading || !subject.trim() || !body.trim() ? 'none' : '1px solid #ffc10755',
+              borderRadius: 6,
+              padding: '0.5rem 1.25rem',
+              fontWeight: 600,
+              cursor: sending || uploading || !subject.trim() || !body.trim() ? 'not-allowed' : 'pointer',
+              fontSize: '0.9rem',
+            }}
+          >
+            {sending ? 'Sending...' : 'Send to Senseis Only'}
+          </button>
+        </div>
       </form>
     </div>
   );

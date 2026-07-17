@@ -62,6 +62,10 @@ export default function Profile() {
   const [birthdayInput, setBirthdayInput] = useState('');
   const [savingBirthday, setSavingBirthday] = useState(false);
   const [birthdayError, setBirthdayError] = useState('');
+  const [editingAuskf, setEditingAuskf] = useState(false);
+  const [auskfInput, setAuskfInput] = useState('');
+  const [savingAuskf, setSavingAuskf] = useState(false);
+  const [auskfError, setAuskfError] = useState('');
 
   useEffect(() => {
     async function load() {
@@ -158,6 +162,29 @@ export default function Profile() {
       setBirthdayError('Network error.');
     }
     setSavingBirthday(false);
+  }
+
+  async function saveAuskf() {
+    setSavingAuskf(true);
+    setAuskfError('');
+    try {
+      const user = await userManager.getUser();
+      const res = await fetch(MEMBERS_SELF_API, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${user.id_token}` },
+        body: JSON.stringify({ auskf_number: auskfInput }),
+      });
+      if (res.ok) {
+        setMember(m => ({ ...m, auskf_number: auskfInput }));
+        setEditingAuskf(false);
+      } else {
+        const data = await res.json();
+        setAuskfError(data.message ?? 'Save failed.');
+      }
+    } catch {
+      setAuskfError('Network error.');
+    }
+    setSavingAuskf(false);
   }
 
   if (loading) {
@@ -263,6 +290,39 @@ export default function Profile() {
                     onClick={() => { setBirthdayInput(member.birthday ? new Date(member.birthday).toISOString().slice(0, 10) : ''); setEditingBirthday(true); }}
                   >
                     Edit
+                  </button>
+                </div>
+              )}
+            </div>
+            <div className={styles.infoItem}>
+              <span className={styles.infoLabel}>AUSKF Number</span>
+              {editingAuskf ? (
+                <div className={styles.birthdayEdit}>
+                  <input
+                    type="text"
+                    className={styles.birthdayInput}
+                    value={auskfInput}
+                    onChange={e => setAuskfInput(e.target.value)}
+                    placeholder="e.g. 123456"
+                  />
+                  <div className={styles.birthdayActions}>
+                    <button className={styles.saveSmallBtn} onClick={saveAuskf} disabled={savingAuskf}>
+                      {savingAuskf ? '…' : 'Save'}
+                    </button>
+                    <button className={styles.cancelSmallBtn} onClick={() => { setEditingAuskf(false); setAuskfError(''); }}>
+                      Cancel
+                    </button>
+                  </div>
+                  {auskfError && <span className={styles.birthdayError}>{auskfError}</span>}
+                </div>
+              ) : (
+                <div className={styles.birthdayRow}>
+                  <span className={styles.infoValue}>{member.auskf_number ?? '—'}</span>
+                  <button
+                    className={styles.editBtn}
+                    onClick={() => { setAuskfInput(member.auskf_number ?? ''); setEditingAuskf(true); }}
+                  >
+                    {member.auskf_number ? 'Edit' : 'Add'}
                   </button>
                 </div>
               )}
