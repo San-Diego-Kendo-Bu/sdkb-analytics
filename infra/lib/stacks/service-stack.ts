@@ -582,6 +582,7 @@ export class ServiceStack extends Stack {
     props.gmailSecret.grantRead(broadcastPaymentLambda);
     props.gmailSecret.grantRead(paymentDeadlineReminderLambda);
     props.gmailSecret.grantRead(processRecurringsLambda);
+    props.gmailSecret.grantRead(createRecurringLambda);
 
     // createEvent needs to scan members to send new-event emails
     createEventLambda.role?.addToPrincipalPolicy(new iam.PolicyStatement({

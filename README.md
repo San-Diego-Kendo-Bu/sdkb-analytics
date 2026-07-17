@@ -40,8 +40,8 @@ A full-stack member management portal for San Diego Kendo Bu, built on AWS serve
 - Invalidates CloudFront on HTML changes
 
 ### `DatabaseStack`
-- **RDS PostgreSQL** (`t4g.micro`, `us-east-2`) — stores events, registrations, payments, announcements, tournament results
-- **EventBridge Scheduler** — stops RDS at midnight PT, starts at 7am PT to reduce costs
+- **RDS PostgreSQL** (`t4g.micro`, `us-east-2`) — stores events, registrations, payments, announcements, families, recurring payments, tournament results
+- **EventBridge Scheduler** — stops/starts RDS on a per-day-of-week schedule (see Off-Hours section)
 - **Init Lambda** (`psql/init`) — bootstraps the DB schema on first deploy via CDK Custom Resource (`TriggerInstantiate`); re-runs only on `onCreate`
 - Credentials stored in AWS Secrets Manager (`rds-db-creds`)
 
@@ -56,15 +56,19 @@ A full-stack member management portal for San Diego Kendo Bu, built on AWS serve
 
 | Table | Description |
 |---|---|
-| `events` | All dojo events (tournaments, shinsa, seminars) |
-| `event_configs` | Per-event configuration (divisions, etc.) |
+| `events` | All dojo events (tournaments, shinsa, seminars, special events) |
+| `tournaments` / `shinsa_exams` / `seminars` / `special_events` | Event type detail rows |
 | `tournament_registrations` | Member → tournament event signups |
 | `shinsa_registrations` | Member → shinsa signups |
 | `seminar_registrations` | Member → seminar signups |
+| `special_event_registrations` | Member → special event signups |
 | `payments` | Payment definitions (title, amount, due date, overdue penalty) |
 | `assigned_payments` | Payments assigned to specific members |
 | `submitted_payments` | Completed payment records (written by Stripe webhook) |
-| `announcements` | Announcement records (subject, body, attachments) |
+| `recurring_payments` | Recurring config linked to a template payment (interval, broadcast target, next_due_date, designated_parents) |
+| `announcements` | Announcement records (subject, body, attachments, target: `all`/`senseis`) |
+| `families` | Family group records (name) |
+| `family_members` | Family membership with `is_parent` flag |
 | `tournament_results` | Placement records per tournament (FK → events, CASCADE delete) |
 
 **DynamoDB** (`members` table) stores member identity: name, rank, email, birthday, status, Stripe `customer_id`, Cognito `username`. GSIs: `username-index`, `email-index`, `dedup_key-index`.
@@ -117,9 +121,19 @@ infra/lambdas/
 ├── broadcasted_payments/
 │   └── broadcast_payment/     POST /broadcastpayments (admin) — assigns payment to member groups
 ├── announcements/
-│   ├── getAnnouncements/      GET /announcements
-│   ├── sendAnnouncement/      POST /announcements (admin) — sends email blast via Gmail/nodemailer
+│   ├── getAnnouncements/      GET /announcements — returns target field (all/senseis) per record
+│   ├── sendAnnouncement/      POST /announcements (admin) — stores target, sends email blast
 │   └── getUploadUrl/          GET /announcements/upload — presigned S3 URL for attachments
+├── recurring_payments/
+│   ├── getRecurrings/         GET /recurringpayments (admin)
+│   ├── createRecurring/       POST /recurringpayments (admin) — creates template, assigns first cycle immediately, advances next_due_date
+│   ├── deleteRecurring/       DELETE /recurringpayments (admin)
+│   └── processRecurrings/     Scheduled (EventBridge daily) — assigns members 2 weeks before next_due_date, then advances it
+├── families/
+│   ├── getFamilies/           GET /families
+│   ├── createFamily/          POST /families (admin)
+│   ├── updateFamily/          PATCH /families (admin) — rename, add/remove members, set is_parent
+│   └── deleteFamily/          DELETE /families (admin)
 ├── webhooks/
 │   └── stripeWebhook/         POST /webhook — handles payment_intent.succeeded, writes submitted_payments
 ├── rds/
@@ -130,7 +144,8 @@ infra/lambdas/
     ├── db.js                  pg Client factory — connects to RDS via Secrets Manager credentials
     ├── members.js             DynamoDB helpers (getMemberById, getAllMemberIds, getMemberIdByToken, etc.)
     ├── dates.js               UTC time helpers
-    └── normalize_claim.js     normalizes Cognito group claims across token types
+    ├── normalize_claim.js     normalizes Cognito group claims across token types
+    └── mailer.js              SES email helper used by announcements and recurring payments
 ```
 
 ---
@@ -151,8 +166,8 @@ frontend/
 │   │   ├── Profile.jsx        Member profile — event activity + achievements with year toggle
 │   │   ├── AdminControl.jsx   Admin shell — routes to admin sub-pages
 │   │   ├── AdminDashboard.jsx Admin landing with quick-action cards
-│   │   ├── Members.jsx        Admin — member directory with status/college student toggles
-│   │   ├── Payments.jsx       Admin — payment management + broadcast assign by member group
+│   │   ├── Members.jsx        Admin — member directory with status/college student/guest toggles + Families tab
+│   │   ├── Payments.jsx       Admin — one-time and recurring payment management
 │   │   ├── Events.jsx         Admin — event CRUD
 │   │   ├── Announcements.jsx  Admin — compose + send announcements
 │   │   └── TournamentResults.jsx  Admin — record/edit tournament results (all past tournaments)
@@ -181,6 +196,24 @@ frontend/
 
 ---
 
+## Recurring Payments
+
+1. Admin creates a recurring payment with title, amount, interval, broadcast target, and optionally designates a paying parent per family
+2. On creation: members are assigned immediately (first cycle); `next_due_date` is advanced by the interval
+3. Each subsequent cycle: `processRecurrings` (EventBridge, daily 8am UTC) assigns members 2 weeks before `next_due_date`, then advances it
+
+**Family billing:** designated parent pays full price; all other active family members pay 50% off. Family members are excluded from non-family recurring broadcasts. Senseis with non-active status are excluded.
+
+---
+
+## Announcements
+
+- Admins post with a target of `all` (everyone) or `senseis` (4-dan+, shihan, and admins only)
+- `getAnnouncements` returns the `target` field; the frontend filters client-side based on the viewer's rank
+- Attachments (images, PDFs) uploaded via presigned S3 URL and rendered inline
+
+---
+
 ## Payments (Stripe)
 
 1. Admin creates a payment and assigns it to members (individually or broadcast by group)
@@ -195,7 +228,12 @@ Stripe credentials and webhook secret stored in Secrets Manager.
 
 ## Off-Hours
 
-The RDS instance is stopped from midnight to 7am PT daily. The frontend `offHours.js` module mirrors this window — during off-hours, payment and event actions are blocked and an `OffHoursCard` is displayed instead.
+RDS is stopped during off-hours via EventBridge schedules. The frontend `offHours.js` mirrors this per-day-of-week window — during off-hours, payment and event actions are blocked and an `OffHoursCard` is displayed instead.
+
+| Day | Stop (PT) | Start (PT) |
+|---|---|---|
+| Weekdays (Mon–Fri) | 1:00 AM | 7:00 AM |
+| Weekends (Sat–Sun) | 2:00 AM | 5:00 AM |
 
 ---
 
@@ -211,7 +249,20 @@ cd infra && cdk deploy --all
 
 Stacks deploy in order: `DatabaseStack` → `ServiceStack` → `StorageStack`.
 
-**Note:** The `psql/init` Lambda only re-runs on stack creation. New SQL tables must be added manually to the live RDS instance in addition to updating `infra/sql/init.sql`.
+**Note:** The `psql/init` Lambda only re-runs on stack creation. New SQL tables and columns must be applied manually to the live RDS instance in addition to updating `infra/sql/init.sql`.
+
+### Required migrations when upgrading an existing instance
+
+```sql
+-- Sensei-only announcements
+ALTER TABLE announcements ADD COLUMN IF NOT EXISTS target TEXT NOT NULL DEFAULT 'all';
+
+-- Recurring family billing
+ALTER TABLE recurring_payments ADD COLUMN IF NOT EXISTS designated_parents JSONB;
+
+-- Family parent designation
+ALTER TABLE family_members ADD COLUMN IF NOT EXISTS is_parent BOOLEAN NOT NULL DEFAULT FALSE;
+```
 
 ---
 
