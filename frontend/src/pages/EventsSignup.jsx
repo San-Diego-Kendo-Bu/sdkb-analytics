@@ -5,14 +5,14 @@ import { isOffHours, OFF_HOURS_MSG } from '../js/offHours';
 import OffHoursCard from '../react_components/OffHoursCard';
 
 const BASE_URL = 'https://qh3c0tz6s9.execute-api.us-east-2.amazonaws.com';
-const EVENTS_API            = `${BASE_URL}/events`;
-const CONFIGURE_API         = `${BASE_URL}/events/configure`;
-const MEMBERS_API           = `${BASE_URL}/members`;
-const REGISTER_API          = `${BASE_URL}/events/register`;
-const PAYMENTS_API          = `${BASE_URL}/payments`;
+const EVENTS_API = `${BASE_URL}/events`;
+const CONFIGURE_API = `${BASE_URL}/events/configure`;
+const MEMBERS_API = `${BASE_URL}/members`;
+const REGISTER_API = `${BASE_URL}/events/register`;
+const PAYMENTS_API = `${BASE_URL}/payments`;
 const ASSIGNED_PAYMENTS_API = `${BASE_URL}/assignedpayments`;
 const SUBMITTED_PAYMENTS_API = `${BASE_URL}/submittedpayments`;
-const SPECIAL_EVENT_API      = `${BASE_URL}/events/specialEventRegistrations`;
+const SPECIAL_EVENT_API = `${BASE_URL}/events/specialEventRegistrations`;
 
 const STATUS_COLORS = {
   Active: '#28a745',
@@ -146,11 +146,11 @@ function SignUpForm({ ev, config, member, onSubmit, onCancel, submitting }) {
           )}
           {config?.shinpan_needed &&
             (member?.rank_type === 'shihan' || (member?.rank_type === 'dan' && Number(member?.rank_number) >= 4)) && (
-            <label className={styles.label}>
-              <input type="checkbox" checked={shinpanning} onChange={e => setShinpanning(e.target.checked)} />{' '}
-              Shinpanning
-            </label>
-          )}
+              <label className={styles.label}>
+                <input type="checkbox" checked={shinpanning} onChange={e => setShinpanning(e.target.checked)} />{' '}
+                Shinpanning
+              </label>
+            )}
         </>
       )}
 
@@ -429,19 +429,41 @@ function EventsSignup({ onPayNavigate }) {
     setSignupsLoading(false);
   }
 
+  function parsePostgresArray(pgStr) {
+    if (!pgStr) return [];
+    if (Array.isArray(pgStr)) return pgStr; // Already an array
+
+    // Remove the outer curly braces {}
+    const cleaned = pgStr.replace(/^\{|\}$/g, '');
+
+    // Split by commas, handling the quotes
+    return cleaned.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g)
+      ?.map(val => val.replace(/^"|"$/g, '')) || [];
+  }
+
   function getEventSignups(ev) {
     if (!allRegs) return [];
     const eid = String(ev.event_id);
     if (ev.type === 'tournament') {
-      return allRegs.tournament.filter(r => String(r.event_id) === eid).map(r => ({
-        member: allMembersMap[String(r.member_id)],
-        member_id: r.member_id,
-        detail: [
-          r.divisions?.length ? r.divisions.join(', ') : null,
-          r.shinpanning && 'Shinpanning',
-          r.doing_teams && 'Teams',
-        ].filter(Boolean).join(' · '),
-      }));
+      return allRegs.tournament
+        .filter(r => String(r.event_id) === eid)
+        .map(r => {
+          const cleanedDivisions = parsePostgresArray(r.divisions);
+
+          return {
+            member: allMembersMap[String(r.member_id)],
+            member_id: r.member_id,
+            detail: [
+              cleanedDivisions.length
+                ? cleanedDivisions.join(', ')
+                : null,
+              r.shinpanning && 'Shinpanning',
+              r.doing_teams && 'Teams',
+            ]
+              .filter(Boolean)
+              .join(' · '),
+          };
+        });
     }
     if (ev.type === 'shinsa') {
       return allRegs.shinsa.filter(r => String(r.event_id) === eid).map(r => ({

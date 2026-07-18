@@ -2,33 +2,46 @@ import { useState, useEffect } from 'react';
 import { userManager } from '../js/cognitoManager';
 import styles from '../../css/members.module.css';
 
-const BASE_URL        = 'https://qh3c0tz6s9.execute-api.us-east-2.amazonaws.com';
-const MEMBERS_API     = `${BASE_URL}/members`;
-const EVENTS_API      = `${BASE_URL}/events`;
-const TOURNAMENT_API  = `${BASE_URL}/events/tournamentRegistrations`;
-const SHINSA_API      = `${BASE_URL}/events/shinsaRegistrations`;
-const SEMINAR_API     = `${BASE_URL}/events/seminarRegistrations`;
-const SPECIAL_API     = `${BASE_URL}/events/specialEventRegistrations`;
-const ASSIGNED_API    = `${BASE_URL}/assignedpayments`;
-const SUBMITTED_API   = `${BASE_URL}/submittedpayments`;
-const PAYMENTS_API    = `${BASE_URL}/payments`;
-const FAMILIES_API    = `${BASE_URL}/families`;
+const BASE_URL = 'https://qh3c0tz6s9.execute-api.us-east-2.amazonaws.com';
+const MEMBERS_API = `${BASE_URL}/members`;
+const EVENTS_API = `${BASE_URL}/events`;
+const TOURNAMENT_API = `${BASE_URL}/events/tournamentRegistrations`;
+const SHINSA_API = `${BASE_URL}/events/shinsaRegistrations`;
+const SEMINAR_API = `${BASE_URL}/events/seminarRegistrations`;
+const SPECIAL_API = `${BASE_URL}/events/specialEventRegistrations`;
+const ASSIGNED_API = `${BASE_URL}/assignedpayments`;
+const SUBMITTED_API = `${BASE_URL}/submittedpayments`;
+const PAYMENTS_API = `${BASE_URL}/payments`;
+const FAMILIES_API = `${BASE_URL}/families`;
 
 function fmtType(type) {
   return type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 }
 
 const TYPE_STYLE = {
-  tournament:    { bg: '#1a2744', border: '#0d6efd', text: '#6ea8fe', badgeBg: '#0d6efd' },
-  shinsa:        { bg: '#2e1d0e', border: '#fd7e14', text: '#fd9843', badgeBg: '#fd7e14' },
-  seminar:       { bg: '#0e2a1a', border: '#198754', text: '#75b798', badgeBg: '#198754' },
+  tournament: { bg: '#1a2744', border: '#0d6efd', text: '#6ea8fe', badgeBg: '#0d6efd' },
+  shinsa: { bg: '#2e1d0e', border: '#fd7e14', text: '#fd9843', badgeBg: '#fd7e14' },
+  seminar: { bg: '#0e2a1a', border: '#198754', text: '#75b798', badgeBg: '#198754' },
   special_event: { bg: '#2a1a2e', border: '#9c5fc7', text: '#c99fe8', badgeBg: '#9c5fc7' },
 };
+
+function parsePostgresArray(pgStr) {
+  if (!pgStr) return [];
+  if (Array.isArray(pgStr)) return pgStr; // Already an array
+
+  // Remove the outer curly braces {}
+  const cleaned = pgStr.replace(/^\{|\}$/g, '');
+
+  // Split by commas, handling the quotes
+  return cleaned.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g)
+    ?.map(val => val.replace(/^"|"$/g, '')) || [];
+}
 
 function getRegSummary(r) {
   if (r._type === 'tournament') {
     const parts = [];
-    if (r.divisions?.length) parts.push(r.divisions.join(', '));
+    const cleaned_divisions = parsePostgresArray(r.divisions);
+    if (cleaned_divisions.length) parts.push(cleaned_divisions.join(', '));
     else if (r.division) parts.push(r.division);
     if (r.shinpanning) parts.push('Shinpanning');
     if (r.doing_teams) parts.push('Teams');
@@ -48,9 +61,10 @@ function MemberModal({ selection, onClose }) {
     details.push(['Registered', new Date(reg.registration_date).toLocaleDateString('en-US', { timeZone: 'UTC' })]);
   }
   if (reg._type === 'tournament') {
-    details.push(['Division',      reg.division    ?? '—']);
-    details.push(['Shinpanning',   reg.shinpanning  ? 'Yes' : 'No']);
-    details.push(['Doing Teams',   reg.doing_teams  ? 'Yes' : 'No']);
+    const divisions = parsePostgresArray(reg.divisions).join(', ');
+    details.push(['Division(s)', divisions || '—']);
+    details.push(['Shinpanning', reg.shinpanning ? 'Yes' : 'No']);
+    details.push(['Doing Teams', reg.doing_teams ? 'Yes' : 'No']);
     if (reg.weight != null) details.push(['Weight', `${reg.weight} lbs`]);
     if (reg.height != null) {
       const ft = Math.floor(reg.height / 12);
@@ -136,40 +150,40 @@ function EventsTab({ bins, memberMap, onSelect }) {
       {visible.length === 0
         ? <p style={{ color: 'var(--text-muted)', padding: '2rem 0', textAlign: 'center' }}>No active event signups.</p>
         : <div className={styles.binGrid}>
-            {visible.map(({ event, regs }) => {
-              const ts = TYPE_STYLE[event.event_type] ?? TYPE_STYLE.seminar;
-              return (
-                <div key={event.event_id} className={styles.eventBin} style={{ borderColor: ts.border }}>
-                  <div className={styles.eventHeader} style={{ background: ts.bg }}>
-                    <span className={styles.typeBadge} style={{ background: ts.badgeBg, color: '#fff' }}>
-                      {fmtType(event.event_type)}
+          {visible.map(({ event, regs }) => {
+            const ts = TYPE_STYLE[event.event_type] ?? TYPE_STYLE.seminar;
+            return (
+              <div key={event.event_id} className={styles.eventBin} style={{ borderColor: ts.border }}>
+                <div className={styles.eventHeader} style={{ background: ts.bg }}>
+                  <span className={styles.typeBadge} style={{ background: ts.badgeBg, color: '#fff' }}>
+                    {fmtType(event.event_type)}
+                  </span>
+                  <span className={styles.eventName} style={{ color: ts.text }}>{event.event_name}</span>
+                  {event.event_date && (
+                    <span className={styles.eventDate}>
+                      {new Date(event.event_date).toLocaleDateString('en-US', {
+                        timeZone: 'UTC', month: 'short', day: 'numeric', year: 'numeric',
+                      })}
                     </span>
-                    <span className={styles.eventName} style={{ color: ts.text }}>{event.event_name}</span>
-                    {event.event_date && (
-                      <span className={styles.eventDate}>
-                        {new Date(event.event_date).toLocaleDateString('en-US', {
-                          timeZone: 'UTC', month: 'short', day: 'numeric', year: 'numeric',
-                        })}
-                      </span>
-                    )}
-                  </div>
-                  <ul className={styles.memberList}>
-                    {regs.map((r, i) => {
-                      const m = memberMap[String(r.member_id)];
-                      const name = m ? `${m.first_name} ${m.last_name}` : `Member #${r.member_id}`;
-                      const summary = getRegSummary(r);
-                      return (
-                        <li key={i} className={styles.memberRow} onClick={() => onSelect({ reg: r, event, member: m })}>
-                          <span className={styles.memberName}>{name}</span>
-                          {summary && <span className={styles.detailHint}>{summary}</span>}
-                        </li>
-                      );
-                    })}
-                  </ul>
+                  )}
                 </div>
-              );
-            })}
-          </div>
+                <ul className={styles.memberList}>
+                  {regs.map((r, i) => {
+                    const m = memberMap[String(r.member_id)];
+                    const name = m ? `${m.first_name} ${m.last_name}` : `Member #${r.member_id}`;
+                    const summary = getRegSummary(r);
+                    return (
+                      <li key={i} className={styles.memberRow} onClick={() => onSelect({ reg: r, event, member: m })}>
+                        <span className={styles.memberName}>{name}</span>
+                        {summary && <span className={styles.detailHint}>{summary}</span>}
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            );
+          })}
+        </div>
       }
     </div>
   );
@@ -201,10 +215,10 @@ function PaymentsTab({ bins, onUnassign }) {
   const visible = showAll
     ? bins
     : bins.filter(({ payment, assigned }) => {
-        const isPastDue = payment.due_date ? today > payment.due_date.slice(0, 10) : false;
-        const hasOverdue = assigned.some(a => a.isOverdue);
-        return !isPastDue || hasOverdue;
-      });
+      const isPastDue = payment.due_date ? today > payment.due_date.slice(0, 10) : false;
+      const hasOverdue = assigned.some(a => a.isOverdue);
+      return !isPastDue || hasOverdue;
+    });
 
   if (bins.length === 0) {
     return <p className="text-muted mt-3">No payment data yet.</p>;
@@ -215,70 +229,70 @@ function PaymentsTab({ bins, onUnassign }) {
       {visible.length === 0
         ? <p style={{ color: 'var(--text-muted)', padding: '2rem 0', textAlign: 'center' }}>No active payments.</p>
         : <div className={styles.paymentSection}>
-      {visible.map(({ payment, assigned, submitted }) => {
-        const overdue = assigned.filter(a => a.isOverdue);
-        const due     = assigned.filter(a => !a.isOverdue);
-        return (
-          <div key={payment.payment_id} className={styles.paymentBin}>
-            <div className={styles.paymentHeader}>
-              <strong>{payment.title ?? `Payment #${payment.payment_id}`}</strong>
-              <span className={styles.paymentValue}>${Number(payment.payment_value).toFixed(2)}</span>
-              {payment.due_date && (
-                <span className={styles.paymentDue}>
-                  Due {new Date(payment.due_date).toLocaleDateString('en-US', { timeZone: 'UTC' })}
-                </span>
-              )}
-            </div>
-
-            {submitted.length > 0 && (
-              <div className={styles.paymentGroup}>
-                <span className={styles.groupLabel} style={{ background: '#0e2a1a', color: '#75b798' }}>Paid</span>
-                <div className={styles.memberTags}>
-                  {submitted.map((s, i) => (
-                    <span key={i} className={styles.memberTag} style={{ background: '#0e2a1a', color: '#75b798' }}>
-                      {s.member ? `${s.member.first_name} ${s.member.last_name}` : `Member #${s.member_id}`}
+          {visible.map(({ payment, assigned, submitted }) => {
+            const overdue = assigned.filter(a => a.isOverdue);
+            const due = assigned.filter(a => !a.isOverdue);
+            return (
+              <div key={payment.payment_id} className={styles.paymentBin}>
+                <div className={styles.paymentHeader}>
+                  <strong>{payment.title ?? `Payment #${payment.payment_id}`}</strong>
+                  <span className={styles.paymentValue}>${Number(payment.payment_value).toFixed(2)}</span>
+                  {payment.due_date && (
+                    <span className={styles.paymentDue}>
+                      Due {new Date(payment.due_date).toLocaleDateString('en-US', { timeZone: 'UTC' })}
                     </span>
-                  ))}
+                  )}
                 </div>
-              </div>
-            )}
 
-            {overdue.length > 0 && (
-              <div className={styles.paymentGroup}>
-                <span className={styles.groupLabel} style={{ background: '#2a0e0e', color: '#f5a8a8' }}>Overdue</span>
-                <div className={styles.memberTags}>
-                  {overdue.map((a, i) => (
-                    <UnassignableTag
-                      key={i}
-                      label={a.member ? `${a.member.first_name} ${a.member.last_name}` : `Member #${a.member_id}`}
-                      color="#f5a8a8"
-                      bg="#2a0e0e"
-                      onUnassign={() => onUnassign(a.member_id, payment.payment_id)}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
+                {submitted.length > 0 && (
+                  <div className={styles.paymentGroup}>
+                    <span className={styles.groupLabel} style={{ background: '#0e2a1a', color: '#75b798' }}>Paid</span>
+                    <div className={styles.memberTags}>
+                      {submitted.map((s, i) => (
+                        <span key={i} className={styles.memberTag} style={{ background: '#0e2a1a', color: '#75b798' }}>
+                          {s.member ? `${s.member.first_name} ${s.member.last_name}` : `Member #${s.member_id}`}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
-            {due.length > 0 && (
-              <div className={styles.paymentGroup}>
-                <span className={styles.groupLabel} style={{ background: '#2a1d0e', color: '#f0c060' }}>Due</span>
-                <div className={styles.memberTags}>
-                  {due.map((a, i) => (
-                    <UnassignableTag
-                      key={i}
-                      label={a.member ? `${a.member.first_name} ${a.member.last_name}` : `Member #${a.member_id}`}
-                      color="#f0c060"
-                      bg="#2a1d0e"
-                      onUnassign={() => onUnassign(a.member_id, payment.payment_id)}
-                    />
-                  ))}
-                </div>
+                {overdue.length > 0 && (
+                  <div className={styles.paymentGroup}>
+                    <span className={styles.groupLabel} style={{ background: '#2a0e0e', color: '#f5a8a8' }}>Overdue</span>
+                    <div className={styles.memberTags}>
+                      {overdue.map((a, i) => (
+                        <UnassignableTag
+                          key={i}
+                          label={a.member ? `${a.member.first_name} ${a.member.last_name}` : `Member #${a.member_id}`}
+                          color="#f5a8a8"
+                          bg="#2a0e0e"
+                          onUnassign={() => onUnassign(a.member_id, payment.payment_id)}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {due.length > 0 && (
+                  <div className={styles.paymentGroup}>
+                    <span className={styles.groupLabel} style={{ background: '#2a1d0e', color: '#f0c060' }}>Due</span>
+                    <div className={styles.memberTags}>
+                      {due.map((a, i) => (
+                        <UnassignableTag
+                          key={i}
+                          label={a.member ? `${a.member.first_name} ${a.member.last_name}` : `Member #${a.member_id}`}
+                          color="#f0c060"
+                          bg="#2a1d0e"
+                          onUnassign={() => onUnassign(a.member_id, payment.payment_id)}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-        );
-      })}
+            );
+          })}
         </div>
       }
     </div>
@@ -292,16 +306,16 @@ function formatRank(rank_type, rank_number) {
 }
 
 const DIR_FILTERS = [
-  { key: 'active',   label: 'All Active' },
-  { key: 'senseis',  label: 'Senseis (4-Dan+)' },
-  { key: 'guests',   label: 'Guests' },
+  { key: 'active', label: 'All Active' },
+  { key: 'senseis', label: 'Senseis (4-Dan+)' },
+  { key: 'guests', label: 'Guests' },
   { key: 'inactive', label: 'Inactive' },
 ];
 
 function matchesDirFilter(m, filter) {
-  if (filter === 'active')   return m.status !== 'inactive' && m.status !== 'guest';
-  if (filter === 'senseis')  return m.rank_type === 'shihan' || (m.rank_type === 'dan' && Number(m.rank_number) >= 4);
-  if (filter === 'guests')   return m.status === 'guest';
+  if (filter === 'active') return m.status !== 'inactive' && m.status !== 'guest';
+  if (filter === 'senseis') return m.rank_type === 'shihan' || (m.rank_type === 'dan' && Number(m.rank_number) >= 4);
+  if (filter === 'guests') return m.status === 'guest';
   if (filter === 'inactive') return m.status === 'inactive';
   return true;
 }
@@ -529,27 +543,27 @@ function MemberPicker({ members, memberData, onToggleMember, onToggleParent, sea
         {members.length === 0
           ? <p style={{ color: 'var(--text-muted)', padding: '0.5rem', fontSize: '0.85rem', margin: 0 }}>No members found.</p>
           : members.map(m => {
-              const id = String(m.member_id);
-              const selected = memberData.has(id);
-              const isParent = memberData.get(id) ?? false;
-              return (
-                <div key={id} style={{
-                  display: 'flex', alignItems: 'center', padding: '5px 10px',
-                  background: selected ? 'rgba(110, 168, 254, 0.12)' : 'transparent',
-                }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 1, cursor: 'pointer', fontSize: '0.85rem', color: 'var(--text-primary)' }}>
-                    <input type="checkbox" checked={selected} onChange={() => onToggleMember(id)} style={{ accentColor: '#6ea8fe' }} />
-                    {m.last_name}, {m.first_name}
+            const id = String(m.member_id);
+            const selected = memberData.has(id);
+            const isParent = memberData.get(id) ?? false;
+            return (
+              <div key={id} style={{
+                display: 'flex', alignItems: 'center', padding: '5px 10px',
+                background: selected ? 'rgba(110, 168, 254, 0.12)' : 'transparent',
+              }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 1, cursor: 'pointer', fontSize: '0.85rem', color: 'var(--text-primary)' }}>
+                  <input type="checkbox" checked={selected} onChange={() => onToggleMember(id)} style={{ accentColor: '#6ea8fe' }} />
+                  {m.last_name}, {m.first_name}
+                </label>
+                {selected && (
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.75rem', color: 'var(--text-muted)', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                    <input type="checkbox" checked={isParent} onChange={() => onToggleParent(id)} style={{ accentColor: '#ffc107' }} />
+                    Parent
                   </label>
-                  {selected && (
-                    <label style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.75rem', color: 'var(--text-muted)', cursor: 'pointer', whiteSpace: 'nowrap' }}>
-                      <input type="checkbox" checked={isParent} onChange={() => onToggleParent(id)} style={{ accentColor: '#ffc107' }} />
-                      Parent
-                    </label>
-                  )}
-                </div>
-              );
-            })
+                )}
+              </div>
+            );
+          })
         }
       </div>
     </div>
@@ -812,11 +826,11 @@ function FamiliesTab({ allMembers }) {
 }
 
 export default function Members() {
-  const [tab, setTab]             = useState('events');
-  const [overview, setOverview]   = useState(null);
+  const [tab, setTab] = useState('events');
+  const [overview, setOverview] = useState(null);
   const [allMembers, setAllMembers] = useState([]);
-  const [loading, setLoading]     = useState(true);
-  const [selected, setSelected]   = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [selected, setSelected] = useState(null);
 
   useEffect(() => { load(); }, []);
 
@@ -833,7 +847,7 @@ export default function Members() {
         endpoints.map(url => fetch(url).then(r => r.json()))
       );
 
-      const labels = ['members','events','tournament','shinsa','seminar','special','assigned','submitted','payments'];
+      const labels = ['members', 'events', 'tournament', 'shinsa', 'seminar', 'special', 'assigned', 'submitted', 'payments'];
       settled.forEach((s, i) => {
         if (s.status === 'rejected') console.error(`Members: failed to fetch ${labels[i]}:`, s.reason);
         else console.log(`Members: ${labels[i]}`, s.value);
@@ -841,25 +855,25 @@ export default function Members() {
 
       const get = i => settled[i].status === 'fulfilled' ? settled[i].value : {};
 
-      const membersData   = get(0);
-      const eventsData    = get(1);
-      const tournData     = get(2);
-      const shinsaData    = get(3);
-      const semData       = get(4);
-      const specialData   = get(5);
-      const assignedData  = get(6);
+      const membersData = get(0);
+      const eventsData = get(1);
+      const tournData = get(2);
+      const shinsaData = get(3);
+      const semData = get(4);
+      const specialData = get(5);
+      const assignedData = get(6);
       const submittedData = get(7);
-      const paymentsData  = get(8);
+      const paymentsData = get(8);
 
-      const members   = membersData.items   ?? [];
-      const events    = eventsData.body     ?? [];
-      const tourn     = tournData.body      ?? [];
-      const shinsa    = shinsaData.body     ?? [];
-      const seminar   = semData.body        ?? [];
-      const special   = specialData.body    ?? [];
-      const assigned  = assignedData.data   ?? [];
-      const submitted = submittedData.data  ?? [];
-      const payments  = paymentsData.data   ?? [];
+      const members = membersData.items ?? [];
+      const events = eventsData.body ?? [];
+      const tourn = tournData.body ?? [];
+      const shinsa = shinsaData.body ?? [];
+      const seminar = semData.body ?? [];
+      const special = specialData.body ?? [];
+      const assigned = assignedData.data ?? [];
+      const submitted = submittedData.data ?? [];
+      const payments = paymentsData.data ?? [];
 
       const memberMap = Object.fromEntries(members.map(m => [String(m.member_id), m]));
 
@@ -872,8 +886,8 @@ export default function Members() {
       console.log('Members: shinsa event_ids', shinsa.map(r => r.event_id));
       console.log('Members: seminar event_ids', seminar.map(r => r.event_id));
 
-      for (const r of tourn)   regsByEventId[r.event_id]?.regs.push({ ...r, _type: 'tournament' });
-      for (const r of shinsa)  regsByEventId[r.event_id]?.regs.push({ ...r, _type: 'shinsa' });
+      for (const r of tourn) regsByEventId[r.event_id]?.regs.push({ ...r, _type: 'tournament' });
+      for (const r of shinsa) regsByEventId[r.event_id]?.regs.push({ ...r, _type: 'shinsa' });
       for (const r of seminar) regsByEventId[r.event_id]?.regs.push({ ...r, _type: 'seminar' });
       for (const r of special) regsByEventId[r.event_id]?.regs.push({ ...r, _type: 'special_event' });
 
