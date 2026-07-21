@@ -234,7 +234,7 @@ export default function App() {
               style={{ position: 'absolute', top: '0.75rem', right: '0.75rem', background: 'transparent', border: 'none', color: 'var(--text-muted)', fontSize: '1.2rem', cursor: 'pointer' }}
             >✕</button>
             <p style={{ margin: 0, fontSize: '0.95rem' }}>
-              This app was created by a group of students and full-time developers who generously volunteered their free time to give back to their former dojo, San Diego Kendo Bu. I would especially like to thank our UCSD alumni Gabe I., Rahul P., Ben L., and Aidan M. for their invaluable contributions. Whether your contributions were large or small, each of you played an important role in making this app a reality.
+              This app was created by a group of students and full-time developers who generously volunteered their free time to give back to their former dojo, San Diego Kendo Bu. I would especially like to thank our UCSD alumni Gabe I., Rahul P., Ben L., Aidan M., and Jon H. for their invaluable contributions. Whether your contributions were large or small, each of you played an important role in making this app a reality.
             </p>
             <p style={{ margin: '1rem 0 0 0', fontSize: '0.95rem' }}>
               Please forward app inquiries to Isamu Goto.
