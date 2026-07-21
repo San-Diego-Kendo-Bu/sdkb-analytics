@@ -105,6 +105,22 @@ function getSafeEmailError(errorMessage = "") {
 }
 
 /**
+ * Returns true when Gmail indicates that the account
+ * has reached a rate or daily sending limit.
+ */
+function isSendingLimitError(errorMessage = "") {
+    const message = errorMessage.toLowerCase();
+
+    return (
+        message.includes("quota") ||
+        message.includes("rate limit") ||
+        message.includes("too many") ||
+        message.includes("sending limit") ||
+        message.includes("daily user sending limit exceeded")
+    );
+}
+
+/**
  * Logs elapsed execution time and remaining Lambda time.
  */
 function logTiming(context, startedAt, stage, details = {}) {
@@ -328,22 +344,43 @@ exports.handler = async (event, context) => {
         let failed = 0;
 
         const failures = [];
+        const BCC_BATCH_SIZE = 25;
+        const totalBatches = Math.ceil(emails.length / BCC_BATCH_SIZE);
         const sendStartedAt = Date.now();
 
         logTiming(context, handlerStartedAt, "email_sending_started", {
             recipientCount: emails.length,
+            batchSize: BCC_BATCH_SIZE,
+            totalBatches,
         });
 
-        if (emails.length > 0) {
+        for (
+            let i = 0;
+            i < emails.length;
+            i += BCC_BATCH_SIZE
+        ) {
+            const batch = emails.slice(i, i + BCC_BATCH_SIZE);
+            const batchNumber =
+                Math.floor(i / BCC_BATCH_SIZE) + 1;
+            const batchStartedAt = Date.now();
+
+            logTiming(context, handlerStartedAt, "bcc_batch_started", {
+                batchNumber,
+                totalBatches,
+                batchRecipientCount: batch.length,
+                processedBeforeBatch: sent + failed,
+                recipientCount: emails.length,
+            });
+
             try {
                 const info = await transporter.sendMail({
                     from: `SDKB Portal <${gmailUser}>`,
 
-                    // Visible recipient.
+                    // Visible recipient for the email.
                     to: gmailUser,
 
-                    // Filtered recipients are hidden from one another.
-                    bcc: emails,
+                    // Recipients in this batch remain hidden from each other.
+                    bcc: batch,
 
                     subject,
                     html: htmlBody,
@@ -355,11 +392,23 @@ exports.handler = async (event, context) => {
                     ? info.rejected
                     : [];
 
-                failed = rejected.length;
-                sent = emails.length - failed;
+                const rejectedSet = new Set(
+                    rejected.map((email) =>
+                        String(email).toLowerCase()
+                    )
+                );
 
-                console.log("Announcement email sent", {
+                const acceptedCount =
+                    batch.length - rejectedSet.size;
+
+                sent += acceptedCount;
+                failed += rejectedSet.size;
+
+                console.log("BCC batch sent", {
                     requestId: context?.awsRequestId,
+                    batchNumber,
+                    totalBatches,
+                    batchRecipientCount: batch.length,
                     messageId: info.messageId,
                     accepted: info.accepted,
                     rejected,
@@ -376,8 +425,11 @@ exports.handler = async (event, context) => {
                     error?.message ||
                     "Unknown delivery error";
 
-                console.error("Announcement send failed", {
+                console.error("BCC batch failed", {
                     requestId: context?.awsRequestId,
+                    batchNumber,
+                    totalBatches,
+                    batchRecipientCount: batch.length,
                     message: rawError,
                     code: error?.code,
                     responseCode: error?.responseCode,
@@ -385,20 +437,61 @@ exports.handler = async (event, context) => {
                     command: error?.command,
                 });
 
-                failed = emails.length;
+                failed += batch.length;
 
-                emails.forEach((email) => {
+                batch.forEach((email) => {
                     failures.push({
                         email,
                         reason: getSafeEmailError(rawError),
                     });
                 });
+
+                if (isSendingLimitError(rawError)) {
+                    const remainingEmails =
+                        emails.slice(i + BCC_BATCH_SIZE);
+
+                    failed += remainingEmails.length;
+
+                    remainingEmails.forEach((email) => {
+                        failures.push({
+                            email,
+                            reason:
+                                "Email sending limit was reached before this recipient could be processed.",
+                        });
+                    });
+
+                    console.error(
+                        "Stopping remaining BCC batches because the sending limit was reached",
+                        {
+                            requestId: context?.awsRequestId,
+                            batchNumber,
+                            totalBatches,
+                            remainingRecipientCount:
+                                remainingEmails.length,
+                        }
+                    );
+
+                    break;
+                }
             }
+
+            logTiming(context, handlerStartedAt, "bcc_batch_completed", {
+                batchNumber,
+                totalBatches,
+                batchDurationMs:
+                    Date.now() - batchStartedAt,
+                sent,
+                failed,
+                processed: sent + failed,
+                recipientCount: emails.length,
+            });
         }
 
         logTiming(context, handlerStartedAt, "email_sending_completed", {
             sendingDurationMs: Date.now() - sendStartedAt,
             recipientCount: emails.length,
+            batchSize: BCC_BATCH_SIZE,
+            totalBatches,
             sent,
             failed,
         });
