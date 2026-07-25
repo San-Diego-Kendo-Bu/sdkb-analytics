@@ -9,6 +9,7 @@ const BASE_URL = 'https://qh3c0tz6s9.execute-api.us-east-2.amazonaws.com';
 const PAYMENTS_API = `${BASE_URL}/payments`;
 const MEMBERS_API = `${BASE_URL}/members`;
 const ASSIGNED_PAYMENTS_API = `${BASE_URL}/assignedpayments`;
+const BROADCAST_PAYMENTS_API = `${BASE_URL}/payments/broadcast`;
 const RECURRING_API = `${BASE_URL}/recurringpayments`;
 const FAMILIES_API = `${BASE_URL}/families`;
 
@@ -209,57 +210,35 @@ function Payments() {
       .catch(err => setError(err.message));
   }
 
-  function calcAge(birthday) {
-    if (!birthday) return null;
-    const today = new Date();
-    const dob = new Date(birthday);
-    let age = today.getFullYear() - dob.getFullYear();
-    const m = today.getMonth() - dob.getMonth();
-    if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) age--;
-    return age;
-  }
-
   async function handleBroadcast(payment, mode = 'all') {
     if (isOffHours()) { setError(OFF_HOURS_MSG); return; }
-    if (!members.length) { setError('No members loaded.'); return; }
-    const due_status = payment.due_date && new Date().toISOString().slice(0, 10) > payment.due_date.slice(0, 10) ? 'overdue' : 'due';
     setAssigningId(null);
     setAssignMemberId('');
 
-    const active = m => m.status === 'active';
-    const notSensei = m => m.rank_type !== 'shihan' && !(m.rank_type === 'dan' && Number(m.rank_number) >= 4);
+    const LABELS = { adults: 'adults (3-dan & below)', students: 'university students', kids: 'kids (18 & under)', all: 'all members' };
+    const label = LABELS[mode] ?? LABELS.all;
 
-    let targets;
-    let label;
-    if (mode === 'adults') {
-      targets = members.filter(m => active(m) && notSensei(m) && !m.is_student && (calcAge(m.birthday) ?? Infinity) > 18);
-      label = 'adults (3-dan & below)';
-    } else if (mode === 'students') {
-      targets = members.filter(m => active(m) && m.is_student === true);
-      label = 'university students';
-    } else if (mode === 'kids') {
-      targets = members.filter(m => active(m) && !m.is_student && (calcAge(m.birthday) ?? Infinity) <= 18);
-      label = 'kids (18 & under)';
-    } else {
-      targets = members.filter(m => m.status !== 'guest' && m.status !== 'inactive');
-      label = 'all members';
-    }
-
-    const user = await userManager.getUser();
-    const headers = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${user.id_token}` };
-    const results = await Promise.allSettled(
-      targets.map(m => fetch(ASSIGNED_PAYMENTS_API, {
+    try {
+      const user = await userManager.getUser();
+      const res = await fetch(BROADCAST_PAYMENTS_API, {
         method: 'POST',
-        headers,
-        body: JSON.stringify({ member_id: m.member_id, payment_id: payment.payment_id, due_status }),
-      }).then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); }))
-    );
-    const succeeded = results.filter(r => r.status === 'fulfilled').length;
-    const failed = results.length - succeeded;
-    showToast(failed > 0
-      ? `Assigned to ${succeeded} ${label} (${failed} already assigned or failed).`
-      : `Payment assigned to ${succeeded} ${label}!`
-    );
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${user.id_token}` },
+        body: JSON.stringify({ payment_id: payment.payment_id, mode }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || body.message || `HTTP ${res.status}`);
+      }
+      const data = await res.json();
+      const succeeded = data.assigned_count ?? 0;
+      const failed = (data.total_targets ?? succeeded) - succeeded;
+      showToast(failed > 0
+        ? `Assigned to ${succeeded} ${label} (${failed} already assigned or failed).`
+        : `Payment assigned to ${succeeded} ${label}!`
+      );
+    } catch (err) {
+      setError(err.message);
+    }
   }
 
   async function loadRecurring() {

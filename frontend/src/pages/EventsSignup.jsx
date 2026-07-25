@@ -218,6 +218,7 @@ function EventsSignup({ onPayNavigate }) {
   const [configErrorIds, setConfigErrorIds] = useState(new Set());
   const [retryingConfigIds, setRetryingConfigIds] = useState(new Set());
   const [regCheckFailedTypes, setRegCheckFailedTypes] = useState(new Set());
+  const [paymentDataFailed, setPaymentDataFailed] = useState(false);
   const [retryingRegistrations, setRetryingRegistrations] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -262,23 +263,27 @@ function EventsSignup({ onPayNavigate }) {
 
       const regFetchers = [
         ...REGISTRATION_TYPE_ENDPOINTS.map(e => () => fetchJsonSafe(`${BASE_URL}${e.path}`)),
-        () => fetch(PAYMENTS_API).then(r => r.json()).catch(() => ({ data: [] })),
-        () => fetch(ASSIGNED_PAYMENTS_API).then(r => r.json()).catch(() => ({ data: [] })),
-        () => fetch(SUBMITTED_PAYMENTS_API).then(r => r.json()).catch(() => ({ data: [] })),
+        () => fetchJsonSafe(PAYMENTS_API),
+        () => fetchJsonSafe(ASSIGNED_PAYMENTS_API),
+        () => fetchJsonSafe(SUBMITTED_PAYMENTS_API),
       ];
 
       const results = await mapWithConcurrency(regFetchers, 3, fn => fn());
-      const [tournR, shinsaR, seminarR, specialR, payData, asgnData, submittedData] = results;
+      const [tournR, shinsaR, seminarR, specialR, payR, asgnR, submittedR] = results;
 
       const failedTypes = new Set(
         REGISTRATION_TYPE_ENDPOINTS.filter((_, i) => results[i].failed).map(e => e.type)
       );
       setRegCheckFailedTypes(failedTypes);
+      setPaymentDataFailed(payR.failed || asgnR.failed || submittedR.failed);
 
       const tourn = tournR.data ?? { body: [] };
       const shinsa = shinsaR.data ?? { body: [] };
       const seminar = seminarR.data ?? { body: [] };
       const special = specialR.data ?? { body: [] };
+      const payData = payR.data ?? { data: [] };
+      const asgnData = asgnR.data ?? { data: [] };
+      const submittedData = submittedR.data ?? { data: [] };
 
       const match = (r) => Number(r.member_id) === Number(memberId);
       const ids = new Set([
@@ -751,7 +756,20 @@ function EventsSignup({ onPayNavigate }) {
                         )}
                       </div>
                     )}
-                    {ev.payment_id && paymentMap[String(ev.payment_id)] && (() => {
+                    {ev.payment_id && paymentDataFailed && (
+                      <div className={styles.paymentRow}>
+                        <span className={styles.paymentIcon}>⚠️</span>
+                        <span className={styles.paymentTitle}>Couldn't verify payment status</span>
+                        <button
+                          className={styles.payNowBtn}
+                          disabled={retryingRegistrations}
+                          onClick={retryRegistrationCheck}
+                        >
+                          {retryingRegistrations ? 'Retrying...' : 'Retry'}
+                        </button>
+                      </div>
+                    )}
+                    {ev.payment_id && !paymentDataFailed && paymentMap[String(ev.payment_id)] && (() => {
                       const pid = String(ev.payment_id);
                       const pay = paymentMap[pid];
                       const isAssigned = assignedPaymentIds.has(pid);
