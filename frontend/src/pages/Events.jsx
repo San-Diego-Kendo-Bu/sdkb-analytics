@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import styles from '../../css/events.module.css';
 import { userManager } from '../js/cognitoManager';
 import { isOffHours, OFF_HOURS_MSG } from '../js/offHours';
+import { mapWithConcurrency } from '../js/shared/concurrency';
 import OffHoursCard from '../react_components/OffHoursCard';
 
 const BASE_URL = 'https://qh3c0tz6s9.execute-api.us-east-2.amazonaws.com';
@@ -266,13 +267,11 @@ function Events() {
         return evs;
       })
       .then(evs =>
-        Promise.all(
-          evs.map(ev =>
-            fetch(`${CONFIGURE_API}?event_id=${ev.event_id}`)
-              .then(r => r.json())
-              .then(r => ({ id: ev.event_id, data: r.data ?? null }))
-              .catch(() => ({ id: ev.event_id, data: null }))
-          )
+        mapWithConcurrency(evs, 5, ev =>
+          fetch(`${CONFIGURE_API}?event_id=${ev.event_id}`)
+            .then(r => r.json())
+            .then(r => ({ id: ev.event_id, data: r.data ?? null }))
+            .catch(() => ({ id: ev.event_id, data: null }))
         ).then(results => {
           const map = {};
           results.forEach(r => { map[r.id] = r.data; });

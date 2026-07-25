@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { userManager } from '../js/cognitoManager';
+import { mapWithConcurrency } from '../js/shared/concurrency';
+import { fetchJsonSafe } from '../js/shared/fetchSafe';
 
 const BASE_URL = 'https://qh3c0tz6s9.execute-api.us-east-2.amazonaws.com';
 const MEMBERS_API = `${BASE_URL}/members`;
@@ -47,46 +49,58 @@ function formatDate(iso) {
   return new Date(iso).toLocaleDateString('en-US', { timeZone: 'UTC', month: 'short', day: 'numeric', year: 'numeric' });
 }
 
+const REGISTRATION_TYPE_ENDPOINTS = [
+  { type: 'tournament', url: TOURNAMENT_REGS_API },
+  { type: 'shinsa', url: SHINSA_REGS_API },
+  { type: 'seminar', url: SEMINAR_REGS_API },
+  { type: 'special_event', url: SPECIAL_EVENT_REGS_API },
+];
+
 export default function Overview({ onNavigate }) {
   const [loading, setLoading] = useState(true);
   const [firstName, setFirstName] = useState('');
   const [upcomingEvents, setUpcomingEvents] = useState([]);
   const [pendingPayments, setPendingPayments] = useState([]);
   const [latestAnnouncement, setLatestAnnouncement] = useState(null);
+  const [regCheckFailedTypes, setRegCheckFailedTypes] = useState(new Set());
+  const [retrying, setRetrying] = useState(false);
 
-  useEffect(() => {
-    async function load() {
-      const user = await userManager.getUser();
-      if (!user || user.expired) { setLoading(false); return; }
+  async function load() {
+    const user = await userManager.getUser();
+    if (!user || user.expired) { setLoading(false); return; }
 
-      const username = user.profile?.preferred_username;
-      if (!username) { setLoading(false); return; }
+    const username = user.profile?.preferred_username;
+    if (!username) { setLoading(false); return; }
 
+    try {
       const usernameRes = await fetch(`${MEMBERS_API}?username=${encodeURIComponent(username)}`);
       const usernameData = await usernameRes.json();
       const memberId = usernameData.items?.[0]?.member_id;
-      if (!memberId) { setLoading(false); return; }
+      if (!memberId) return;
 
       const fullRes = await fetch(`${MEMBERS_API}?member_id=${memberId}`);
       const fullData = await fullRes.json();
       const me = fullData.items?.[0];
       if (me?.first_name) setFirstName(me.first_name);
 
-      const [evRes, tourneyRes, shinsaRes, seminarRes, specialEventRes, asgnRes, payRes, annRes] = await Promise.all([
-        fetch(EVENTS_API),
-        fetch(TOURNAMENT_REGS_API),
-        fetch(SHINSA_REGS_API),
-        fetch(SEMINAR_REGS_API),
-        fetch(SPECIAL_EVENT_REGS_API),
-        fetch(ASSIGNED_PAYMENTS_API),
-        fetch(PAYMENTS_API),
-        fetch(ANNOUNCEMENTS_API),
-      ]);
+      const fetchers = [
+        ...REGISTRATION_TYPE_ENDPOINTS.map(e => () => fetchJsonSafe(e.url)),
+        () => fetch(EVENTS_API).then(r => r.json()).catch(() => ({ body: [] })),
+        () => fetch(ASSIGNED_PAYMENTS_API).then(r => r.json()).catch(() => ({ data: [] })),
+        () => fetch(PAYMENTS_API).then(r => r.json()).catch(() => ({ data: [] })),
+        () => fetch(ANNOUNCEMENTS_API).then(r => r.json()).catch(() => ({ announcements: [] })),
+      ];
+      const results = await mapWithConcurrency(fetchers, 4, fn => fn());
+      const [tourneyR, shinsaR, seminarR, specialEventR, evData, asgnData, payData, annData] = results;
 
-      const [evData, tourneyData, shinsaData, seminarData, specialEventData, asgnData, payData, annData] = await Promise.all([
-        evRes.json(), tourneyRes.json(), shinsaRes.json(), seminarRes.json(), specialEventRes.json(),
-        asgnRes.json(), payRes.json(), annRes.json(),
-      ]);
+      setRegCheckFailedTypes(new Set(
+        REGISTRATION_TYPE_ENDPOINTS.filter((_, i) => results[i].failed).map(e => e.type)
+      ));
+
+      const tourneyData = tourneyR.data ?? { body: [] };
+      const shinsaData = shinsaR.data ?? { body: [] };
+      const seminarData = seminarR.data ?? { body: [] };
+      const specialEventData = specialEventR.data ?? { body: [] };
 
       const mid = Number(memberId);
       const todayStr = new Date().toISOString().slice(0, 10);
@@ -127,12 +141,22 @@ export default function Overview({ onNavigate }) {
       const announcements = (annData.announcements ?? [])
         .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
       setLatestAnnouncement(announcements[0] ?? null);
-
+    } catch (err) {
+      console.error('[overview] load failed:', err);
+    } finally {
       setLoading(false);
     }
+  }
 
+  useEffect(() => {
     load();
   }, []);
+
+  async function retryRegistrationCheck() {
+    setRetrying(true);
+    await load();
+    setRetrying(false);
+  }
 
   if (loading) {
     return (
@@ -158,6 +182,19 @@ export default function Overview({ onNavigate }) {
             <span style={S.cardTitle}>Upcoming Events</span>
             <span style={S.cardCount}>{upcomingEvents.length}</span>
           </div>
+
+          {regCheckFailedTypes.size > 0 && (
+            <div style={{ ...S.emptyText, fontStyle: 'normal', color: '#fd9843', marginBottom: '0.6rem' }}>
+              ⚠️ Couldn't verify some registrations — this list may be incomplete.{' '}
+              <button
+                style={{ ...S.linkBtn, marginTop: 0 }}
+                disabled={retrying}
+                onClick={retryRegistrationCheck}
+              >
+                {retrying ? 'Retrying...' : 'Retry'}
+              </button>
+            </div>
+          )}
 
           {upcomingEvents.length === 0
             ? <p style={S.emptyText}>No upcoming events signed up.</p>

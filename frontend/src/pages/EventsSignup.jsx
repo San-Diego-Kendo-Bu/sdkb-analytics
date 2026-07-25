@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import styles from '../../css/events.module.css';
 import { userManager } from '../js/cognitoManager';
 import { isOffHours, OFF_HOURS_MSG } from '../js/offHours';
+import { mapWithConcurrency } from '../js/shared/concurrency';
+import { fetchJsonSafe } from '../js/shared/fetchSafe';
 import OffHoursCard from '../react_components/OffHoursCard';
 
 const BASE_URL = 'https://qh3c0tz6s9.execute-api.us-east-2.amazonaws.com';
@@ -60,6 +62,27 @@ function calcAge(birthday) {
   if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) age--;
   return age;
 }
+
+async function fetchEventConfig(eventId, attempts = 3, delayMs = 500) {
+  for (let i = 0; i < attempts; i++) {
+    try {
+      const res = await fetch(`${CONFIGURE_API}?event_id=${eventId}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const r = await res.json();
+      return { data: r.data ?? null, failed: false };
+    } catch {
+      if (i === attempts - 1) return { data: null, failed: true };
+      await new Promise(resolve => setTimeout(resolve, delayMs * (i + 1)));
+    }
+  }
+}
+
+const REGISTRATION_TYPE_ENDPOINTS = [
+  { type: 'tournament', path: '/events/tournamentRegistrations' },
+  { type: 'shinsa', path: '/events/shinsaRegistrations' },
+  { type: 'seminar', path: '/events/seminarRegistrations' },
+  { type: 'special_event', path: '/events/specialEventRegistrations' },
+];
 
 function SignUpForm({ ev, config, member, onSubmit, onCancel, submitting }) {
   const [divisions, setDivisions] = useState([]);
@@ -192,6 +215,10 @@ function EventsSignup({ onPayNavigate }) {
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('All');
   const [configs, setConfigs] = useState({});
+  const [configErrorIds, setConfigErrorIds] = useState(new Set());
+  const [retryingConfigIds, setRetryingConfigIds] = useState(new Set());
+  const [regCheckFailedTypes, setRegCheckFailedTypes] = useState(new Set());
+  const [retryingRegistrations, setRetryingRegistrations] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [signingUpId, setSigningUpId] = useState(null);
@@ -210,66 +237,79 @@ function EventsSignup({ onPayNavigate }) {
   const memberIdRef = useRef(null);
   const memberRankRef = useRef(null);
 
-  useEffect(() => {
-    async function loadRegistrations() {
-      const user = await userManager.getUser();
-      console.log('[registrations] user:', user ? 'found' : 'none', 'expired:', user?.expired);
-      if (!user || user.expired) return;
+  async function loadRegistrations() {
+    const user = await userManager.getUser();
+    console.log('[registrations] user:', user ? 'found' : 'none', 'expired:', user?.expired);
+    if (!user || user.expired) return;
 
-      const username = user.profile?.preferred_username;
-      if (!username) return;
+    const username = user.profile?.preferred_username;
+    if (!username) return;
 
-      try {
-        const usernameRes = await fetch(`${MEMBERS_API}?username=${encodeURIComponent(username)}`);
-        const usernameData = await usernameRes.json();
-        if (!usernameData.items?.length) return;
+    try {
+      const usernameRes = await fetch(`${MEMBERS_API}?username=${encodeURIComponent(username)}`);
+      const usernameData = await usernameRes.json();
+      if (!usernameData.items?.length) return;
 
-        const memberId = usernameData.items[0].member_id;
-        memberIdRef.current = memberId;
+      const memberId = usernameData.items[0].member_id;
+      memberIdRef.current = memberId;
 
-        const fullRes = await fetch(`${MEMBERS_API}?member_id=${memberId}`);
-        const fullData = await fullRes.json();
-        const memberItem = fullData.items?.[0];
-        if (memberItem) {
-          memberRankRef.current = { rank_type: memberItem.rank_type, rank_number: memberItem.rank_number, birthday: memberItem.birthday ?? null };
-        }
-
-        const fetchReg = (path) => fetch(`${BASE_URL}${path}`)
-          .then(r => r.json())
-          .catch(() => ({ body: [] }));
-
-        const [tourn, shinsa, seminar, special, payData, asgnData, submittedData] = await Promise.all([
-          fetchReg('/events/tournamentRegistrations'),
-          fetchReg('/events/shinsaRegistrations'),
-          fetchReg('/events/seminarRegistrations'),
-          fetchReg('/events/specialEventRegistrations'),
-          fetch(PAYMENTS_API).then(r => r.json()).catch(() => ({ data: [] })),
-          fetch(ASSIGNED_PAYMENTS_API).then(r => r.json()).catch(() => ({ data: [] })),
-          fetch(SUBMITTED_PAYMENTS_API).then(r => r.json()).catch(() => ({ data: [] })),
-        ]);
-
-        const match = (r) => Number(r.member_id) === Number(memberId);
-        const ids = new Set([
-          ...(tourn.body || []).filter(match).map(r => r.event_id),
-          ...(shinsa.body || []).filter(match).map(r => r.event_id),
-          ...(seminar.body || []).filter(match).map(r => r.event_id),
-          ...(special.body || []).filter(match).map(r => r.event_id),
-        ]);
-        setRegisteredIds(ids);
-
-        setPaymentMap(Object.fromEntries((payData.data ?? []).map(p => [String(p.payment_id), p])));
-        setAssignedPaymentIds(new Set(
-          (asgnData.data ?? []).filter(a => Number(a.member_id) === Number(memberId)).map(a => String(a.payment_id))
-        ));
-        setPaidPaymentIds(new Set(
-          (submittedData.data ?? []).filter(s => Number(s.member_id) === Number(memberId)).map(s => String(s.payment_id))
-        ));
-      } catch (err) {
-        console.error('[registrations] failed:', err);
+      const fullRes = await fetch(`${MEMBERS_API}?member_id=${memberId}`);
+      const fullData = await fullRes.json();
+      const memberItem = fullData.items?.[0];
+      if (memberItem) {
+        memberRankRef.current = { rank_type: memberItem.rank_type, rank_number: memberItem.rank_number, birthday: memberItem.birthday ?? null };
       }
+
+      const regFetchers = [
+        ...REGISTRATION_TYPE_ENDPOINTS.map(e => () => fetchJsonSafe(`${BASE_URL}${e.path}`)),
+        () => fetch(PAYMENTS_API).then(r => r.json()).catch(() => ({ data: [] })),
+        () => fetch(ASSIGNED_PAYMENTS_API).then(r => r.json()).catch(() => ({ data: [] })),
+        () => fetch(SUBMITTED_PAYMENTS_API).then(r => r.json()).catch(() => ({ data: [] })),
+      ];
+
+      const results = await mapWithConcurrency(regFetchers, 3, fn => fn());
+      const [tournR, shinsaR, seminarR, specialR, payData, asgnData, submittedData] = results;
+
+      const failedTypes = new Set(
+        REGISTRATION_TYPE_ENDPOINTS.filter((_, i) => results[i].failed).map(e => e.type)
+      );
+      setRegCheckFailedTypes(failedTypes);
+
+      const tourn = tournR.data ?? { body: [] };
+      const shinsa = shinsaR.data ?? { body: [] };
+      const seminar = seminarR.data ?? { body: [] };
+      const special = specialR.data ?? { body: [] };
+
+      const match = (r) => Number(r.member_id) === Number(memberId);
+      const ids = new Set([
+        ...(tourn.body || []).filter(match).map(r => r.event_id),
+        ...(shinsa.body || []).filter(match).map(r => r.event_id),
+        ...(seminar.body || []).filter(match).map(r => r.event_id),
+        ...(special.body || []).filter(match).map(r => r.event_id),
+      ]);
+      setRegisteredIds(ids);
+
+      setPaymentMap(Object.fromEntries((payData.data ?? []).map(p => [String(p.payment_id), p])));
+      setAssignedPaymentIds(new Set(
+        (asgnData.data ?? []).filter(a => Number(a.member_id) === Number(memberId)).map(a => String(a.payment_id))
+      ));
+      setPaidPaymentIds(new Set(
+        (submittedData.data ?? []).filter(s => Number(s.member_id) === Number(memberId)).map(s => String(s.payment_id))
+      ));
+    } catch (err) {
+      console.error('[registrations] failed:', err);
     }
+  }
+
+  useEffect(() => {
     loadRegistrations();
   }, []);
+
+  async function retryRegistrationCheck() {
+    setRetryingRegistrations(true);
+    await loadRegistrations();
+    setRetryingRegistrations(false);
+  }
 
   useEffect(() => {
     if (isOffHours()) { setLoading(false); return; }
@@ -291,17 +331,15 @@ function EventsSignup({ onPayNavigate }) {
         return evs;
       })
       .then(evs =>
-        Promise.all(
-          evs.map(ev =>
-            fetch(`${CONFIGURE_API}?event_id=${ev.event_id}`)
-              .then(r => r.json())
-              .then(r => ({ id: ev.event_id, data: r.data ?? null }))
-              .catch(() => ({ id: ev.event_id, data: null }))
-          )
-        ).then(results => {
+        mapWithConcurrency(evs, 5, ev => fetchEventConfig(ev.event_id).then(r => ({ id: ev.event_id, ...r }))).then(results => {
           const map = {};
-          results.forEach(r => { map[r.id] = r.data; });
+          const errs = new Set();
+          results.forEach(r => {
+            map[r.id] = r.data;
+            if (r.failed) errs.add(r.id);
+          });
           setConfigs(map);
+          setConfigErrorIds(errs);
         })
       )
       .catch(err => setError(err.message))
@@ -322,10 +360,30 @@ function EventsSignup({ onPayNavigate }) {
     setTimeout(() => setToast(null), 3000);
   }
 
+  async function retryEventConfig(ev) {
+    setRetryingConfigIds(prev => new Set([...prev, ev.event_id]));
+    const r = await fetchEventConfig(ev.event_id);
+    setConfigs(prev => ({ ...prev, [ev.event_id]: r.data }));
+    setConfigErrorIds(prev => {
+      const next = new Set(prev);
+      r.failed ? next.add(ev.event_id) : next.delete(ev.event_id);
+      return next;
+    });
+    setRetryingConfigIds(prev => { const next = new Set(prev); next.delete(ev.event_id); return next; });
+  }
+
   async function handleSignUpClick(ev) {
     const user = await userManager.getUser();
     if (!user || user.expired) {
       alert('Please sign in to register for events.');
+      return;
+    }
+    if (configErrorIds.has(ev.event_id)) {
+      alert('Event details failed to load. Please retry loading details before signing up.');
+      return;
+    }
+    if (regCheckFailedTypes.has(ev.type)) {
+      alert('Could not verify your registration status. Please retry before signing up.');
       return;
     }
     const cfg = configs[ev.event_id];
@@ -604,13 +662,14 @@ function EventsSignup({ onPayNavigate }) {
         {!loading && isOffHours() && <OffHoursCard />}
         {!isOffHours() && error && <p className={styles.empty}>Error: {error}</p>}
         {!loading && !error && !isOffHours() && filtered.length === 0 && <p className={styles.empty}>No events found.</p>}
-        {filtered.map(ev => {
+        {!loading && filtered.map(ev => {
           const status = getStatus(ev.start_datetime, ev.end_datetime);
           const { day, month } = formatDateBadge(ev.start_datetime);
           const dateRange = formatDateRange(ev.start_datetime, ev.end_datetime, ev.location);
           const isSigningUp = signingUpId === ev.event_id;
           const isRegistered = registeredIds.has(ev.event_id);
           const cfg = configs[ev.event_id];
+          const regCheckFailed = regCheckFailedTypes.has(ev.type);
 
           return (
             <div key={ev.event_id} className={styles.card}>
@@ -634,8 +693,11 @@ function EventsSignup({ onPayNavigate }) {
                       <span className={styles.cardTitle}>{ev.title}</span>
                       <span className={styles.badge} style={{ backgroundColor: STATUS_COLORS[status] }}>{status}</span>
                       <span className={styles.typeBadge}>{fmtType(ev.type)}</span>
-                      {isRegistered && (
+                      {!regCheckFailed && isRegistered && (
                         <span className={styles.badge} style={{ backgroundColor: '#157347' }}>Registered</span>
+                      )}
+                      {regCheckFailed && (
+                        <span className={styles.badge} style={{ backgroundColor: '#856404' }}>Status unknown</span>
                       )}
                     </div>
                     <p className={styles.cardMeta}>{dateRange}</p>
@@ -709,12 +771,36 @@ function EventsSignup({ onPayNavigate }) {
                       );
                     })()}
                     <div className={styles.cardActions}>
-                      {status !== 'Past' && !isRegistered && !externalClickedIds.has(ev.event_id) && (
+                      {status !== 'Past' && regCheckFailed && (
+                        <div className={styles.externalConfirm}>
+                          <span className={styles.fieldError}>Couldn't verify your registration status.</span>
+                          <button
+                            className={styles.signupBtn}
+                            disabled={retryingRegistrations}
+                            onClick={retryRegistrationCheck}
+                          >
+                            {retryingRegistrations ? 'Retrying...' : 'Retry'}
+                          </button>
+                        </div>
+                      )}
+                      {status !== 'Past' && !regCheckFailed && !isRegistered && configErrorIds.has(ev.event_id) && (
+                        <div className={styles.externalConfirm}>
+                          <span className={styles.fieldError}>Couldn't load event details.</span>
+                          <button
+                            className={styles.signupBtn}
+                            disabled={retryingConfigIds.has(ev.event_id)}
+                            onClick={() => retryEventConfig(ev)}
+                          >
+                            {retryingConfigIds.has(ev.event_id) ? 'Retrying...' : 'Retry'}
+                          </button>
+                        </div>
+                      )}
+                      {status !== 'Past' && !regCheckFailed && !isRegistered && !configErrorIds.has(ev.event_id) && !externalClickedIds.has(ev.event_id) && (
                         <button className={styles.signupBtn} onClick={() => handleSignUpClick(ev)}>
                           Sign Up
                         </button>
                       )}
-                      {status !== 'Past' && !isRegistered && externalClickedIds.has(ev.event_id) && (
+                      {status !== 'Past' && !regCheckFailed && !isRegistered && !configErrorIds.has(ev.event_id) && externalClickedIds.has(ev.event_id) && (
                         <div className={styles.externalConfirm}>
                           <label className={styles.externalCheckLabel}>
                             <input
@@ -748,7 +834,7 @@ function EventsSignup({ onPayNavigate }) {
                           </div>
                         </div>
                       )}
-                      {isRegistered && (
+                      {!regCheckFailed && isRegistered && (
                         <button className={styles.deleteBtn} onClick={() => handleUnregister(ev)} disabled={submitting}>
                           Unregister
                         </button>
