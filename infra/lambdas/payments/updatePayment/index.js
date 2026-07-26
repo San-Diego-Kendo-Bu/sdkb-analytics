@@ -40,13 +40,13 @@ exports.handler = async (event) => {
         if (
             payload.payment_value !== null &&
             payload.payment_value !== undefined &&
-            parseFloat(payload.payment_value) < 1.0
+            (isNaN(parseFloat(payload.payment_value)) || parseFloat(payload.payment_value) < 0.0)
         ) {
             return {
                 statusCode: 400,
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    message: "Please update payment to at least $1.00.",
+                    message: "Please update payment to at least $0.00.",
                     payment_value: payload.payment_value
                 })
             };

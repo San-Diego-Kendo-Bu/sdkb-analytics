@@ -37,12 +37,12 @@ exports.handler = async (event) => {
                 : 0.0;
         const isDojoDue = parameters.is_dojo_due === true || parameters.is_dojo_due === 'true';
 
-        if (!paymentValue || paymentValue < 1.0) {
+        if (paymentValue === null || isNaN(paymentValue) || paymentValue < 0.0) {
             return {
                 statusCode: 400,
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    message: "Please create a payment of at least $1.00.",
+                    message: "Please create a payment of at least $0.00.",
                     payment_value: paymentValue
                 })
             };
