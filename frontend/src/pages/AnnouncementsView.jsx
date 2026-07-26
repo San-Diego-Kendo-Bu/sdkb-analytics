@@ -6,15 +6,15 @@ import { userManager } from '../js/cognitoManager';
 const BASE_URL = 'https://qh3c0tz6s9.execute-api.us-east-2.amazonaws.com';
 
 const COLORS = {
-  page:        'var(--bg-primary)',
-  card:        'var(--bg-secondary)',
-  cardInner:   'var(--bg-tertiary)',
-  border:      'var(--border)',
+  page: 'var(--bg-primary)',
+  card: 'var(--bg-secondary)',
+  cardInner: 'var(--bg-tertiary)',
+  border: 'var(--border)',
   borderLight: 'var(--border-input)',
-  text:        'var(--text-primary)',
-  textMuted:   'var(--text-secondary)',
-  textFaint:   'var(--text-muted)',
-  textLabel:   'var(--text-muted)',
+  text: 'var(--text-primary)',
+  textMuted: 'var(--text-secondary)',
+  textFaint: 'var(--text-muted)',
+  textLabel: 'var(--text-muted)',
 };
 
 function formatDate(iso) {
@@ -65,7 +65,7 @@ function AnnouncementCard({ a }) {
 
   const attachments = parseAttachments(a.pdf_url);
   const images = attachments.filter(u => attachmentType(u) === 'image');
-  const pdfs   = attachments.filter(u => attachmentType(u) === 'pdf');
+  const pdfs = attachments.filter(u => attachmentType(u) === 'pdf');
   const others = attachments.filter(u => attachmentType(u) === 'other');
 
   function togglePdf(i) {
@@ -140,7 +140,7 @@ function AnnouncementCard({ a }) {
                 fontSize: '0.8rem',
               }}
             >
-              {openPdfs.has(i) ? 'Hide Newsletter' : 'View Newsletter'}
+              {openPdfs.has(i) ? 'Hide PDF' : 'View PDF'}
             </button>
           ))}
         </div>
