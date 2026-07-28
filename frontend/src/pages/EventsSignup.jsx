@@ -44,13 +44,21 @@ function formatDateRange(start, end, location) {
   const e = end ? new Date(end) : null;
   const dateOpts = { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' };
   const timeOpts = { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'UTC' };
-  const startStr = s.toLocaleDateString('en-GB', dateOpts);
-  const timeStr = s.toLocaleTimeString('en-GB', timeOpts);
+  const startDateStr = s.toLocaleDateString('en-GB', dateOpts);
+  const startTimeStr = s.toLocaleTimeString('en-GB', timeOpts);
   if (e && e.toUTCString().slice(0, 16) !== s.toUTCString().slice(0, 16)) {
-    const endStr = e.toLocaleDateString('en-GB', dateOpts);
-    return `${startStr} – ${endStr} · ${timeStr} · ${location}`;
+    const endDateStr = e.toLocaleDateString('en-GB', dateOpts);
+    const endTimeStr = e.toLocaleTimeString('en-GB', timeOpts);
+    return `${startDateStr} ${startTimeStr} – ${endDateStr} ${endTimeStr} · ${location}`;
   }
-  return `${startStr} · ${timeStr} · ${location}`;
+  return `${startDateStr} · ${startTimeStr} · ${location}`;
+}
+
+function formatDateTime(iso) {
+  const d = new Date(iso);
+  const dateOpts = { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' };
+  const timeOpts = { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'UTC' };
+  return `${d.toLocaleDateString('en-GB', dateOpts)} · ${d.toLocaleTimeString('en-GB', timeOpts)}`;
 }
 
 function calcAge(birthday) {
@@ -326,6 +334,7 @@ function EventsSignup({ onPayNavigate }) {
           title: e.event_name,
           start_datetime: e.event_date,
           end_datetime: e.event_deadline,
+          event_end_datetime: e.event_end_date ?? null,
           location: e.event_location,
           type: e.event_type,
           payment_id: e.payment_id ?? null,
@@ -670,7 +679,7 @@ function EventsSignup({ onPayNavigate }) {
         {!loading && filtered.map(ev => {
           const status = getStatus(ev.start_datetime, ev.end_datetime);
           const { day, month } = formatDateBadge(ev.start_datetime);
-          const dateRange = formatDateRange(ev.start_datetime, ev.end_datetime, ev.location);
+          const dateRange = formatDateRange(ev.start_datetime, ev.event_end_datetime, ev.location);
           const isSigningUp = signingUpId === ev.event_id;
           const isRegistered = registeredIds.has(ev.event_id);
           const cfg = configs[ev.event_id];
@@ -706,7 +715,15 @@ function EventsSignup({ onPayNavigate }) {
                       )}
                     </div>
                     <p className={styles.cardMeta}>{dateRange}</p>
-                    {ev.description && <p className={styles.cardDesc}>{ev.description}</p>}
+                    {ev.end_datetime && (
+                      <p className={styles.cardMeta}>Sign up by {formatDateTime(ev.end_datetime)}</p>
+                    )}
+                    {ev.description && (
+                      <details>
+                        <summary className={styles.mapsLink} style={{ cursor: 'pointer' }}>Description</summary>
+                        <p className={styles.cardDesc}>{ev.description}</p>
+                      </details>
+                    )}
                     {ev.maps_link && (
                       <a href={ev.maps_link} target="_blank" rel="noopener noreferrer" className={styles.mapsLink}>
                         📍 View on Google Maps

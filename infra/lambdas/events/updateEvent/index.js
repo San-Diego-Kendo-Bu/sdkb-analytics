@@ -8,13 +8,14 @@ const FIELDS = [
     "event_name",
     "event_type",
     "event_deadline",
+    "event_end_date",
     "created_at",
     "event_location",
     "description",
     "maps_link",
     "payment_id"
 ];
-const DATE_FIELDS = ["event_date", "event_deadline", "created_at"];
+const DATE_FIELDS = ["event_date", "event_deadline", "event_end_date", "created_at"];
 
 exports.handler = async (event) => {
     const claims =
@@ -86,6 +87,22 @@ exports.handler = async (event) => {
                     message: "Event date cannot be earlier than event deadline",
                     event_date: payload.event_date,
                     event_deadline: payload.event_deadline
+                })
+            };
+        }
+
+        if (
+            payload.event_date &&
+            payload.event_end_date &&
+            new Date(payload.event_end_date) < new Date(payload.event_date)
+        ) {
+            return {
+                statusCode: 400,
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    message: "Event end date cannot be earlier than event date",
+                    event_date: payload.event_date,
+                    event_end_date: payload.event_end_date
                 })
             };
         }

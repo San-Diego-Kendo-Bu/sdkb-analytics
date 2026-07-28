@@ -44,6 +44,7 @@ exports.handler = async (event) => {
         const createdAt = getCurrentTimeUTC();
         const eventDate = parameters.event_date;
         const eventDeadline = parameters.event_deadline;
+        const eventEndDate = parameters.event_end_date ?? null;
         const eventLocation = parameters.event_location;
         const description = parameters.description ?? null;
         const mapsLink = parameters.maps_link ?? null;
@@ -69,13 +70,14 @@ exports.handler = async (event) => {
                 event_name,
                 event_type,
                 event_deadline,
+                event_end_date,
                 created_at,
                 event_location,
                 description,
                 maps_link,
                 payment_id
             )
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
             RETURNING *
             `,
             [
@@ -84,6 +86,7 @@ exports.handler = async (event) => {
                 eventName,
                 eventType,
                 eventDeadline,
+                eventEndDate,
                 createdAt,
                 eventLocation,
                 description,

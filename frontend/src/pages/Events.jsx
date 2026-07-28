@@ -17,12 +17,12 @@ const STATUS_COLORS = {
 };
 
 const EMPTY_NEW = {
-  title: '', description: '', maps_link: '', start_datetime: '', end_datetime: '',
+  title: '', description: '', maps_link: '', start_datetime: '', end_datetime: '', event_end_datetime: '',
   location: '', type: '', payment_id: '',
 };
 
 const EMPTY_EDIT = {
-  title: '', description: '', maps_link: '', start_datetime: '', end_datetime: '',
+  title: '', description: '', maps_link: '', start_datetime: '', end_datetime: '', event_end_datetime: '',
   location: '', type: '', payment_id: '',
   shinpan_needed: false, event_deadline: '', divisions: '',
   teams_included: false, shinsa_levels: '', seminar_guests: '', bring_your_lunch: false,
@@ -52,13 +52,21 @@ function formatDateRange(start, end, location) {
   const e = end ? new Date(end) : null;
   const dateOpts = { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' };
   const timeOpts = { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'UTC' };
-  const startStr = s.toLocaleDateString('en-GB', dateOpts);
-  const timeStr = s.toLocaleTimeString('en-GB', timeOpts);
+  const startDateStr = s.toLocaleDateString('en-GB', dateOpts);
+  const startTimeStr = s.toLocaleTimeString('en-GB', timeOpts);
   if (e && e.toUTCString().slice(0, 16) !== s.toUTCString().slice(0, 16)) {
-    const endStr = e.toLocaleDateString('en-GB', dateOpts);
-    return `${startStr} – ${endStr} · ${timeStr} · ${location}`;
+    const endDateStr = e.toLocaleDateString('en-GB', dateOpts);
+    const endTimeStr = e.toLocaleTimeString('en-GB', timeOpts);
+    return `${startDateStr} ${startTimeStr} – ${endDateStr} ${endTimeStr} · ${location}`;
   }
-  return `${startStr} · ${timeStr} · ${location}`;
+  return `${startDateStr} · ${startTimeStr} · ${location}`;
+}
+
+function formatDateTime(iso) {
+  const d = new Date(iso);
+  const dateOpts = { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' };
+  const timeOpts = { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'UTC' };
+  return `${d.toLocaleDateString('en-GB', dateOpts)} · ${d.toLocaleTimeString('en-GB', timeOpts)}`;
 }
 
 function toInputValue(iso) {
@@ -82,6 +90,9 @@ function NewEventForm({ form, setForm, onSave, onCancel, availablePayments = [] 
       <label className={styles.label}>Event Date</label>
       <input className={styles.input} type="datetime-local" value={form.start_datetime}
         onChange={e => setForm(f => ({ ...f, start_datetime: e.target.value }))} />
+      <label className={styles.label}>Event End Date (optional)</label>
+      <input className={styles.input} type="datetime-local" value={form.event_end_datetime}
+        onChange={e => setForm(f => ({ ...f, event_end_datetime: e.target.value }))} />
       <label className={styles.label}>Sign Up Deadline</label>
       <input className={styles.input} type="datetime-local" value={form.end_datetime}
         onChange={e => setForm(f => ({ ...f, end_datetime: e.target.value }))} />
@@ -128,6 +139,9 @@ function EditEventForm({ form, setForm, onSave, onCancel, availablePayments = []
       <label className={styles.label}>Event Date</label>
       <input className={styles.input} type="datetime-local" value={form.start_datetime}
         onChange={e => setForm(f => ({ ...f, start_datetime: e.target.value }))} />
+      <label className={styles.label}>Event End Date (optional)</label>
+      <input className={styles.input} type="datetime-local" value={form.event_end_datetime}
+        onChange={e => setForm(f => ({ ...f, event_end_datetime: e.target.value }))} />
       <label className={styles.label}>Sign Up Deadline</label>
       <input className={styles.input} type="datetime-local" value={form.end_datetime}
         onChange={e => setForm(f => ({ ...f, end_datetime: e.target.value }))} />
@@ -259,6 +273,7 @@ function Events() {
           maps_link: e.maps_link ?? '',
           start_datetime: e.event_date,
           end_datetime: e.event_deadline,
+          event_end_datetime: e.event_end_date ?? null,
           location: e.event_location,
           type: e.event_type,
           payment_id: e.payment_id ?? null,
@@ -314,6 +329,7 @@ function Events() {
       description: '',
       start_datetime: e.event_date,
       end_datetime: e.event_deadline,
+      event_end_datetime: e.event_end_date ?? null,
       location: e.event_location,
       type: e.event_type,
       payment_id: e.payment_id ?? null,
@@ -334,6 +350,7 @@ function Events() {
       event_date: toIso(newForm.start_datetime),
       event_location: newForm.location,
       event_deadline: toIso(newForm.end_datetime),
+      event_end_date: toIso(newForm.event_end_datetime),
       created_at: new Date().toISOString().replace(/\.\d{3}Z$/, 'Z'),
       payment_id: newForm.payment_id === 'free' ? null : parseInt(newForm.payment_id, 10),
     };
@@ -390,6 +407,7 @@ function Events() {
       maps_link: ev.maps_link ?? '',
       start_datetime: toInputValue(ev.start_datetime),
       end_datetime: toInputValue(ev.end_datetime),
+      event_end_datetime: toInputValue(ev.event_end_datetime),
       location: ev.location,
       type: ev.type,
       payment_id: ev.payment_id ? String(ev.payment_id) : 'free',
@@ -412,6 +430,7 @@ function Events() {
       event_type: editForm.type,
       event_date: toIso(editForm.start_datetime),
       event_deadline: toIso(editForm.end_datetime),
+      event_end_date: toIso(editForm.event_end_datetime),
       event_location: editForm.location,
       payment_id: editForm.payment_id === 'free' ? null : parseInt(editForm.payment_id, 10),
     };
@@ -535,7 +554,7 @@ function Events() {
         {filtered.map(ev => {
           const status = getStatus(ev.start_datetime, ev.end_datetime);
           const { day, month } = formatDateBadge(ev.start_datetime);
-          const dateRange = formatDateRange(ev.start_datetime, ev.end_datetime, ev.location);
+          const dateRange = formatDateRange(ev.start_datetime, ev.event_end_datetime, ev.location);
           const isEditing = editingId === ev.event_id;
 
           return (
@@ -562,8 +581,16 @@ function Events() {
                       </span>
                       <span className={styles.typeBadge}>{fmtType(ev.type)}</span>
                     </div>
-                    <p className={styles.cardDesc}>{ev.description}</p>
+                    {ev.description && (
+                      <details>
+                        <summary className={styles.mapsLink} style={{ cursor: 'pointer' }}>Description</summary>
+                        <p className={styles.cardDesc}>{ev.description}</p>
+                      </details>
+                    )}
                     <p className={styles.cardMeta}>{dateRange}</p>
+                    {ev.end_datetime && (
+                      <p className={styles.cardMeta}>Sign up by {formatDateTime(ev.end_datetime)}</p>
+                    )}
                     {ev.maps_link && (
                       <a href={ev.maps_link} target="_blank" rel="noopener noreferrer" className={styles.mapsLink}>
                         📍 View on Google Maps

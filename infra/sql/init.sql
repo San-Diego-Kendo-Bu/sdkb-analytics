@@ -15,6 +15,7 @@ CREATE TABLE IF NOT EXISTS events (
     event_name TEXT NOT NULL,
     event_type TEXT NOT NULL,
     event_deadline TIMESTAMPTZ NOT NULL,
+    event_end_date TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     event_location TEXT NOT NULL,
     description TEXT,
