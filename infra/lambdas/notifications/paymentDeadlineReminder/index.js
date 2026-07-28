@@ -14,14 +14,13 @@ exports.handler = async () => {
                   AND p.due_date >= NOW() + INTERVAL '3 days'
                   AND p.due_date <  NOW() + INTERVAL '4 days'
             `),
-            // Overdue: every 7 days after the due date
+            // Overdue: every 3 days after the due date
             query(`
                 SELECT ap.member_id, p.title, p.due_date, p.payment_value
                 FROM assigned_payments ap
                 JOIN payments p ON ap.payment_id = p.payment_id
-                WHERE ap.due_status = 'overdue'
-                  AND (CURRENT_DATE - p.due_date::date) > 0
-                  AND (CURRENT_DATE - p.due_date::date) % 7 = 0
+                WHERE (CURRENT_DATE - p.due_date::date) > 0
+                  AND (CURRENT_DATE - p.due_date::date) % 3 = 0
             `),
         ]);
 
