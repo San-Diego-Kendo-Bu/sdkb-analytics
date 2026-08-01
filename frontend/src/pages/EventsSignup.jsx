@@ -31,6 +31,14 @@ function getStatus(start, end) {
   return now > e ? 'Past' : 'Active';
 }
 
+function compareEvents(a, b) {
+  const aPast = getStatus(a.start_datetime, a.event_end_datetime) === 'Past';
+  const bPast = getStatus(b.start_datetime, b.event_end_datetime) === 'Past';
+  if (aPast !== bPast) return aPast ? 1 : -1;
+  const diff = new Date(a.start_datetime) - new Date(b.start_datetime);
+  return aPast ? -diff : diff;
+}
+
 function formatDateBadge(iso) {
   const d = new Date(iso);
   return {
@@ -362,12 +370,12 @@ function EventsSignup({ onPayNavigate }) {
 
   const filtered = events
     .filter(ev => {
-      const status = getStatus(ev.start_datetime, ev.end_datetime);
+      const status = getStatus(ev.start_datetime, ev.event_end_datetime);
       const matchFilter = filter === 'All' || status === filter;
       const matchSearch = ev.title.toLowerCase().includes(search.toLowerCase());
       return matchFilter && matchSearch;
     })
-    .sort((a, b) => new Date(a.start_datetime) - new Date(b.start_datetime));
+    .sort(compareEvents);
 
   function showToast(msg) {
     setToast(msg);
@@ -398,6 +406,10 @@ function EventsSignup({ onPayNavigate }) {
     }
     if (regCheckFailedTypes.has(ev.type)) {
       alert('Could not verify your registration status. Please retry before signing up.');
+      return;
+    }
+    if (ev.end_datetime && new Date() > new Date(ev.end_datetime)) {
+      alert('Sign-up for this event has closed.');
       return;
     }
     const cfg = configs[ev.event_id];
@@ -635,7 +647,9 @@ function EventsSignup({ onPayNavigate }) {
         <div className={styles.list}>
           {signupsLoading && <p className={styles.empty}>Loading sign-ups...</p>}
           {!signupsLoading && allRegs && (() => {
-            const upcomingEvents = events.filter(ev => getStatus(ev.start_datetime, ev.end_datetime) === 'Active');
+            const upcomingEvents = events
+              .filter(ev => getStatus(ev.start_datetime, ev.event_end_datetime) === 'Active')
+              .sort(compareEvents);
             const eventsWithSignups = upcomingEvents.map(ev => ({ ev, signups: getEventSignups(ev) })).filter(x => x.signups.length > 0);
             if (eventsWithSignups.length === 0) return <p className={styles.empty}>No sign-ups yet.</p>;
             return eventsWithSignups.map(({ ev, signups }) => {
@@ -677,13 +691,15 @@ function EventsSignup({ onPayNavigate }) {
         {!isOffHours() && error && <p className={styles.empty}>Error: {error}</p>}
         {!loading && !error && !isOffHours() && filtered.length === 0 && <p className={styles.empty}>No events found.</p>}
         {!loading && filtered.map(ev => {
-          const status = getStatus(ev.start_datetime, ev.end_datetime);
+          const status = getStatus(ev.start_datetime, ev.event_end_datetime);
           const { day, month } = formatDateBadge(ev.start_datetime);
           const dateRange = formatDateRange(ev.start_datetime, ev.event_end_datetime, ev.location);
           const isSigningUp = signingUpId === ev.event_id;
           const isRegistered = registeredIds.has(ev.event_id);
           const cfg = configs[ev.event_id];
           const regCheckFailed = regCheckFailedTypes.has(ev.type);
+          const signupClosed = ev.end_datetime && new Date() > new Date(ev.end_datetime);
+          const canSignUp = status !== 'Past' && !signupClosed;
 
           return (
             <div key={ev.event_id} className={styles.card}>
@@ -806,7 +822,7 @@ function EventsSignup({ onPayNavigate }) {
                       );
                     })()}
                     <div className={styles.cardActions}>
-                      {status !== 'Past' && regCheckFailed && (
+                      {canSignUp && regCheckFailed && (
                         <div className={styles.externalConfirm}>
                           <span className={styles.fieldError}>Couldn't verify your registration status.</span>
                           <button
@@ -818,7 +834,7 @@ function EventsSignup({ onPayNavigate }) {
                           </button>
                         </div>
                       )}
-                      {status !== 'Past' && !regCheckFailed && !isRegistered && configErrorIds.has(ev.event_id) && (
+                      {canSignUp && !regCheckFailed && !isRegistered && configErrorIds.has(ev.event_id) && (
                         <div className={styles.externalConfirm}>
                           <span className={styles.fieldError}>Couldn't load event details.</span>
                           <button
@@ -830,12 +846,12 @@ function EventsSignup({ onPayNavigate }) {
                           </button>
                         </div>
                       )}
-                      {status !== 'Past' && !regCheckFailed && !isRegistered && !configErrorIds.has(ev.event_id) && !externalClickedIds.has(ev.event_id) && (
+                      {canSignUp && !regCheckFailed && !isRegistered && !configErrorIds.has(ev.event_id) && !externalClickedIds.has(ev.event_id) && (
                         <button className={styles.signupBtn} onClick={() => handleSignUpClick(ev)}>
                           Sign Up
                         </button>
                       )}
-                      {status !== 'Past' && !regCheckFailed && !isRegistered && !configErrorIds.has(ev.event_id) && externalClickedIds.has(ev.event_id) && (
+                      {canSignUp && !regCheckFailed && !isRegistered && !configErrorIds.has(ev.event_id) && externalClickedIds.has(ev.event_id) && (
                         <div className={styles.externalConfirm}>
                           <label className={styles.externalCheckLabel}>
                             <input
@@ -868,6 +884,9 @@ function EventsSignup({ onPayNavigate }) {
                             </button>
                           </div>
                         </div>
+                      )}
+                      {status !== 'Past' && !canSignUp && !regCheckFailed && !isRegistered && (
+                        <span className={styles.cardMeta}>Registration closed</span>
                       )}
                       {!regCheckFailed && isRegistered && (
                         <button className={styles.deleteBtn} onClick={() => handleUnregister(ev)} disabled={submitting}>

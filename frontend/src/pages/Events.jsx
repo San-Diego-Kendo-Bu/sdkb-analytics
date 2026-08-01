@@ -39,6 +39,14 @@ function getStatus(start, end) {
   return now > e ? 'Past' : 'Active';
 }
 
+function compareEvents(a, b) {
+  const aPast = getStatus(a.start_datetime, a.event_end_datetime) === 'Past';
+  const bPast = getStatus(b.start_datetime, b.event_end_datetime) === 'Past';
+  if (aPast !== bPast) return aPast ? 1 : -1;
+  const diff = new Date(a.start_datetime) - new Date(b.start_datetime);
+  return aPast ? -diff : diff;
+}
+
 function formatDateBadge(iso) {
   const d = new Date(iso);
   return {
@@ -299,14 +307,14 @@ function Events() {
 
   const filtered = events
     .filter(ev => {
-      const status = getStatus(ev.start_datetime, ev.end_datetime);
+      const status = getStatus(ev.start_datetime, ev.event_end_datetime);
       const matchFilter = filter === 'All' || status === filter;
       const matchSearch =
         ev.title.toLowerCase().includes(search.toLowerCase()) ||
         ev.description.toLowerCase().includes(search.toLowerCase());
       return matchFilter && matchSearch;
     })
-    .sort((a, b) => new Date(a.start_datetime) - new Date(b.start_datetime));
+    .sort(compareEvents);
 
   const linkedPaymentIds = new Set(events.map(e => e.payment_id).filter(Boolean));
   const baseAvailablePayments = payments.filter(p =>
@@ -552,7 +560,7 @@ function Events() {
         {!isOffHours() && error && <p className={styles.empty}>Error: {error}</p>}
         {!loading && !error && filtered.length === 0 && <p className={styles.empty}>No events found.</p>}
         {filtered.map(ev => {
-          const status = getStatus(ev.start_datetime, ev.end_datetime);
+          const status = getStatus(ev.start_datetime, ev.event_end_datetime);
           const { day, month } = formatDateBadge(ev.start_datetime);
           const dateRange = formatDateRange(ev.start_datetime, ev.event_end_datetime, ev.location);
           const isEditing = editingId === ev.event_id;

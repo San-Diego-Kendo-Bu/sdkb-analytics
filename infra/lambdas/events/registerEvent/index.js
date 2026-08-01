@@ -26,7 +26,7 @@ exports.handler = async (event) => {
         }
 
         const eventRow = await query(
-            `SELECT event_date FROM events WHERE event_id = $1 LIMIT 1`,
+            `SELECT event_date, event_deadline FROM events WHERE event_id = $1 LIMIT 1`,
             [eventId]
         );
         if (eventRow.rowCount === 0) {
@@ -41,6 +41,13 @@ exports.handler = async (event) => {
                 statusCode: 400,
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ error: "Registration is closed: the event has already started." })
+            };
+        }
+        if (eventRow.rows[0].event_deadline && new Date() > new Date(eventRow.rows[0].event_deadline)) {
+            return {
+                statusCode: 400,
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ error: "Registration is closed: the sign-up deadline has passed." })
             };
         }
 
