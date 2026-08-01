@@ -947,7 +947,7 @@ export class ServiceStack extends Stack {
     const schedule = new scheduler.Schedule(this, 'ClearPaymentsSchedule', {
         schedule: scheduler.ScheduleExpression.rate(Duration.days(1)),
         target: target,
-        enabled: false,
+        enabled: true,
         description: 'This schedule periodically calls clearOvrPaymentsLambda. Functions as a scheduled database cleanup for payments.',
     });
 
