@@ -1,5 +1,6 @@
 const { query } = require("../../shared_utils/db");
 const { verifyMemberExists } = require("../../shared_utils/members");
+const { resolveActingMemberId, canActFor } = require("../../shared_utils/families");
 const { getCurrentTimeUTC } = require("../../shared_utils/dates");
 
 const TOURNAMENT_REGISTRATION_TABLE = "tournament_registrations";
@@ -9,12 +10,32 @@ const SPECIAL_EVENT_REGISTRATION_TABLE = "special_event_registrations";
 
 exports.handler = async (event) => {
     try {
+        const claims =
+            event.requestContext?.authorizer?.jwt?.claims ??
+            event.requestContext?.authorizer?.claims ?? {};
+
         const parameters = JSON.parse(event.body || "{}");
 
         const configType = parameters.config_type;
         const eventId = parameters.event_id;
         const memberId = parameters.member_id;
         const registeredDate = parameters.registration_date;
+
+        const actingMemberId = await resolveActingMemberId(claims);
+        if (actingMemberId == null) {
+            return {
+                statusCode: 401,
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ error: "Could not identify the logged-in member" })
+            };
+        }
+        if (!(await canActFor(actingMemberId, memberId))) {
+            return {
+                statusCode: 403,
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ error: "Not authorized to register this member" })
+            };
+        }
 
         const memberExists = await verifyMemberExists(memberId);
         if (!memberExists) {

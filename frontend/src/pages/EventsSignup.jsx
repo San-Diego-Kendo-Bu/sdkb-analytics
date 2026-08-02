@@ -15,6 +15,7 @@ const PAYMENTS_API = `${BASE_URL}/payments`;
 const ASSIGNED_PAYMENTS_API = `${BASE_URL}/assignedpayments`;
 const SUBMITTED_PAYMENTS_API = `${BASE_URL}/submittedpayments`;
 const SPECIAL_EVENT_API = `${BASE_URL}/events/specialEventRegistrations`;
+const FAMILIES_MINE_API = `${BASE_URL}/families/mine`;
 
 const STATUS_COLORS = {
   Active: '#28a745',
@@ -100,7 +101,7 @@ const REGISTRATION_TYPE_ENDPOINTS = [
   { type: 'special_event', path: '/events/specialEventRegistrations' },
 ];
 
-function SignUpForm({ ev, config, member, onSubmit, onCancel, submitting }) {
+function SignUpForm({ ev, config, member, selfId, targetOptions, familyMembersInfo, onSubmit, onCancel, submitting }) {
   const [divisions, setDivisions] = useState([]);
   const [doingTeams, setDoingTeams] = useState(false);
   const [shinpanning, setShinpanning] = useState(false);
@@ -109,8 +110,13 @@ function SignUpForm({ ev, config, member, onSubmit, onCancel, submitting }) {
   const [weightLbs, setWeightLbs] = useState('');
   const [heightFt, setHeightFt] = useState('');
   const [heightIn, setHeightIn] = useState('');
+  const [targetMemberId, setTargetMemberId] = useState(targetOptions?.[0]?.member_id ?? selfId);
 
-  const age = calcAge(member?.birthday);
+  const canDelegate = (targetOptions?.length ?? 0) > 1;
+  const isSelf = Number(targetMemberId) === Number(selfId);
+  const effectiveMember = isSelf ? member : familyMembersInfo?.[String(targetMemberId)];
+
+  const age = calcAge(effectiveMember?.birthday);
 
   function toggleDivision(d) {
     setDivisions(prev => prev.includes(d) ? prev.filter(x => x !== d) : [...prev, d]);
@@ -136,12 +142,34 @@ function SignUpForm({ ev, config, member, onSubmit, onCancel, submitting }) {
     } else if (ev.type === 'shinsa') {
       extra.testing_for = testingFor;
     }
-    onSubmit(extra);
+    onSubmit(extra, targetMemberId);
   }
 
   return (
     <div className={styles.formBox}>
       <p className={styles.formTitle}>Sign Up — {ev.title}</p>
+
+      {canDelegate && (
+        <>
+          <label className={styles.label}>Who is this for?</label>
+          <select
+            className={styles.input}
+            value={targetMemberId ?? ''}
+            onChange={e => setTargetMemberId(Number(e.target.value))}
+            style={{ marginBottom: '0.75rem' }}
+          >
+            {targetOptions.map(o => (
+              <option key={o.member_id} value={o.member_id}>{o.label}</option>
+            ))}
+          </select>
+        </>
+      )}
+
+      {!canDelegate && targetOptions?.length === 1 && targetOptions[0].member_id !== selfId && (
+        <p className={styles.cardDesc} style={{ marginBottom: '0.75rem' }}>
+          Signing up: <strong>{targetOptions[0].label}</strong>
+        </p>
+      )}
 
       {ev.type === 'tournament' && (
         <>
@@ -184,7 +212,7 @@ function SignUpForm({ ev, config, member, onSubmit, onCancel, submitting }) {
             </label>
           )}
           {config?.shinpan_needed &&
-            (member?.rank_type === 'shihan' || (member?.rank_type === 'dan' && Number(member?.rank_number) >= 4)) && (
+            (effectiveMember?.rank_type === 'shihan' || (effectiveMember?.rank_type === 'dan' && Number(effectiveMember?.rank_number) >= 4)) && (
               <label className={styles.label}>
                 <input type="checkbox" checked={shinpanning} onChange={e => setShinpanning(e.target.checked)} />{' '}
                 Shinpanning
@@ -251,8 +279,16 @@ function EventsSignup({ onPayNavigate }) {
   const [paymentMap, setPaymentMap] = useState({});
   const [assignedPaymentIds, setAssignedPaymentIds] = useState(new Set());
   const [paidPaymentIds, setPaidPaymentIds] = useState(new Set());
+  const [family, setFamily] = useState({ family_id: null, is_parent: false, members: [] });
+  const [familyMembersInfo, setFamilyMembersInfo] = useState({});
   const memberIdRef = useRef(null);
   const memberRankRef = useRef(null);
+
+  async function getAuthHeader() {
+    const user = await userManager.getUser();
+    if (!user || user.expired) return {};
+    return { Authorization: `Bearer ${user.id_token}` };
+  }
 
   async function loadRegistrations() {
     const user = await userManager.getUser();
@@ -269,6 +305,39 @@ function EventsSignup({ onPayNavigate }) {
 
       const memberId = usernameData.items[0].member_id;
       memberIdRef.current = memberId;
+
+      try {
+        const authHeader = await getAuthHeader();
+        const famRes = await fetch(FAMILIES_MINE_API, { headers: authHeader });
+        if (famRes.ok) {
+          const famData = await famRes.json();
+          setFamily(famData);
+          const others = famData.is_parent
+            ? (famData.members ?? []).filter(m => Number(m.member_id) !== Number(memberId))
+            : [];
+          if (others.length > 0) {
+            const allMembersRes = await fetch(MEMBERS_API);
+            const allMembersData = await allMembersRes.json();
+            const infoMap = {};
+            for (const m of allMembersData.items ?? []) {
+              infoMap[String(m.member_id)] = {
+                first_name: m.first_name,
+                last_name: m.last_name,
+                birthday: m.birthday ?? null,
+                rank_type: m.rank_type,
+                rank_number: m.rank_number,
+              };
+            }
+            setFamilyMembersInfo(infoMap);
+            // Need to know which family members are already registered for which events,
+            // so the "Sign Up" action can stay available for un-registered family members
+            // even after the parent has registered themselves.
+            await loadSignups();
+          }
+        }
+      } catch (famErr) {
+        console.error('[registrations] family fetch failed:', famErr);
+      }
 
       const fullRes = await fetch(`${MEMBERS_API}?member_id=${memberId}`);
       const fullData = await fullRes.json();
@@ -451,12 +520,14 @@ function EventsSignup({ onPayNavigate }) {
     return memberIdRef.current;
   }
 
-  async function handleSignUpSubmit(ev, extra) {
+  async function handleSignUpSubmit(ev, extra, targetMemberId) {
     if (isOffHours()) { showToast(OFF_HOURS_MSG); return; }
     setSubmitting(true);
     try {
-      const memberId = await resolveMemberId();
-      if (memberId == null) return;
+      const selfMemberId = await resolveMemberId();
+      if (selfMemberId == null) return;
+      const memberId = targetMemberId ?? selfMemberId;
+      const isSelf = Number(memberId) === Number(selfMemberId);
 
       const payload = {
         config_type: ev.type,
@@ -466,9 +537,10 @@ function EventsSignup({ onPayNavigate }) {
         ...extra,
       };
 
+      const authHeader = await getAuthHeader();
       const res = await fetch(REGISTER_API, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeader },
         body: JSON.stringify(payload),
       });
 
@@ -477,9 +549,19 @@ function EventsSignup({ onPayNavigate }) {
         throw new Error(body.error || `HTTP ${res.status}`);
       }
 
-      setRegisteredIds(prev => new Set([...prev, ev.event_id]));
+      if (isSelf) {
+        setRegisteredIds(prev => new Set([...prev, ev.event_id]));
+      }
+      if (family.is_parent) {
+        // Refresh cached family registration data so this event's targetOptions
+        // no longer offer the member we just registered.
+        await loadSignups(true);
+      }
       setSigningUpId(null);
-      showToast(`Successfully registered for ${ev.title}.`);
+      const who = isSelf ? 'you' : (familyMembersInfo[String(memberId)]
+        ? `${familyMembersInfo[String(memberId)].first_name} ${familyMembersInfo[String(memberId)].last_name}`
+        : `member #${memberId}`);
+      showToast(`Successfully registered ${who} for ${ev.title}.`);
     } catch (err) {
       alert(`Registration failed: ${err.message}`);
     } finally {
@@ -487,8 +569,8 @@ function EventsSignup({ onPayNavigate }) {
     }
   }
 
-  async function loadSignups() {
-    if (allRegs !== null) return;
+  async function loadSignups(force = false) {
+    if (allRegs !== null && !force) return;
     setSignupsLoading(true);
     try {
       const [tournData, shinsaData, seminarData, specialData, membersData] = await Promise.all([
@@ -580,9 +662,10 @@ function EventsSignup({ onPayNavigate }) {
       const memberId = await resolveMemberId();
       if (memberId == null) return;
 
+      const authHeader = await getAuthHeader();
       const res = await fetch(REGISTER_API, {
         method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeader },
         body: JSON.stringify({ config_type: ev.type, event_id: ev.event_id, member_id: memberId }),
       });
 
@@ -701,6 +784,29 @@ function EventsSignup({ onPayNavigate }) {
           const signupClosed = ev.end_datetime && new Date() > new Date(ev.end_datetime);
           const canSignUp = status !== 'Past' && !signupClosed;
 
+          // A parent can keep signing up family members for this event even after
+          // registering themselves — so "eligible" excludes only whoever (self or
+          // family) is already registered for THIS specific event, not everyone.
+          const familyIsParent = family.is_parent && (family.members?.length ?? 0) > 1;
+          const familySignedUpIds = familyIsParent
+            ? new Set(getEventSignups(ev).map(s => Number(s.member_id)))
+            : new Set();
+          const eligibleFamilyMembers = familyIsParent
+            ? (family.members ?? [])
+                .filter(m => Number(m.member_id) !== Number(memberIdRef.current))
+                .filter(m => !familySignedUpIds.has(Number(m.member_id)))
+            : [];
+          const targetOptions = [
+            ...(!isRegistered ? [{ member_id: memberIdRef.current, label: 'Me' }] : []),
+            ...eligibleFamilyMembers.map(m => ({
+              member_id: m.member_id,
+              label: familyMembersInfo?.[String(m.member_id)]
+                ? `${familyMembersInfo[String(m.member_id)].first_name} ${familyMembersInfo[String(m.member_id)].last_name}`
+                : `Member #${m.member_id}`,
+            })),
+          ];
+          const hasSignupTarget = targetOptions.length > 0;
+
           return (
             <div key={ev.event_id} className={styles.card}>
               <div className={styles.dateBadge}>
@@ -713,7 +819,10 @@ function EventsSignup({ onPayNavigate }) {
                     ev={ev}
                     config={cfg}
                     member={memberRankRef.current}
-                    onSubmit={extra => handleSignUpSubmit(ev, extra)}
+                    selfId={memberIdRef.current}
+                    targetOptions={targetOptions}
+                    familyMembersInfo={familyMembersInfo}
+                    onSubmit={(extra, targetMemberId) => handleSignUpSubmit(ev, extra, targetMemberId)}
                     onCancel={() => setSigningUpId(null)}
                     submitting={submitting}
                   />
@@ -834,7 +943,7 @@ function EventsSignup({ onPayNavigate }) {
                           </button>
                         </div>
                       )}
-                      {canSignUp && !regCheckFailed && !isRegistered && configErrorIds.has(ev.event_id) && (
+                      {canSignUp && !regCheckFailed && hasSignupTarget && configErrorIds.has(ev.event_id) && (
                         <div className={styles.externalConfirm}>
                           <span className={styles.fieldError}>Couldn't load event details.</span>
                           <button
@@ -846,12 +955,12 @@ function EventsSignup({ onPayNavigate }) {
                           </button>
                         </div>
                       )}
-                      {canSignUp && !regCheckFailed && !isRegistered && !configErrorIds.has(ev.event_id) && !externalClickedIds.has(ev.event_id) && (
+                      {canSignUp && !regCheckFailed && hasSignupTarget && !configErrorIds.has(ev.event_id) && !externalClickedIds.has(ev.event_id) && (
                         <button className={styles.signupBtn} onClick={() => handleSignUpClick(ev)}>
-                          Sign Up
+                          {isRegistered ? 'Sign Up Family Member' : 'Sign Up'}
                         </button>
                       )}
-                      {canSignUp && !regCheckFailed && !isRegistered && !configErrorIds.has(ev.event_id) && externalClickedIds.has(ev.event_id) && (
+                      {canSignUp && !regCheckFailed && hasSignupTarget && !configErrorIds.has(ev.event_id) && externalClickedIds.has(ev.event_id) && (
                         <div className={styles.externalConfirm}>
                           <label className={styles.externalCheckLabel}>
                             <input

@@ -284,6 +284,12 @@ export class ServiceStack extends Stack {
       ...commonNodejs,
     });
 
+    const getMyFamilyLambda = new NodejsFunction(this, "GetMyFamilyLambda", {
+      entry: path.join(__dirname, "../../lambdas/families/getMyFamily/index.js"),
+      handler: "handler",
+      ...commonNodejs,
+    });
+
     const createFamilyLambda = new NodejsFunction(this, "CreateFamilyLambda", {
       entry: path.join(__dirname, "../../lambdas/families/createFamily/index.js"),
       handler: "handler",
@@ -417,6 +423,7 @@ export class ServiceStack extends Stack {
     props.databaseStack.grantDatabaseAccess(deleteRecurringLambda);
     props.databaseStack.grantDatabaseAccess(processRecurringsLambda);
     props.databaseStack.grantDatabaseAccess(getFamiliesLambda);
+    props.databaseStack.grantDatabaseAccess(getMyFamilyLambda);
     props.databaseStack.grantDatabaseAccess(createFamilyLambda);
     props.databaseStack.grantDatabaseAccess(updateFamilyLambda);
     props.databaseStack.grantDatabaseAccess(deleteFamilyLambda);
@@ -567,7 +574,7 @@ export class ServiceStack extends Stack {
 
     createPaymentIntentLambda.role?.addToPrincipalPolicy(new iam.PolicyStatement({
       actions: ["dynamodb:Query"],
-      resources: [members],
+      resources: [members, `${members}/index/username-index`],
     }));
 
     newsletterBucket.grantPut(getUploadUrlLambda);
@@ -626,12 +633,17 @@ export class ServiceStack extends Stack {
 
     registerEventLambda.role?.addToPrincipalPolicy(new iam.PolicyStatement({
       actions: ["dynamodb:Query"],
-      resources: [members],
+      resources: [members, `${members}/index/username-index`],
     }));
 
     unregisterEventLambda.role?.addToPrincipalPolicy(new iam.PolicyStatement({
       actions: ["dynamodb:Query"],
-      resources: [members],
+      resources: [members, `${members}/index/username-index`],
+    }));
+
+    getMyFamilyLambda.role?.addToPrincipalPolicy(new iam.PolicyStatement({
+      actions: ["dynamodb:Query"],
+      resources: [members, `${members}/index/username-index`],
     }));
 
     // ---- HTTP API + routes
@@ -737,6 +749,7 @@ export class ServiceStack extends Stack {
       path: "/payments/intent",
       methods: [HttpMethod.POST],
       integration: new HttpLambdaIntegration("PaymentsIntentPostInt", createPaymentIntentLambda),
+      ...(auth ? { authorizer: auth } : {}),
     });
 
     // Assigned Payments
@@ -788,11 +801,13 @@ export class ServiceStack extends Stack {
       path: "/events/register",
       methods: [HttpMethod.POST],
       integration: new HttpLambdaIntegration("EventsRegisterInt", registerEventLambda),
+      ...(auth ? { authorizer: auth } : {}),
     });
     httpApi.addRoutes({
       path: "/events/register",
       methods: [HttpMethod.DELETE],
       integration: new HttpLambdaIntegration("EventsUnregisterInt", unregisterEventLambda),
+      ...(auth ? { authorizer: auth } : {}),
     });
     httpApi.addRoutes({
       path: "/events/configure",
@@ -887,6 +902,12 @@ export class ServiceStack extends Stack {
       path: "/families",
       methods: [HttpMethod.GET],
       integration: new HttpLambdaIntegration("FamiliesGetInt", getFamiliesLambda),
+    });
+    httpApi.addRoutes({
+      path: "/families/mine",
+      methods: [HttpMethod.GET],
+      integration: new HttpLambdaIntegration("FamiliesMineGetInt", getMyFamilyLambda),
+      ...(auth ? { authorizer: auth } : {}),
     });
     httpApi.addRoutes({
       path: "/families",

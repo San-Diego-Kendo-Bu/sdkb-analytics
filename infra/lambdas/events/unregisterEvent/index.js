@@ -1,5 +1,6 @@
 const { query } = require("../../shared_utils/db");
 const { verifyMemberExists } = require("../../shared_utils/members");
+const { resolveActingMemberId, canActFor } = require("../../shared_utils/families");
 
 const TOURNAMENT_REGISTRATION_TABLE = "tournament_registrations";
 const SHINSA_REGISTRATION_TABLE = "shinsa_registrations";
@@ -8,6 +9,10 @@ const SPECIAL_EVENT_REGISTRATION_TABLE = "special_event_registrations";
 
 exports.handler = async (event) => {
     try {
+        const claims =
+            event.requestContext?.authorizer?.jwt?.claims ??
+            event.requestContext?.authorizer?.claims ?? {};
+
         const parameters = JSON.parse(event.body || "{}");
 
         const configType = parameters.config_type;
@@ -19,6 +24,22 @@ exports.handler = async (event) => {
                 statusCode: 400,
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ error: "event_id and member_id must be valid numbers" })
+            };
+        }
+
+        const actingMemberId = await resolveActingMemberId(claims);
+        if (actingMemberId == null) {
+            return {
+                statusCode: 401,
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ error: "Could not identify the logged-in member" })
+            };
+        }
+        if (!(await canActFor(actingMemberId, memberId))) {
+            return {
+                statusCode: 403,
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ error: "Not authorized to unregister this member" })
             };
         }
 
