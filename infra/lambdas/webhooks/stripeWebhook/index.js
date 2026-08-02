@@ -15,7 +15,7 @@ async function getSecretValue(secretId) {
     return JSON.parse(raw);
 }
 
-async function processPaymentIntent(memberId, paymentId) {
+async function processPaymentIntent(memberId, paymentId, paidByMemberId) {
     await query("BEGIN");
     try {
         const memberFound = await verifyMemberExists(memberId);
@@ -74,8 +74,8 @@ async function processPaymentIntent(memberId, paymentId) {
         const totalPaid = parseFloat(paymentRow.payment_value) + (overdue ? parseFloat(paymentRow.overdue_penalty ?? 0) : 0);
 
         const submitResult = await query(
-            `INSERT INTO submitted_payments (member_id, payment_id, assigned_on, submitted_on, total_paid, overdue)
-             VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+            `INSERT INTO submitted_payments (member_id, payment_id, assigned_on, submitted_on, total_paid, overdue, paid_by_member_id)
+             VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
             [
                 assignedRow.member_id,
                 assignedRow.payment_id,
@@ -83,6 +83,7 @@ async function processPaymentIntent(memberId, paymentId) {
                 submittedOn,
                 totalPaid,
                 overdue,
+                paidByMemberId,
             ]
         );
 
@@ -155,11 +156,14 @@ exports.handler = async (event) => {
     const intent = stripeEvent.data.object;
     const memberId = parseInt(intent.metadata?.member_id, 10);
     const paymentId = parseInt(intent.metadata?.payment_id, 10);
+    const paidByRaw = intent.metadata?.paid_by_member_id;
+    const paidByParsed = paidByRaw ? parseInt(paidByRaw, 10) : NaN;
+    const paidByMemberId = Number.isNaN(paidByParsed) ? null : paidByParsed;
 
     if (Number.isNaN(memberId) || Number.isNaN(paymentId)) {
         console.error("Missing metadata on PaymentIntent:", intent.id);
         return { statusCode: 400, body: "Missing member_id or payment_id in PaymentIntent metadata" };
     }
 
-    return processPaymentIntent(memberId, paymentId);
+    return processPaymentIntent(memberId, paymentId, paidByMemberId);
 };

@@ -251,6 +251,7 @@ function PaymentsTab({ bins, onUnassign }) {
                       {submitted.map((s, i) => (
                         <span key={i} className={styles.memberTag} style={{ background: '#0e2a1a', color: '#75b798' }}>
                           {s.member ? `${s.member.first_name} ${s.member.last_name}` : `Member #${s.member_id}`}
+                          {s.paidByMember && ` (paid by ${s.paidByMember.first_name} ${s.paidByMember.last_name})`}
                         </span>
                       ))}
                     </div>
@@ -906,7 +907,11 @@ export default function Members() {
             }));
           const mySubmitted = submitted
             .filter(s => String(s.payment_id) === String(p.payment_id))
-            .map(s => ({ ...s, member: memberMap[String(s.member_id)] }));
+            .map(s => ({
+              ...s,
+              member: memberMap[String(s.member_id)],
+              paidByMember: s.paid_by_member_id != null ? memberMap[String(s.paid_by_member_id)] : null,
+            }));
           return { payment: p, assigned: myAssigned, submitted: mySubmitted };
         })
         .filter(b => b.assigned.length > 0 || b.submitted.length > 0);

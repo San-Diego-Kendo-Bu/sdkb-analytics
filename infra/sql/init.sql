@@ -78,6 +78,7 @@ CREATE TABLE IF NOT EXISTS submitted_payments (
     total_paid DOUBLE PRECISION NOT NULL,
     overdue BOOLEAN NOT NULL,
     assigned_on TIMESTAMPTZ NOT NULL,
+    paid_by_member_id BIGINT,
     PRIMARY KEY (payment_id, member_id)
 );
 
@@ -124,6 +125,7 @@ CREATE TABLE IF NOT EXISTS families (
 CREATE TABLE IF NOT EXISTS family_members (
     family_id BIGINT NOT NULL REFERENCES families(family_id) ON DELETE CASCADE,
     member_id BIGINT NOT NULL,
+    is_parent BOOLEAN NOT NULL DEFAULT FALSE,
     PRIMARY KEY (family_id, member_id)
 );
 

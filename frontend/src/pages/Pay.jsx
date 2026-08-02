@@ -12,6 +12,7 @@ const ASSIGNED_PAYMENTS_API = `${BASE_URL}/assignedpayments`;
 const PAYMENTS_API = `${BASE_URL}/payments`;
 const PAYMENT_INTENT_API = `${BASE_URL}/payments/intent`;
 const SUBMIT_PAYMENT_API = `${BASE_URL}/submittedpayments`;
+const FAMILIES_MINE_API = `${BASE_URL}/families/mine`;
 
 const STRIPE_APPEARANCE = {
   theme: 'stripe',
@@ -80,7 +81,9 @@ export default function Pay({ autoPaymentId, onAutoPayConsumed }) {
   const [showCompleted, setShowCompleted] = useState(false);
   const [completedSearch, setCompletedSearch] = useState('');
   const [completedPage, setCompletedPage] = useState(0);
+  const [memberNames, setMemberNames] = useState({});
   const memberIdRef = useRef(null);
+  const scopeIdsRef = useRef([]);
 
   function showToast(msg) {
     setToast(msg);
@@ -100,6 +103,39 @@ export default function Pay({ autoPaymentId, onAutoPayConsumed }) {
     return memberId;
   }
 
+  async function getAuthHeader() {
+    const user = await userManager.getUser();
+    if (!user || user.expired) return {};
+    return { Authorization: `Bearer ${user.id_token}` };
+  }
+
+  // Resolves who this account may act on behalf of: itself, plus — if a parent —
+  // the rest of its family. Returns the list of member_ids in scope.
+  async function resolveScope(memberId) {
+    try {
+      const authHeader = await getAuthHeader();
+      const res = await fetch(FAMILIES_MINE_API, { headers: authHeader });
+      if (!res.ok) return [memberId];
+      const family = await res.json();
+      const otherIds = family.is_parent
+        ? (family.members ?? []).map(m => Number(m.member_id)).filter(id => id !== Number(memberId))
+        : [];
+      if (otherIds.length === 0) return [memberId];
+
+      const membersRes = await fetch(MEMBERS_API);
+      const membersData = await membersRes.json();
+      const nameMap = {};
+      for (const m of membersData.items ?? []) {
+        nameMap[String(m.member_id)] = `${m.first_name} ${m.last_name}`;
+      }
+      setMemberNames(nameMap);
+      return [memberId, ...otherIds];
+    } catch (err) {
+      console.error('resolveScope error:', err);
+      return [memberId];
+    }
+  }
+
   async function loadPayments() {
     setLoading(true);
     try {
@@ -108,6 +144,9 @@ export default function Pay({ autoPaymentId, onAutoPayConsumed }) {
         setLoading(false);
         return;
       }
+
+      const scopeIds = await resolveScope(memberId);
+      scopeIdsRef.current = scopeIds;
 
       const [assignedRes, paymentsRes, submittedRes] = await Promise.all([
         fetch(ASSIGNED_PAYMENTS_API),
@@ -127,11 +166,11 @@ export default function Pay({ autoPaymentId, onAutoPayConsumed }) {
       const paymentMap = Object.fromEntries(allPayments.map(p => [String(p.payment_id), p]));
 
       const mine = allAssigned
-        .filter(a => Number(a.member_id) === Number(memberId))
+        .filter(a => scopeIds.includes(Number(a.member_id)))
         .map(a => ({ ...a, ...paymentMap[String(a.payment_id)] }));
 
       const myCompleted = allSubmitted
-        .filter(s => Number(s.member_id) === Number(memberId))
+        .filter(s => scopeIds.includes(Number(s.member_id)))
         .map(s => ({ ...s, ...paymentMap[String(s.payment_id)] }))
         .sort((a, b) => new Date(b.submitted_on) - new Date(a.submitted_on));
 
@@ -150,7 +189,8 @@ export default function Pay({ autoPaymentId, onAutoPayConsumed }) {
   const autoTriggeredRef = useRef(false);
   useEffect(() => {
     if (!autoPaymentId || loading || autoTriggeredRef.current) return;
-    const payment = assignedPayments.find(p => String(p.payment_id) === String(autoPaymentId));
+    const candidates = assignedPayments.filter(p => String(p.payment_id) === String(autoPaymentId));
+    const payment = candidates.find(p => Number(p.member_id) === Number(memberIdRef.current)) ?? candidates[0];
     if (payment) {
       autoTriggeredRef.current = true;
       handlePayClick(payment);
@@ -158,17 +198,21 @@ export default function Pay({ autoPaymentId, onAutoPayConsumed }) {
     }
   }, [autoPaymentId, loading, assignedPayments]);
 
+  function payingKey(payment) {
+    return `${payment.payment_id}:${payment.member_id}`;
+  }
+
   async function handlePayClick(payment) {
     if (isOffHours()) { showToast(OFF_HOURS_MSG); return; }
-    setPayingId(payment.payment_id);
+    setPayingId(payingKey(payment));
     setStripeData(null);
     setLoadingIntent(true);
     try {
-      const memberId = await resolveMemberId();
+      const authHeader = await getAuthHeader();
       const res = await fetch(PAYMENT_INTENT_API, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ member_id: memberId, payment_id: payment.payment_id }),
+        headers: { 'Content-Type': 'application/json', ...authHeader },
+        body: JSON.stringify({ member_id: payment.member_id, payment_id: payment.payment_id }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to create payment intent');
@@ -219,18 +263,27 @@ export default function Pay({ autoPaymentId, onAutoPayConsumed }) {
         </div>
       ) : (
         assignedPayments.map(p => {
-          const isThisOne = payingId === p.payment_id;
+          const isThisOne = payingId === payingKey(p);
           const isOverdue = p.due_date ? new Date().toISOString().slice(0, 10) > p.due_date.slice(0, 10) : p.due_status === 'overdue';
           const statusLabel = isOverdue ? 'overdue' : 'due';
+          const showOwner = scopeIdsRef.current.length > 1;
+          const ownerName = Number(p.member_id) === Number(memberIdRef.current)
+            ? 'Me'
+            : (memberNames[String(p.member_id)] ?? `Member #${p.member_id}`);
 
           const base = Number(p.payment_value ?? 0);
           const penalty = isOverdue && p.overdue_penalty ? Number(p.overdue_penalty) : 0;
           const total = base + penalty;
 
           return (
-            <div key={p.payment_id} className={styles.card}>
+            <div key={payingKey(p)} className={styles.card}>
               <div className={styles.cardInfo}>
                 <strong>{p.title ?? `Payment #${p.payment_id}`}</strong>
+                {showOwner && (
+                  <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', border: '1px solid var(--border)', borderRadius: 12, padding: '2px 8px' }}>
+                    {ownerName}
+                  </span>
+                )}
                 <span className={`${styles.status} ${isOverdue ? styles.overdue : ''}`}>
                   {statusLabel}
                 </span>
@@ -309,9 +362,14 @@ export default function Pay({ autoPaymentId, onAutoPayConsumed }) {
             ) : (
               <>
                 {pageItems.map(p => (
-                  <div key={p.payment_id} className={styles.completedCard}>
+                  <div key={payingKey(p)} className={styles.completedCard}>
                     <div className={styles.completedCardInfo}>
                       <strong>{p.title ?? `Payment #${p.payment_id}`}</strong>
+                      {scopeIdsRef.current.length > 1 && (
+                        <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', border: '1px solid var(--border)', borderRadius: 12, padding: '2px 8px', marginLeft: '0.5rem' }}>
+                          {Number(p.member_id) === Number(memberIdRef.current) ? 'Me' : (memberNames[String(p.member_id)] ?? `Member #${p.member_id}`)}
+                        </span>
+                      )}
                       {p.overdue && <span className={styles.overdueTag}>Late</span>}
                     </div>
                     <div className={styles.completedCardMeta}>

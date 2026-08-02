@@ -1,5 +1,6 @@
 const { SecretsManagerClient, GetSecretValueCommand } = require("@aws-sdk/client-secrets-manager");
 const { getMemberById } = require("../../shared_utils/members");
+const { resolveActingMemberId, canActFor } = require("../../shared_utils/families");
 const { query } = require("../../shared_utils/db");
 const Stripe = require("stripe");
 
@@ -17,6 +18,10 @@ async function getSecretValue(secretId) {
 
 exports.handler = async (event) => {
     try {
+        const claims =
+            event.requestContext?.authorizer?.jwt?.claims ??
+            event.requestContext?.authorizer?.claims ?? {};
+
         const params = JSON.parse(event.body || "{}");
         const memberId = parseInt(params.member_id, 10);
         const paymentId = parseInt(params.payment_id, 10);
@@ -26,6 +31,22 @@ exports.handler = async (event) => {
                 statusCode: 400,
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ error: "member_id and payment_id are required numbers" }),
+            };
+        }
+
+        const actingMemberId = await resolveActingMemberId(claims);
+        if (actingMemberId == null) {
+            return {
+                statusCode: 401,
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ error: "Could not identify the logged-in member" }),
+            };
+        }
+        if (!(await canActFor(actingMemberId, memberId))) {
+            return {
+                statusCode: 403,
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ error: "Not authorized to pay for this member" }),
             };
         }
 
@@ -89,6 +110,7 @@ exports.handler = async (event) => {
             metadata: {
                 member_id: String(memberId),
                 payment_id: String(paymentId),
+                paid_by_member_id: actingMemberId !== memberId ? String(actingMemberId) : "",
             },
         });
 
