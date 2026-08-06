@@ -442,11 +442,15 @@ function Payments() {
                         <p className={styles.formTitle}>Assign to Member</p>
                         <select className={styles.input} value={assignMemberId} onChange={e => setAssignMemberId(e.target.value)}>
                           <option value="">Select member</option>
-                          {members.map(m => (
-                            <option key={m.member_id} value={m.member_id}>
-                              {m.first_name} {m.last_name} (#{m.member_id})
-                            </option>
-                          ))}
+                          {[...members]
+                            .sort((a, b) =>
+                              `${a.last_name} ${a.first_name}`.localeCompare(`${b.last_name} ${b.first_name}`)
+                            )
+                            .map(m => (
+                              <option key={m.member_id} value={m.member_id}>
+                                {m.first_name} {m.last_name} (#{m.member_id})
+                              </option>
+                            ))}
                         </select>
                         <div className={styles.formActions} style={{ flexWrap: 'wrap' }}>
                           <button className={styles.saveBtn} onClick={() => handleAssign(p)} disabled={!assignMemberId}>Assign</button>
