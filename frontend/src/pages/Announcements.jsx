@@ -1,10 +1,11 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { userManager } from '../js/cognitoManager';
 import { isOffHours, OFF_HOURS_MSG } from '../js/offHours';
 
 const BASE_URL       = 'https://qh3c0tz6s9.execute-api.us-east-2.amazonaws.com';
 const UPLOAD_URL_API = `${BASE_URL}/announcements/upload-url`;
 const SEND_API       = `${BASE_URL}/announcements/send`;
+const MEMBERS_API    = `${BASE_URL}/members`;
 
 const inputStyle = {
   background: '#1a1a2e',
@@ -36,10 +37,36 @@ export default function Announcements() {
   const [error, setError]             = useState('');
   const fileInputRef                  = useRef(null);
 
+  const [members, setMembers]                     = useState([]);
+  const [showSpecificPicker, setShowSpecificPicker] = useState(false);
+  const [selectedIds, setSelectedIds]              = useState(new Set());
+  const [memberSearch, setMemberSearch]            = useState('');
+
+  useEffect(() => {
+    fetch(MEMBERS_API)
+      .then(res => res.json())
+      .then(data => setMembers(data.items ?? []))
+      .catch(() => {});
+  }, []);
+
   async function getToken() {
     const user = await userManager.getUser();
     return user?.id_token ?? null;
   }
+
+  function toggleMemberSelection(id) {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  const filteredMembers = members
+    .filter(m => m.status !== 'inactive')
+    .filter(m => `${m.first_name} ${m.last_name}`.toLowerCase().includes(memberSearch.toLowerCase()))
+    .sort((a, b) => (a.last_name ?? '').localeCompare(b.last_name ?? ''));
 
   async function handleFileChange(e) {
     const files = Array.from(e.target.files ?? []);
@@ -87,6 +114,10 @@ export default function Announcements() {
       setError('Subject and message are required.');
       return;
     }
+    if (target === 'specific' && selectedIds.size === 0) {
+      setError('Select at least one member.');
+      return;
+    }
 
     setSending(true);
     setError('');
@@ -102,6 +133,7 @@ export default function Announcements() {
           body,
           attachment_urls: attachments.map(a => a.url),
           target,
+          ...(target === 'specific' ? { member_ids: [...selectedIds] } : {}),
         }),
       });
       const data = await res.json();
@@ -110,6 +142,8 @@ export default function Announcements() {
       setSubject('');
       setBody('');
       setAttachments([]);
+      setSelectedIds(new Set());
+      setShowSpecificPicker(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
     } catch (err) {
       setError(err.message);
@@ -251,7 +285,87 @@ export default function Announcements() {
           >
             {sending ? 'Sending...' : 'Send to Senseis Only'}
           </button>
+          <button
+            type="button"
+            disabled={sending || uploading || !subject.trim() || !body.trim()}
+            onClick={() => setShowSpecificPicker(v => !v)}
+            style={{
+              background: showSpecificPicker ? '#16213e' : 'transparent',
+              color: sending || uploading || !subject.trim() || !body.trim() ? '#666' : '#6ea8fe',
+              border: '1px solid #6ea8fe55',
+              borderRadius: 6,
+              padding: '0.5rem 1.25rem',
+              fontWeight: 600,
+              cursor: sending || uploading || !subject.trim() || !body.trim() ? 'not-allowed' : 'pointer',
+              fontSize: '0.9rem',
+            }}
+          >
+            Send to Specific Members
+          </button>
         </div>
+
+        {showSpecificPicker && (
+          <div style={{ marginTop: '1rem', border: '1px solid #444', borderRadius: 8, padding: '0.85rem' }}>
+            <label style={labelStyle}>Select Members ({selectedIds.size} selected)</label>
+            <input
+              type="text"
+              style={{ ...inputStyle, marginBottom: '0.6rem' }}
+              value={memberSearch}
+              onChange={e => setMemberSearch(e.target.value)}
+              placeholder="Search members..."
+              disabled={sending}
+            />
+            <div style={{ maxHeight: 220, overflowY: 'auto', border: '1px solid #333', borderRadius: 6, marginBottom: '0.75rem' }}>
+              {filteredMembers.length === 0 ? (
+                <p style={{ color: '#888', fontSize: '0.85rem', padding: '0.5rem', margin: 0 }}>No members found.</p>
+              ) : (
+                filteredMembers.map(m => {
+                  const id = String(m.member_id);
+                  const selected = selectedIds.has(id);
+                  return (
+                    <label
+                      key={id}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 8,
+                        padding: '5px 10px',
+                        fontSize: '0.85rem',
+                        cursor: 'pointer',
+                        background: selected ? 'rgba(110, 168, 254, 0.12)' : 'transparent',
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selected}
+                        onChange={() => toggleMemberSelection(id)}
+                        disabled={sending}
+                      />
+                      {m.last_name}, {m.first_name}
+                    </label>
+                  );
+                })
+              )}
+            </div>
+            <button
+              type="button"
+              disabled={sending || uploading || !subject.trim() || !body.trim() || selectedIds.size === 0}
+              onClick={() => handleSend('specific')}
+              style={{
+                background: sending || uploading || !subject.trim() || !body.trim() || selectedIds.size === 0 ? '#333' : '#0e2a1a',
+                color: sending || uploading || !subject.trim() || !body.trim() || selectedIds.size === 0 ? '#666' : '#75b798',
+                border: '1px solid #75b79855',
+                borderRadius: 6,
+                padding: '0.5rem 1.25rem',
+                fontWeight: 600,
+                cursor: sending || uploading || !subject.trim() || !body.trim() || selectedIds.size === 0 ? 'not-allowed' : 'pointer',
+                fontSize: '0.9rem',
+              }}
+            >
+              {sending ? 'Sending...' : `Send to ${selectedIds.size} Selected`}
+            </button>
+          </div>
+        )}
       </form>
     </div>
   );

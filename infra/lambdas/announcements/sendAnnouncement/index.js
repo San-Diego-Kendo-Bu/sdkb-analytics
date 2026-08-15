@@ -178,6 +178,7 @@ exports.handler = async (event, context) => {
             attachment_urls,
             pdf_url,
             target,
+            member_ids,
         } = JSON.parse(event.body || "{}");
 
         logTiming(context, handlerStartedAt, "request_parsed", {
@@ -206,6 +207,30 @@ exports.handler = async (event, context) => {
                 }),
             };
         }
+
+        if (
+            target === "specific" &&
+            (!Array.isArray(member_ids) || member_ids.length === 0)
+        ) {
+            logTiming(context, handlerStartedAt, "validation_failed", {
+                reason: "no_members_selected",
+            });
+
+            return {
+                statusCode: 400,
+                headers: {
+                    "Content-Type": "application/json",
+                    "Access-Control-Allow-Origin": "*",
+                },
+                body: JSON.stringify({
+                    error: "Select at least one member.",
+                }),
+            };
+        }
+
+        const selectedMemberIds = new Set(
+            (member_ids || []).map((id) => String(id))
+        );
 
         // Accept the new attachment_urls array or fall back
         // to the legacy pdf_url field.
@@ -256,6 +281,10 @@ exports.handler = async (event, context) => {
                 return isSensei(member);
             }
 
+            if (target === "specific") {
+                return selectedMemberIds.has(String(member.member_id));
+            }
+
             return true;
         });
 
@@ -268,7 +297,12 @@ exports.handler = async (event, context) => {
         ];
 
         logTiming(context, handlerStartedAt, "recipients_prepared", {
-            target: target === "senseis" ? "senseis" : "all",
+            target:
+                target === "senseis"
+                    ? "senseis"
+                    : target === "specific"
+                        ? "specific"
+                        : "all",
             totalMembers: members.length,
             eligibleMembers: eligible.length,
             recipientCount: emails.length,
@@ -506,7 +540,9 @@ exports.handler = async (event, context) => {
         const dbTarget =
             target === "senseis"
                 ? "senseis"
-                : "all";
+                : target === "specific"
+                    ? "specific"
+                    : "all";
 
         const databaseStartedAt = Date.now();
 

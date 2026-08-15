@@ -5,6 +5,7 @@ exports.handler = async () => {
         const result = await query(
             `SELECT announcement_id, subject, body, pdf_url, COALESCE(target, 'all') AS target, created_at
              FROM announcements
+             WHERE COALESCE(target, 'all') != 'specific'
              ORDER BY created_at DESC`,
             []
         );
