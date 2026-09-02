@@ -297,6 +297,7 @@ function Payments() {
   }
 
   async function handleDeleteRecurring(recurringId) {
+    if (!window.confirm('Are you sure you want to cancel this recurring payment?')) return;
     try {
       const user = await userManager.getUser();
       const res = await fetch(RECURRING_API, {
@@ -327,6 +328,7 @@ function Payments() {
 
   function handleDelete(id) {
     if (isOffHours()) { setError(OFF_HOURS_MSG); return; }
+    if (!window.confirm('Are you sure you want to delete this payment?')) return;
     userManager.getUser()
       .then(user => fetch(PAYMENTS_API, {
         method: 'DELETE',
