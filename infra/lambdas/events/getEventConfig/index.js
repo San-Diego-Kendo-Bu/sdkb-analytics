@@ -1,6 +1,7 @@
 const { query } = require("../../shared_utils/db");
 
 const TOURNAMENTS_TABLE = "tournaments";
+const TOURNAMENT_DIVISION_PAYMENTS_TABLE = "tournament_division_payments";
 const SHINSA_TABLE = "shinsa_exams";
 const SEMINAR_TABLE = "seminars";
 const SPECIAL_EVENTS_TABLE = "special_events";
@@ -36,7 +37,23 @@ exports.handler = async (event) => {
 
         if (eventType === "tournament") {
             configResult = await query(
-                `SELECT event_id, shinpan_needed, divisions, teams_included FROM ${TOURNAMENTS_TABLE} WHERE event_id = $1 LIMIT 1`,
+                `
+                SELECT
+                    t.event_id,
+                    t.shinpan_needed,
+                    t.divisions,
+                    t.teams_included,
+                    t.payment_required,
+                    COALESCE(
+                        jsonb_object_agg(dp.division_name, dp.payment_id::text) FILTER (WHERE dp.division_name IS NOT NULL),
+                        '{}'::jsonb
+                    ) AS division_payments
+                FROM ${TOURNAMENTS_TABLE} t
+                LEFT JOIN ${TOURNAMENT_DIVISION_PAYMENTS_TABLE} dp ON dp.event_id = t.event_id
+                WHERE t.event_id = $1
+                GROUP BY t.event_id, t.shinpan_needed, t.divisions, t.teams_included, t.payment_required
+                LIMIT 1
+                `,
                 [eventId]
             );
         } else if (eventType === "shinsa") {

@@ -90,7 +90,7 @@ export default function Overview({ onNavigate }) {
         () => fetch(PAYMENTS_API).then(r => r.json()).catch(() => ({ data: [] })),
         () => fetch(ANNOUNCEMENTS_API).then(r => r.json()).catch(() => ({ announcements: [] })),
       ];
-      const results = await mapWithConcurrency(fetchers, 4, fn => fn());
+      const results = await mapWithConcurrency(fetchers, 2, fn => fn());
       const [tourneyR, shinsaR, seminarR, specialEventR, evData, asgnData, payData, annData] = results;
 
       setRegCheckFailedTypes(new Set(

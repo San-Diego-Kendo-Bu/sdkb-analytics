@@ -59,7 +59,7 @@ exports.handler = async (event) => {
                 `
                 DELETE FROM ${TOURNAMENT_REGISTRATION_TABLE}
                 WHERE event_id = $1 AND member_id = $2
-                RETURNING event_id, member_id, registration_date, shinpanning, divisions, doing_teams
+                RETURNING event_id, member_id, registration_date, shinpanning, divisions, doing_teams, payment_id
                 `,
                 [eventId, memberId]
             );
@@ -106,12 +106,18 @@ exports.handler = async (event) => {
             };
         }
 
-        // Remove the member's assigned payment for this event if one exists
-        const eventResult = await query(
-            `SELECT payment_id FROM events WHERE event_id = $1 LIMIT 1`,
-            [eventId]
-        );
-        const paymentId = eventResult.rows[0]?.payment_id;
+        // Remove the member's assigned payment for this event. For tournaments, use the
+        // payment_id recorded directly on the registration at signup time (not re-derived
+        // from the tournament's *current* division-to-payment mapping, which may have
+        // changed since they registered) so this stays correct regardless of later config edits.
+        let paymentId = configType === "tournament" ? result.rows[0].payment_id : null;
+        if (paymentId == null) {
+            const eventResult = await query(
+                `SELECT payment_id FROM events WHERE event_id = $1 LIMIT 1`,
+                [eventId]
+            );
+            paymentId = eventResult.rows[0]?.payment_id;
+        }
         if (paymentId) {
             await query(
                 `DELETE FROM assigned_payments WHERE member_id = $1 AND payment_id = $2`,

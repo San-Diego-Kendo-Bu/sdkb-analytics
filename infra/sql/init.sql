@@ -92,6 +92,7 @@ CREATE TABLE IF NOT EXISTS tournament_registrations (
     weight NUMERIC,
     height NUMERIC,
     age INTEGER,
+    payment_id BIGINT REFERENCES payments(payment_id) ON DELETE SET NULL,
     PRIMARY KEY (event_id, member_id)
 );
 
@@ -99,7 +100,15 @@ CREATE TABLE IF NOT EXISTS tournaments (
     event_id BIGINT PRIMARY KEY REFERENCES events(event_id) ON DELETE CASCADE,
     shinpan_needed BOOLEAN NOT NULL,
     divisions TEXT[] NOT NULL DEFAULT '{}',
-    teams_included BOOLEAN NOT NULL
+    teams_included BOOLEAN NOT NULL,
+    payment_required BOOLEAN NOT NULL DEFAULT FALSE
+);
+
+CREATE TABLE IF NOT EXISTS tournament_division_payments (
+    event_id BIGINT NOT NULL REFERENCES tournaments(event_id) ON DELETE CASCADE,
+    division_name TEXT NOT NULL,
+    payment_id BIGINT NOT NULL REFERENCES payments(payment_id) ON DELETE CASCADE,
+    PRIMARY KEY (event_id, division_name)
 );
 
 CREATE TABLE IF NOT EXISTS config (

@@ -268,6 +268,12 @@ export class ServiceStack extends Stack {
       ...commonNodejs,
     });
 
+    const clearPastSpecialEventsLambda = new NodejsFunction(this, "ClearPastSpecialEventsLambda", {
+      entry: path.join(__dirname, "../../lambdas/events/clearPastSpecialEvents/index.js"),
+      handler: "handler",
+      ...commonNodejs,
+    });
+
     const broadcastPaymentLambda = new NodejsFunction(this, "BroadcastPaymentLambda", {
       entry: path.join(__dirname, "../../lambdas/broadcasted_payments/broadcast_payment/index.js"),
       handler: "handler",
@@ -444,6 +450,7 @@ export class ServiceStack extends Stack {
     props.databaseStack.grantDatabaseAccess(getEventLambda);
     props.databaseStack.grantDatabaseAccess(updateEventLambda);
     props.databaseStack.grantDatabaseAccess(removeEventLambda);
+    props.databaseStack.grantDatabaseAccess(clearPastSpecialEventsLambda);
     props.databaseStack.grantDatabaseAccess(getSeminarRegistrationsLambda);
     props.databaseStack.grantDatabaseAccess(getSpecialEventRegistrationsLambda);
     props.databaseStack.grantDatabaseAccess(getShinsaRegistrationsLambda);
@@ -970,6 +977,17 @@ export class ServiceStack extends Stack {
         target: target,
         enabled: true,
         description: 'This schedule periodically calls clearOvrPaymentsLambda. Functions as a scheduled database cleanup for payments.',
+    });
+
+    const clearPastSpecialEventsScheduleRole = new iam.Role(this, 'clearPastSpecialEventsScheduleRole', {
+      assumedBy: new iam.ServicePrincipal('scheduler.amazonaws.com'),
+    });
+    clearPastSpecialEventsLambda.grantInvoke(clearPastSpecialEventsScheduleRole);
+    new scheduler.Schedule(this, 'ClearPastSpecialEventsSchedule', {
+      schedule: scheduler.ScheduleExpression.rate(Duration.days(1)),
+      target: new targets.LambdaInvoke(clearPastSpecialEventsLambda, { role: clearPastSpecialEventsScheduleRole }),
+      enabled: true,
+      description: 'Daily cleanup: deletes special events (and their registrations) more than 2 days past their end date.',
     });
 
     const processRecurringsScheduleRole = new iam.Role(this, 'processRecurringsScheduleRole', {

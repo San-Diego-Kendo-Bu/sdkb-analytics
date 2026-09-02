@@ -2,6 +2,7 @@ const { query } = require("../../shared_utils/db");
 const { normalizeGroups } = require("../../shared_utils/normalize_claim");
 
 const TOURNAMENTS_TABLE = "tournaments";
+const TOURNAMENT_DIVISION_PAYMENTS_TABLE = "tournament_division_payments";
 const SHINSA_TABLE = "shinsa_exams";
 const SEMINAR_TABLE = "seminars";
 const SPECIAL_EVENTS_TABLE = "special_events";
@@ -46,8 +47,28 @@ exports.handler = async (event) => {
 
         if (configType === "tournament") {
             const shinpanNeeded = parameters.shinpan_needed;
-            const divisions = parameters.divisions;
+            const divisions = parameters.divisions ?? [];
             const teamsIncluded = parameters.teams_included;
+            const paymentRequired = parameters.payment_required ?? false;
+            const divisionPayments = parameters.division_payments ?? {};
+
+            if (paymentRequired) {
+                if (!Array.isArray(divisions) || divisions.length === 0) {
+                    return {
+                        statusCode: 400,
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ error: "At least one division is required when payment is required." })
+                    };
+                }
+                const missing = divisions.filter((d) => !divisionPayments[d]);
+                if (missing.length > 0) {
+                    return {
+                        statusCode: 400,
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ error: `A payment must be selected for: ${missing.join(", ")}` })
+                    };
+                }
+            }
 
             const result = await query(
                 `
@@ -55,17 +76,39 @@ exports.handler = async (event) => {
                     event_id,
                     shinpan_needed,
                     divisions,
-                    teams_included
+                    teams_included,
+                    payment_required
                 )
-                VALUES ($1, $2, $3, $4)
+                VALUES ($1, $2, $3, $4, $5)
                 ON CONFLICT (event_id) DO UPDATE SET
                     shinpan_needed = EXCLUDED.shinpan_needed,
                     divisions = EXCLUDED.divisions,
-                    teams_included = EXCLUDED.teams_included
-                RETURNING event_id, shinpan_needed, divisions, teams_included
+                    teams_included = EXCLUDED.teams_included,
+                    payment_required = EXCLUDED.payment_required
+                RETURNING event_id, shinpan_needed, divisions, teams_included, payment_required
                 `,
-                [eventId, shinpanNeeded, divisions, teamsIncluded]
+                [eventId, shinpanNeeded, divisions, teamsIncluded, paymentRequired]
             );
+
+            await query(
+                `DELETE FROM ${TOURNAMENT_DIVISION_PAYMENTS_TABLE} WHERE event_id = $1`,
+                [eventId]
+            );
+
+            let divisionPaymentRows = [];
+            if (paymentRequired && divisions.length > 0) {
+                const paymentIds = divisions.map((d) => parseInt(divisionPayments[d], 10));
+                const insertResult = await query(
+                    `
+                    INSERT INTO ${TOURNAMENT_DIVISION_PAYMENTS_TABLE} (event_id, division_name, payment_id)
+                    SELECT $1, name, pid
+                    FROM unnest($2::text[], $3::bigint[]) AS t(name, pid)
+                    RETURNING division_name, payment_id
+                    `,
+                    [eventId, divisions, paymentIds]
+                );
+                divisionPaymentRows = insertResult.rows;
+            }
 
             return {
                 statusCode: 200,
@@ -76,7 +119,12 @@ exports.handler = async (event) => {
                 body: JSON.stringify({
                     message: "Configured Event Successfully",
                     config_type: configType,
-                    data: result.rows[0],
+                    data: {
+                        ...result.rows[0],
+                        division_payments: Object.fromEntries(
+                            divisionPaymentRows.map((r) => [r.division_name, r.payment_id])
+                        ),
+                    },
                 })
             };
         }

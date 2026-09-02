@@ -73,6 +73,7 @@ exports.handler = async (event) => {
         }
 
         let registrationData;
+        let divisionPaymentId = null;
 
         if (configType === "tournament") {
             const shinpanning = parameters.shinpanning;
@@ -82,15 +83,43 @@ exports.handler = async (event) => {
             const height = parameters.height ?? null;
             const age = parameters.age ?? null;
 
+            const tournResult = await query(
+                `SELECT payment_required FROM tournaments WHERE event_id = $1 LIMIT 1`,
+                [eventId]
+            );
+            const paymentRequired = tournResult.rows[0]?.payment_required ?? false;
+
+            if (paymentRequired) {
+                if (divisions.length !== 1) {
+                    return {
+                        statusCode: 400,
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ error: "Please select exactly one division." })
+                    };
+                }
+                const dpResult = await query(
+                    `SELECT payment_id FROM tournament_division_payments WHERE event_id = $1 AND division_name = $2 LIMIT 1`,
+                    [eventId, divisions[0]]
+                );
+                if (dpResult.rowCount === 0) {
+                    return {
+                        statusCode: 400,
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ error: "No payment is configured for the selected division." })
+                    };
+                }
+                divisionPaymentId = dpResult.rows[0].payment_id;
+            }
+
             const result = await query(
                 `
                 INSERT INTO ${TOURNAMENT_REGISTRATION_TABLE} (
-                    event_id, member_id, registration_date, shinpanning, divisions, doing_teams, weight, height, age
+                    event_id, member_id, registration_date, shinpanning, divisions, doing_teams, weight, height, age, payment_id
                 )
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
                 RETURNING *
                 `,
-                [eventId, memberId, registeredDate, shinpanning, divisions, doingTeams, weight, height, age]
+                [eventId, memberId, registeredDate, shinpanning, divisions, doingTeams, weight, height, age, divisionPaymentId]
             );
             registrationData = result.rows[0];
 
@@ -143,12 +172,16 @@ exports.handler = async (event) => {
             };
         }
 
-        // Assign member to the event's linked payment if one exists and they haven't already paid it
-        const eventResult = await query(
-            `SELECT payment_id FROM events WHERE event_id = $1 LIMIT 1`,
-            [eventId]
-        );
-        const paymentId = eventResult.rows[0]?.payment_id;
+        // Assign member to the division's payment (tournaments with payment_required) or the
+        // event's linked payment, whichever applies, if they haven't already paid it
+        let paymentId = divisionPaymentId;
+        if (!paymentId) {
+            const eventResult = await query(
+                `SELECT payment_id FROM events WHERE event_id = $1 LIMIT 1`,
+                [eventId]
+            );
+            paymentId = eventResult.rows[0]?.payment_id;
+        }
         if (paymentId) {
             const alreadyPaid = await query(
                 `SELECT 1 FROM submitted_payments WHERE member_id = $1 AND payment_id = $2 LIMIT 1`,

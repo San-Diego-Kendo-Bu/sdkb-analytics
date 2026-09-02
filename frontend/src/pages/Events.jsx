@@ -19,6 +19,8 @@ const STATUS_COLORS = {
 const EMPTY_NEW = {
   title: '', description: '', maps_link: '', start_datetime: '', end_datetime: '', event_end_datetime: '',
   location: '', type: '', payment_id: '',
+  shinpan_needed: false, divisions: '', teams_included: false,
+  payment_required: false, division_payments: {},
 };
 
 const EMPTY_EDIT = {
@@ -26,7 +28,7 @@ const EMPTY_EDIT = {
   location: '', type: '', payment_id: '',
   shinpan_needed: false, event_deadline: '', divisions: '',
   teams_included: false, shinsa_levels: '', seminar_guests: '', bring_your_lunch: false,
-  external_signup_url: '',
+  external_signup_url: '', payment_required: false, division_payments: {},
 };
 
 function fmtType(type) {
@@ -85,6 +87,66 @@ function toIso(inputValue) {
   return inputValue ? inputValue + ':00Z' : null;
 }
 
+function TournamentConfigFields({ form, setForm, availablePayments = [] }) {
+  const divisionNames = form.divisions.split(',').map(s => s.trim()).filter(Boolean);
+
+  return (
+    <>
+      <p className={styles.formTitle} style={{ fontSize: '0.85rem', marginTop: '0.75rem', marginBottom: 0 }}>Tournament Config</p>
+      <label className={styles.label}>Divisions (comma-separated)</label>
+      <input className={styles.input} placeholder="e.g. kyu, yudansha" value={form.divisions}
+        onChange={e => setForm(f => ({ ...f, divisions: e.target.value }))} />
+      <label className={styles.label}>
+        <input type="checkbox" checked={form.shinpan_needed}
+          onChange={e => setForm(f => ({ ...f, shinpan_needed: e.target.checked }))} />{' '}
+        Shinpan needed
+      </label>
+      <label className={styles.label}>
+        <input type="checkbox" checked={form.teams_included}
+          onChange={e => setForm(f => ({ ...f, teams_included: e.target.checked }))} />{' '}
+        Teams included
+      </label>
+      <label className={styles.label}>
+        <input type="checkbox" checked={form.payment_required}
+          onChange={e => setForm(f => ({
+            ...f,
+            payment_required: e.target.checked,
+            payment_id: e.target.checked ? 'free' : f.payment_id,
+          }))} />{' '}
+        Payment required (per division)
+      </label>
+      {form.payment_required && (
+        <div style={{ marginTop: '0.4rem' }}>
+          {divisionNames.length === 0 && (
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Enter at least one division above to assign payments.</p>
+          )}
+          {divisionNames.map(name => (
+            <div key={name} style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.4rem' }}>
+              <span style={{ flex: '0 0 140px', fontSize: '0.88rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</span>
+              <select
+                className={styles.input}
+                style={{ flex: 1, margin: 0 }}
+                value={form.division_payments[name] ?? ''}
+                onChange={e => {
+                  const val = e.target.value;
+                  setForm(f => ({ ...f, division_payments: { ...f.division_payments, [name]: val } }));
+                }}
+              >
+                <option value="">-- Select payment --</option>
+                {availablePayments.map(p => (
+                  <option key={p.payment_id} value={p.payment_id}>
+                    {p.title} (#{p.payment_id})
+                  </option>
+                ))}
+              </select>
+            </div>
+          ))}
+        </div>
+      )}
+    </>
+  );
+}
+
 function NewEventForm({ form, setForm, onSave, onCancel, availablePayments = [] }) {
   return (
     <div className={styles.formBox}>
@@ -114,17 +176,24 @@ function NewEventForm({ form, setForm, onSave, onCancel, availablePayments = [] 
         <option value="seminar">Seminar</option>
         <option value="special_event">Special Event</option>
       </select>
-      <label className={styles.label}>Payment</label>
-      <select className={styles.input} value={form.payment_id}
-        onChange={e => setForm(f => ({ ...f, payment_id: e.target.value }))}>
-        <option value="">-- Select --</option>
-        <option value="free">No payment required (free event)</option>
-        {availablePayments.map(p => (
-          <option key={p.payment_id} value={p.payment_id}>
-            {p.title} (#{p.payment_id})
-          </option>
-        ))}
-      </select>
+      {!(form.type === 'tournament' && form.payment_required) && (<>
+        <label className={styles.label}>Payment</label>
+        <select className={styles.input} value={form.payment_id}
+          onChange={e => setForm(f => ({ ...f, payment_id: e.target.value }))}>
+          <option value="">-- Select --</option>
+          <option value="free">No payment required (free event)</option>
+          {availablePayments.map(p => (
+            <option key={p.payment_id} value={p.payment_id}>
+              {p.title} (#{p.payment_id})
+            </option>
+          ))}
+        </select>
+      </>)}
+
+      {form.type === 'tournament' && (
+        <TournamentConfigFields form={form} setForm={setForm} availablePayments={availablePayments} />
+      )}
+
       <div className={styles.formActions}>
         <button className={styles.saveBtn} onClick={onSave}>Save</button>
         <button className={styles.cancelBtn} onClick={onCancel}>Cancel</button>
@@ -161,35 +230,22 @@ function EditEventForm({ form, setForm, onSave, onCancel, availablePayments = []
         <option value="seminar">Seminar</option>
         <option value="special_event">Special Event</option>
       </select>
-      <label className={styles.label}>Payment</label>
-      <select className={styles.input} value={form.payment_id}
-        onChange={e => setForm(f => ({ ...f, payment_id: e.target.value }))}>
-        <option value="">-- Select --</option>
-        <option value="free">No payment required (free event)</option>
-        {availablePayments.map(p => (
-          <option key={p.payment_id} value={p.payment_id}>
-            {p.title} (#{p.payment_id})
-          </option>
-        ))}
-      </select>
+      {!(form.type === 'tournament' && form.payment_required) && (<>
+        <label className={styles.label}>Payment</label>
+        <select className={styles.input} value={form.payment_id}
+          onChange={e => setForm(f => ({ ...f, payment_id: e.target.value }))}>
+          <option value="">-- Select --</option>
+          <option value="free">No payment required (free event)</option>
+          {availablePayments.map(p => (
+            <option key={p.payment_id} value={p.payment_id}>
+              {p.title} (#{p.payment_id})
+            </option>
+          ))}
+        </select>
+      </>)}
 
       {form.type === 'tournament' && (
-        <>
-          <p className={styles.formTitle} style={{ fontSize: '0.85rem', marginTop: '0.75rem', marginBottom: 0 }}>Tournament Config</p>
-          <label className={styles.label}>Divisions (comma-separated)</label>
-          <input className={styles.input} placeholder="e.g. kyu, yudansha" value={form.divisions}
-            onChange={e => setForm(f => ({ ...f, divisions: e.target.value }))} />
-          <label className={styles.label}>
-            <input type="checkbox" checked={form.shinpan_needed}
-              onChange={e => setForm(f => ({ ...f, shinpan_needed: e.target.checked }))} />{' '}
-            Shinpan needed
-          </label>
-          <label className={styles.label}>
-            <input type="checkbox" checked={form.teams_included}
-              onChange={e => setForm(f => ({ ...f, teams_included: e.target.checked }))} />{' '}
-            Teams included
-          </label>
-        </>
+        <TournamentConfigFields form={form} setForm={setForm} availablePayments={availablePayments} />
       )}
 
       {form.type === 'shinsa' && (
@@ -290,7 +346,7 @@ function Events() {
         return evs;
       })
       .then(evs =>
-        mapWithConcurrency(evs, 5, ev =>
+        mapWithConcurrency(evs, 2, ev =>
           fetch(`${CONFIGURE_API}?event_id=${ev.event_id}`)
             .then(r => r.json())
             .then(r => ({ id: ev.event_id, data: r.data ?? null }))
@@ -350,6 +406,21 @@ function Events() {
       setError('Please select a payment or mark as a free event.');
       return;
     }
+    let divisionNames = [];
+    if (newForm.type === 'tournament') {
+      divisionNames = newForm.divisions.split(',').map(s => s.trim()).filter(Boolean);
+      if (divisionNames.length === 0) {
+        setError('Please enter at least one division for the tournament.');
+        return;
+      }
+      if (newForm.payment_required) {
+        const missing = divisionNames.filter(d => !newForm.division_payments[d]);
+        if (missing.length > 0) {
+          setError(`Please select a payment for: ${missing.join(', ')}`);
+          return;
+        }
+      }
+    }
     const payload = {
       event_name: newForm.title,
       description: newForm.description || null,
@@ -362,18 +433,39 @@ function Events() {
       created_at: new Date().toISOString().replace(/\.\d{3}Z$/, 'Z'),
       payment_id: newForm.payment_id === 'free' ? null : parseInt(newForm.payment_id, 10),
     };
-    userManager.getUser().then(user => fetch(EVENTS_API, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${user.id_token}` },
-      body: JSON.stringify(payload),
-    }))
-      .then(res => { if (!res.ok) return res.json().then(b => { throw new Error(b.error || `HTTP ${res.status}`); }); return res.json(); })
+    const tournamentConfig = newForm.type === 'tournament' ? {
+      shinpan_needed: newForm.shinpan_needed,
+      divisions: divisionNames,
+      teams_included: newForm.teams_included,
+      payment_required: newForm.payment_required,
+      division_payments: newForm.division_payments,
+    } : null;
+
+    setShowNew(false);
+    setNewForm(EMPTY_NEW);
+
+    userManager.getUser()
+      .then(user => {
+        const headers = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${user.id_token}` };
+        return fetch(EVENTS_API, { method: 'POST', headers, body: JSON.stringify(payload) })
+          .then(res => { if (!res.ok) return res.json().then(b => { throw new Error(b.error || `HTTP ${res.status}`); }); return res.json(); })
+          .then(body => {
+            const newEventId = body.data?.event_id ?? body.id;
+            if (tournamentConfig && newEventId) {
+              return fetch(CONFIGURE_API, {
+                method: 'POST',
+                headers,
+                body: JSON.stringify({ event_id: newEventId, ...tournamentConfig }),
+              }).then(cfgRes => {
+                if (!cfgRes.ok) return cfgRes.json().then(b => { throw new Error(b.error || b.message || `HTTP ${cfgRes.status}`); });
+              });
+            }
+          });
+      })
       .then(() => fetch(EVENTS_API))
       .then(res => res.json())
       .then(data => setEvents(data.body.map(mapEvent)))
       .catch(err => setError(err.message));
-    setShowNew(false);
-    setNewForm(EMPTY_NEW);
   }
 
   function handleEditOpen(ev) {
@@ -383,6 +475,7 @@ function Events() {
       shinpan_needed: false, event_deadline: '',
       divisions: '', teams_included: false,
       shinsa_levels: '', seminar_guests: '', bring_your_lunch: false,
+      payment_required: false, division_payments: {},
     };
     if (existing) {
       if (ev.type === 'tournament') {
@@ -392,6 +485,10 @@ function Events() {
           divisions: existing.divisions?.join(', ') ?? '',
           teams_included: existing.teams_included ?? false,
           event_deadline: toInputValue(ev.end_datetime),
+          payment_required: existing.payment_required ?? false,
+          division_payments: Object.fromEntries(
+            Object.entries(existing.division_payments ?? {}).map(([k, v]) => [k, String(v)])
+          ),
         };
       } else if (ev.type === 'shinsa') {
         configFields = {
@@ -429,6 +526,21 @@ function Events() {
       setError('Please select a payment or mark as a free event.');
       return;
     }
+    let editDivisionNames = [];
+    if (editForm.type === 'tournament') {
+      editDivisionNames = editForm.divisions.split(',').map(s => s.trim()).filter(Boolean);
+      if (editDivisionNames.length === 0) {
+        setError('Please enter at least one division for the tournament.');
+        return;
+      }
+      if (editForm.payment_required) {
+        const missing = editDivisionNames.filter(d => !editForm.division_payments[d]);
+        if (missing.length > 0) {
+          setError(`Please select a payment for: ${missing.join(', ')}`);
+          return;
+        }
+      }
+    }
 
     const eventPayload = {
       event_id: editingId,
@@ -449,8 +561,10 @@ function Events() {
         ...configPayload,
         shinpan_needed: editForm.shinpan_needed,
         event_deadline: toIso(editForm.end_datetime),
-        divisions: editForm.divisions.split(',').map(s => s.trim()).filter(Boolean),
+        divisions: editDivisionNames,
         teams_included: editForm.teams_included,
+        payment_required: editForm.payment_required,
+        division_payments: editForm.division_payments,
       };
     } else if (editForm.type === 'shinsa') {
       configPayload = {
@@ -612,7 +726,16 @@ function Events() {
                             {cfg.divisions?.length > 0 && (
                               <div className={styles.configRow}>
                                 <span className={styles.configLabel}>Divisions</span>
-                                <div className={styles.configTags}>{cfg.divisions.map(d => <span key={d} className={styles.configTag}>{d}</span>)}</div>
+                                <div className={styles.configTags}>
+                                  {cfg.divisions.map(d => (
+                                    <span key={d} className={styles.configTag}>
+                                      {d}
+                                      {cfg.payment_required && cfg.division_payments?.[d] != null && (
+                                        ` — ${payments.find(p => p.payment_id === cfg.division_payments[d])?.title ?? `#${cfg.division_payments[d]}`}`
+                                      )}
+                                    </span>
+                                  ))}
+                                </div>
                               </div>
                             )}
                             {cfg.teams_included != null && (
@@ -627,6 +750,12 @@ function Events() {
                                 <span className={cfg.shinpan_needed ? styles.configBoolTrue : styles.configBoolFalse}>{cfg.shinpan_needed ? 'Yes' : 'No'}</span>
                               </div>
                             )}
+                            <div className={styles.configRow}>
+                              <span className={styles.configLabel}>Division Payment</span>
+                              <span className={cfg.payment_required ? styles.configBoolTrue : styles.configBoolFalse}>
+                                {cfg.payment_required ? 'Required' : 'Not required'}
+                              </span>
+                            </div>
                           </>)}
                           {ev.type === 'shinsa' && (<>
                             {cfg.shinsa_levels?.length > 0 && (

@@ -38,9 +38,9 @@ async function getDbPool() {
     password: password,
     database: "sdkb-db",
     port: 5432,
-    max: 5,
+    max: 2,
     idleTimeoutMillis: 30000,
-    connectionTimeoutMillis: 2000,
+    connectionTimeoutMillis: 5000,
   });
 
   pool.on("error", (err) => {

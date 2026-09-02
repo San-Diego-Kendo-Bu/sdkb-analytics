@@ -101,7 +101,7 @@ const REGISTRATION_TYPE_ENDPOINTS = [
   { type: 'special_event', path: '/events/specialEventRegistrations' },
 ];
 
-function SignUpForm({ ev, config, member, selfId, targetOptions, familyMembersInfo, onSubmit, onCancel, submitting }) {
+function SignUpForm({ ev, config, member, selfId, targetOptions, familyMembersInfo, paymentMap, onSubmit, onCancel, submitting }) {
   const [divisions, setDivisions] = useState([]);
   const [doingTeams, setDoingTeams] = useState(false);
   const [shinpanning, setShinpanning] = useState(false);
@@ -123,8 +123,17 @@ function SignUpForm({ ev, config, member, selfId, targetOptions, familyMembersIn
     setDivisionError(false);
   }
 
+  function selectDivision(d) {
+    setDivisions([d]);
+    setDivisionError(false);
+  }
+
   function handleSubmit() {
     if (ev.type === 'tournament' && config?.divisions?.length > 0 && divisions.length === 0) {
+      setDivisionError(true);
+      return;
+    }
+    if (ev.type === 'tournament' && config?.payment_required && divisions.length !== 1) {
       setDivisionError(true);
       return;
     }
@@ -173,18 +182,33 @@ function SignUpForm({ ev, config, member, selfId, targetOptions, familyMembersIn
 
       {ev.type === 'tournament' && (
         <>
-          <label className={styles.label}>Division(s)</label>
+          <label className={styles.label}>{config?.payment_required ? 'Division (select 1)' : 'Division(s)'}</label>
           {config?.divisions?.length > 0 ? (
             <>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', marginBottom: '0.25rem' }}>
-                {config.divisions.map(d => (
-                  <label key={d} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.875rem', color: 'var(--text-primary)' }}>
-                    <input type="checkbox" checked={divisions.includes(d)} onChange={() => toggleDivision(d)} />
-                    {d}
-                  </label>
-                ))}
+                {config.divisions.map(d => {
+                  const price = config.payment_required
+                    ? paymentMap?.[String(config.division_payments?.[d])]
+                    : null;
+                  return (
+                    <label key={d} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.875rem', color: 'var(--text-primary)' }}>
+                      <input
+                        type={config.payment_required ? 'radio' : 'checkbox'}
+                        name="division"
+                        checked={divisions.includes(d)}
+                        onChange={() => config.payment_required ? selectDivision(d) : toggleDivision(d)}
+                      />
+                      {d}
+                      {price && <span style={{ color: 'var(--text-muted)' }}>— ${Number(price.payment_value ?? 0).toFixed(2)}</span>}
+                    </label>
+                  );
+                })}
               </div>
-              {divisionError && <span className={styles.fieldError}>Please select at least one division.</span>}
+              {divisionError && (
+                <span className={styles.fieldError}>
+                  {config.payment_required ? 'Please select exactly one division.' : 'Please select at least one division.'}
+                </span>
+              )}
             </>
           ) : (
             <input className={styles.input} placeholder="Division" value={divisions[0] ?? ''}
@@ -353,7 +377,7 @@ function EventsSignup({ onPayNavigate }) {
         () => fetchJsonSafe(SUBMITTED_PAYMENTS_API),
       ];
 
-      const results = await mapWithConcurrency(regFetchers, 3, fn => fn());
+      const results = await mapWithConcurrency(regFetchers, 2, fn => fn());
       const [tournR, shinsaR, seminarR, specialR, payR, asgnR, submittedR] = results;
 
       const failedTypes = new Set(
@@ -422,7 +446,7 @@ function EventsSignup({ onPayNavigate }) {
         return evs;
       })
       .then(evs =>
-        mapWithConcurrency(evs, 5, ev => fetchEventConfig(ev.event_id).then(r => ({ id: ev.event_id, ...r }))).then(results => {
+        mapWithConcurrency(evs, 2, ev => fetchEventConfig(ev.event_id).then(r => ({ id: ev.event_id, ...r }))).then(results => {
           const map = {};
           const errs = new Set();
           results.forEach(r => {
@@ -675,6 +699,7 @@ function EventsSignup({ onPayNavigate }) {
       }
 
       setRegisteredIds(prev => { const next = new Set(prev); next.delete(ev.event_id); return next; });
+      await loadRegistrations();
       showToast(`Successfully unregistered from ${ev.title}.`);
     } catch (err) {
       alert(`Unregister failed: ${err.message}`);
@@ -822,6 +847,7 @@ function EventsSignup({ onPayNavigate }) {
                     selfId={memberIdRef.current}
                     targetOptions={targetOptions}
                     familyMembersInfo={familyMembersInfo}
+                    paymentMap={paymentMap}
                     onSubmit={(extra, targetMemberId) => handleSignUpSubmit(ev, extra, targetMemberId)}
                     onCancel={() => setSigningUpId(null)}
                     submitting={submitting}
@@ -861,7 +887,16 @@ function EventsSignup({ onPayNavigate }) {
                             <div className={styles.configRow}>
                               <span className={styles.configLabel}>Divisions</span>
                               <div className={styles.configTags}>
-                                {cfg.divisions.map(d => <span key={d} className={styles.configTag}>{d}</span>)}
+                                {cfg.divisions.map(d => {
+                                  const price = cfg.payment_required
+                                    ? paymentMap[String(cfg.division_payments?.[d])]
+                                    : null;
+                                  return (
+                                    <span key={d} className={styles.configTag}>
+                                      {d}{price && ` — $${Number(price.payment_value ?? 0).toFixed(2)}`}
+                                    </span>
+                                  );
+                                })}
                               </div>
                             </div>
                           )}
