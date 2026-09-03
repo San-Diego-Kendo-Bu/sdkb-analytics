@@ -120,34 +120,44 @@ function TournamentConfigFields({ form, setForm, availablePayments = [] }) {
           {divisionNames.length === 0 && (
             <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Enter at least one division above to assign payments.</p>
           )}
-          {divisionNames.map(name => (
-            <div key={name} style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.4rem' }}>
-              <span style={{ flex: '0 0 140px', fontSize: '0.88rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</span>
-              <select
-                className={styles.input}
-                style={{ flex: 1, margin: 0 }}
-                value={form.division_payments[name] ?? ''}
-                onChange={e => {
-                  const val = e.target.value;
-                  setForm(f => ({ ...f, division_payments: { ...f.division_payments, [name]: val } }));
-                }}
-              >
-                <option value="">-- Select payment --</option>
-                {availablePayments.map(p => (
-                  <option key={p.payment_id} value={p.payment_id}>
-                    {p.title} (#{p.payment_id})
-                  </option>
-                ))}
-              </select>
-            </div>
-          ))}
+          {divisionNames.map(name => {
+            const selected = form.division_payments[name] ?? '';
+            // Always include the currently-selected payment as an option, even if it's been
+            // filtered out of availablePayments for some other reason (e.g. it's linked to
+            // another event) — otherwise the <select> silently renders as unselected/blank
+            // even though the saved association is untouched.
+            const options = selected && !availablePayments.some(p => String(p.payment_id) === String(selected))
+              ? [...availablePayments, { payment_id: selected, title: `Payment #${selected}` }]
+              : availablePayments;
+            return (
+              <div key={name} style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.4rem' }}>
+                <span style={{ flex: '0 0 140px', fontSize: '0.88rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</span>
+                <select
+                  className={styles.input}
+                  style={{ flex: 1, margin: 0 }}
+                  value={selected}
+                  onChange={e => {
+                    const val = e.target.value;
+                    setForm(f => ({ ...f, division_payments: { ...f.division_payments, [name]: val } }));
+                  }}
+                >
+                  <option value="">-- Select payment --</option>
+                  {options.map(p => (
+                    <option key={p.payment_id} value={p.payment_id}>
+                      {p.title} (#{p.payment_id})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            );
+          })}
         </div>
       )}
     </>
   );
 }
 
-function NewEventForm({ form, setForm, onSave, onCancel, availablePayments = [] }) {
+function NewEventForm({ form, setForm, onSave, onCancel, availablePayments = [], divisionAvailablePayments = [] }) {
   return (
     <div className={styles.formBox}>
       <p className={styles.formTitle}>New Event</p>
@@ -191,7 +201,7 @@ function NewEventForm({ form, setForm, onSave, onCancel, availablePayments = [] 
       </>)}
 
       {form.type === 'tournament' && (
-        <TournamentConfigFields form={form} setForm={setForm} availablePayments={availablePayments} />
+        <TournamentConfigFields form={form} setForm={setForm} availablePayments={divisionAvailablePayments} />
       )}
 
       <div className={styles.formActions}>
@@ -202,7 +212,7 @@ function NewEventForm({ form, setForm, onSave, onCancel, availablePayments = [] 
   );
 }
 
-function EditEventForm({ form, setForm, onSave, onCancel, availablePayments = [] }) {
+function EditEventForm({ form, setForm, onSave, onCancel, availablePayments = [], divisionAvailablePayments = [] }) {
   return (
     <div className={styles.formBox}>
       <p className={styles.formTitle}>Edit Event</p>
@@ -245,7 +255,7 @@ function EditEventForm({ form, setForm, onSave, onCancel, availablePayments = []
       </>)}
 
       {form.type === 'tournament' && (
-        <TournamentConfigFields form={form} setForm={setForm} availablePayments={availablePayments} />
+        <TournamentConfigFields form={form} setForm={setForm} availablePayments={divisionAvailablePayments} />
       )}
 
       {form.type === 'shinsa' && (
@@ -376,6 +386,10 @@ function Events() {
   const baseAvailablePayments = payments.filter(p =>
     !p.is_dojo_due && !submittedPaymentIds.has(p.payment_id) && !linkedPaymentIds.has(p.payment_id)
   );
+  // Division payments are meant to be paid by every member who registers for that division,
+  // so unlike the single top-level event payment, "someone already paid this" is the normal,
+  // healthy state and must not hide it from selection.
+  const divisionAvailablePayments = payments.filter(p => !p.is_dojo_due && !linkedPaymentIds.has(p.payment_id));
 
   function getPaymentsForEvent(eventId) {
     const ev = events.find(e => e.event_id === eventId);
@@ -652,6 +666,7 @@ function Events() {
           onSave={handleCreate}
           onCancel={() => setShowNew(false)}
           availablePayments={baseAvailablePayments}
+          divisionAvailablePayments={divisionAvailablePayments}
         />
       )}
 
@@ -693,6 +708,7 @@ function Events() {
                     onSave={handleEditSave}
                     onCancel={() => setEditingId(null)}
                     availablePayments={getPaymentsForEvent(editingId)}
+                    divisionAvailablePayments={divisionAvailablePayments}
                   />
                 ) : (
                   <>
