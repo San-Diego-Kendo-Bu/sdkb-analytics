@@ -232,11 +232,21 @@ export class ServiceStack extends Stack {
       entry: path.join(__dirname, "../../lambdas/events/createEvent/index.js"),
       handler: "handler",
       ...commonNodejs,
+      memorySize: 256,
+      timeout: Duration.seconds(15),
+    });
+
+    const sendEventNotificationLambda = new NodejsFunction(this, "SendEventNotificationLambda", {
+      entry: path.join(__dirname, "../../lambdas/events/sendEventNotification/index.js"),
+      handler: "handler",
+      ...commonNodejs,
       bundling: { ...commonNodejs.bundling, nodeModules: ["nodemailer"] },
       memorySize: 256,
       timeout: Duration.seconds(60),
       environment: { GMAIL_SECRET_ID: props.gmailSecret.secretName },
     });
+    createEventLambda.addEnvironment("SEND_EVENT_NOTIFICATION_FN", sendEventNotificationLambda.functionName);
+    sendEventNotificationLambda.grantInvoke(createEventLambda);
 
     const configureEventLambda = new NodejsFunction(this, "ConfigureEventLambda", {
       entry: path.join(__dirname, "../../lambdas/events/configureEvent/index.js"),
@@ -591,15 +601,15 @@ export class ServiceStack extends Stack {
       resources: [members],
     }));
     props.gmailSecret.grantRead(sendAnnouncementLambda);
-    props.gmailSecret.grantRead(createEventLambda);
+    props.gmailSecret.grantRead(sendEventNotificationLambda);
     props.gmailSecret.grantRead(assignPaymentLambda);
     props.gmailSecret.grantRead(broadcastPaymentLambda);
     props.gmailSecret.grantRead(paymentDeadlineReminderLambda);
     props.gmailSecret.grantRead(processRecurringsLambda);
     props.gmailSecret.grantRead(createRecurringLambda);
 
-    // createEvent needs to scan members to send new-event emails
-    createEventLambda.role?.addToPrincipalPolicy(new iam.PolicyStatement({
+    // sendEventNotification needs to scan members to send new-event emails
+    sendEventNotificationLambda.role?.addToPrincipalPolicy(new iam.PolicyStatement({
       actions: ["dynamodb:Scan"],
       resources: [members],
     }));
