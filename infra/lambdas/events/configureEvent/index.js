@@ -52,6 +52,15 @@ exports.handler = async (event) => {
             const paymentRequired = parameters.payment_required ?? false;
             const divisionPayments = parameters.division_payments ?? {};
 
+            const duplicateDivisions = [...new Set(divisions.filter((d, i) => divisions.indexOf(d) !== i))];
+            if (duplicateDivisions.length > 0) {
+                return {
+                    statusCode: 400,
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ error: `Division names must be unique. Duplicate: ${duplicateDivisions.join(", ")}` })
+                };
+            }
+
             if (paymentRequired) {
                 if (!Array.isArray(divisions) || divisions.length === 0) {
                     return {

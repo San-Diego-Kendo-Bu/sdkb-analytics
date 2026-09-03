@@ -427,6 +427,11 @@ function Events() {
         setError('Please enter at least one division for the tournament.');
         return;
       }
+      const duplicates = [...new Set(divisionNames.filter((d, i) => divisionNames.indexOf(d) !== i))];
+      if (duplicates.length > 0) {
+        setError(`Division names must be unique. Duplicate: ${duplicates.join(', ')}`);
+        return;
+      }
       if (newForm.payment_required) {
         const missing = divisionNames.filter(d => !newForm.division_payments[d]);
         if (missing.length > 0) {
@@ -545,6 +550,11 @@ function Events() {
       editDivisionNames = editForm.divisions.split(',').map(s => s.trim()).filter(Boolean);
       if (editDivisionNames.length === 0) {
         setError('Please enter at least one division for the tournament.');
+        return;
+      }
+      const editDuplicates = [...new Set(editDivisionNames.filter((d, i) => editDivisionNames.indexOf(d) !== i))];
+      if (editDuplicates.length > 0) {
+        setError(`Division names must be unique. Duplicate: ${editDuplicates.join(', ')}`);
         return;
       }
       if (editForm.payment_required) {
