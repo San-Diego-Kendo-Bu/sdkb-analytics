@@ -4,6 +4,7 @@ import { MdOutlineAnnouncement } from "react-icons/md";
 import { MdManageAccounts } from "react-icons/md";
 import { MdPayment } from "react-icons/md";
 import { MdEmojiEvents } from "react-icons/md";
+import { MdMarkEmailUnread } from "react-icons/md";
 import '../../css/admindashboard.css';
 
 function AdminDashboard({setPage}) {
@@ -68,6 +69,15 @@ function AdminDashboard({setPage}) {
           width={cardWidth}
           height={cardHeight}
           onClick={()=>setPage("TournamentResults")}
+          />
+          <DashboardCard
+          title='Broadcast Recipients'
+          description='Manage extra emails included in "All" announcements'
+          icon={MdMarkEmailUnread}
+          color={palettes.blue}
+          width={cardWidth}
+          height={cardHeight}
+          onClick={()=>setPage("BroadcastEmails")}
           />
         </div>
       </div>

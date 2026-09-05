@@ -288,13 +288,22 @@ exports.handler = async (event, context) => {
             return true;
         });
 
-        const emails = [
+        let emails = [
             ...new Set(
                 eligible
                     .map((member) => member.email)
                     .filter(Boolean)
             ),
         ];
+
+        // When broadcasting to everyone, also include admin-managed extra recipients
+        // (e.g. parents who don't have their own member account).
+        if (target !== "senseis" && target !== "specific") {
+            const extraResult = await query(
+                `SELECT email FROM extra_broadcast_emails`
+            );
+            emails = [...new Set([...emails, ...extraResult.rows.map((r) => r.email)])];
+        }
 
         logTiming(context, handlerStartedAt, "recipients_prepared", {
             target:

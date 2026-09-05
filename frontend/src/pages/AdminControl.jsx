@@ -4,6 +4,7 @@ import Members from "./Members";
 import Events from "./Events";
 import Announcements from "./Announcements";
 import TournamentResults from "./TournamentResults";
+import BroadcastEmails from "./BroadcastEmails";
 
 import { useState } from "react";
 
@@ -25,6 +26,9 @@ function AdminControl(){
             break;
         case "TournamentResults":
             component = <TournamentResults/>;
+            break;
+        case "BroadcastEmails":
+            component = <BroadcastEmails/>;
             break;
         default:
             component = <AdminDashboard setPage={setPage}/>;

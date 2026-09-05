@@ -434,6 +434,24 @@ export class ServiceStack extends Stack {
       environment: { GMAIL_SECRET_ID: props.gmailSecret.secretName },
     });
 
+    const getExtraEmailsLambda = new NodejsFunction(this, "GetExtraEmailsLambda", {
+      entry: path.join(__dirname, "../../lambdas/announcements/getExtraEmails/index.js"),
+      handler: "handler",
+      ...commonNodejs,
+    });
+
+    const addExtraEmailLambda = new NodejsFunction(this, "AddExtraEmailLambda", {
+      entry: path.join(__dirname, "../../lambdas/announcements/addExtraEmail/index.js"),
+      handler: "handler",
+      ...commonNodejs,
+    });
+
+    const removeExtraEmailLambda = new NodejsFunction(this, "RemoveExtraEmailLambda", {
+      entry: path.join(__dirname, "../../lambdas/announcements/removeExtraEmail/index.js"),
+      handler: "handler",
+      ...commonNodejs,
+    });
+
     props.databaseStack.grantDatabaseAccess(getRecurringsLambda);
     props.databaseStack.grantDatabaseAccess(createRecurringLambda);
     props.databaseStack.grantDatabaseAccess(deleteRecurringLambda);
@@ -473,6 +491,9 @@ export class ServiceStack extends Stack {
     props.databaseStack.grantDatabaseAccess(createPaymentIntentLambda);
     props.databaseStack.grantDatabaseAccess(getAnnouncementsLambda);
     props.databaseStack.grantDatabaseAccess(sendAnnouncementLambda);
+    props.databaseStack.grantDatabaseAccess(getExtraEmailsLambda);
+    props.databaseStack.grantDatabaseAccess(addExtraEmailLambda);
+    props.databaseStack.grantDatabaseAccess(removeExtraEmailLambda);
     props.databaseStack.grantDatabaseAccess(removeMemberLambda);
     props.databaseStack.grantDatabaseAccess(updateMemberSelfLambda);
     props.databaseStack.grantDatabaseAccess(createTournamentResultLambda);
@@ -968,6 +989,24 @@ export class ServiceStack extends Stack {
       path: "/announcements/send",
       methods: [HttpMethod.POST],
       integration: new HttpLambdaIntegration("AnnouncementsSendInt", sendAnnouncementLambda),
+      ...(auth ? { authorizer: auth } : {}),
+    });
+    httpApi.addRoutes({
+      path: "/announcements/extraEmails",
+      methods: [HttpMethod.GET],
+      integration: new HttpLambdaIntegration("AnnouncementsGetExtraEmailsInt", getExtraEmailsLambda),
+      ...(auth ? { authorizer: auth } : {}),
+    });
+    httpApi.addRoutes({
+      path: "/announcements/extraEmails",
+      methods: [HttpMethod.POST],
+      integration: new HttpLambdaIntegration("AnnouncementsAddExtraEmailInt", addExtraEmailLambda),
+      ...(auth ? { authorizer: auth } : {}),
+    });
+    httpApi.addRoutes({
+      path: "/announcements/extraEmails",
+      methods: [HttpMethod.DELETE],
+      integration: new HttpLambdaIntegration("AnnouncementsRemoveExtraEmailInt", removeExtraEmailLambda),
       ...(auth ? { authorizer: auth } : {}),
     });
 

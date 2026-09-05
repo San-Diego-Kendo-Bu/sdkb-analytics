@@ -117,6 +117,12 @@ CREATE TABLE IF NOT EXISTS config (
     counter_value BIGINT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS extra_broadcast_emails (
+    email TEXT PRIMARY KEY,
+    label TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
 CREATE TABLE IF NOT EXISTS announcements (
     announcement_id BIGINT PRIMARY KEY,
     subject TEXT NOT NULL,
