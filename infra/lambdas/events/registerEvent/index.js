@@ -1,7 +1,7 @@
 const { query } = require("../../shared_utils/db");
-const { verifyMemberExists } = require("../../shared_utils/members");
+const { verifyMemberExists, getMemberById } = require("../../shared_utils/members");
 const { resolveActingMemberId, canActFor } = require("../../shared_utils/families");
-const { getCurrentTimeUTC } = require("../../shared_utils/dates");
+const { getCurrentTimeUTC, calcAge } = require("../../shared_utils/dates");
 
 const TOURNAMENT_REGISTRATION_TABLE = "tournament_registrations";
 const SHINSA_REGISTRATION_TABLE = "shinsa_registrations";
@@ -73,7 +73,7 @@ exports.handler = async (event) => {
         }
 
         let registrationData;
-        let divisionPaymentId = null;
+        let resolvedPaymentId = null;
 
         if (configType === "tournament") {
             const shinpanning = parameters.shinpanning;
@@ -82,6 +82,7 @@ exports.handler = async (event) => {
             const weight = parameters.weight ?? null;
             const height = parameters.height ?? null;
             const age = parameters.age ?? null;
+            const selectedPaymentId = parameters.payment_id ?? null;
 
             const tournResult = await query(
                 `SELECT payment_required FROM tournaments WHERE event_id = $1 LIMIT 1`,
@@ -97,18 +98,48 @@ exports.handler = async (event) => {
                         body: JSON.stringify({ error: "Please select exactly one division." })
                     };
                 }
-                const dpResult = await query(
-                    `SELECT payment_id FROM tournament_division_payments WHERE event_id = $1 AND division_name = $2 LIMIT 1`,
-                    [eventId, divisions[0]]
-                );
-                if (dpResult.rowCount === 0) {
+                if (!selectedPaymentId) {
                     return {
                         statusCode: 400,
                         headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ error: "No payment is configured for the selected division." })
+                        body: JSON.stringify({ error: "Please select a payment option." })
                     };
                 }
-                divisionPaymentId = dpResult.rows[0].payment_id;
+                const optResult = await query(
+                    `SELECT payment_id, age_restriction_type, age_limit FROM tournament_division_payments WHERE event_id = $1 AND payment_id = $2 LIMIT 1`,
+                    [eventId, selectedPaymentId]
+                );
+                if (optResult.rowCount === 0) {
+                    return {
+                        statusCode: 400,
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ error: "Selected payment is not a valid option for this tournament." })
+                    };
+                }
+                const option = optResult.rows[0];
+                if (option.age_restriction_type) {
+                    const memberRecords = await getMemberById(memberId);
+                    const memberAge = calcAge(memberRecords[0]?.birthday ?? null);
+                    if (memberAge == null) {
+                        return {
+                            statusCode: 400,
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ error: "This payment option has an age restriction, but no birthday is on file. Please update your profile." })
+                        };
+                    }
+                    const eligible = option.age_restriction_type === "at_most" ? memberAge <= option.age_limit
+                        : option.age_restriction_type === "below" ? memberAge < option.age_limit
+                        : option.age_restriction_type === "at_least" ? memberAge >= option.age_limit
+                        : true;
+                    if (!eligible) {
+                        return {
+                            statusCode: 400,
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ error: "You do not meet the age requirement for the selected payment option." })
+                        };
+                    }
+                }
+                resolvedPaymentId = option.payment_id;
             }
 
             const result = await query(
@@ -119,7 +150,7 @@ exports.handler = async (event) => {
                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
                 RETURNING *
                 `,
-                [eventId, memberId, registeredDate, shinpanning, divisions, doingTeams, weight, height, age, divisionPaymentId]
+                [eventId, memberId, registeredDate, shinpanning, divisions, doingTeams, weight, height, age, resolvedPaymentId]
             );
             registrationData = result.rows[0];
 
@@ -174,7 +205,7 @@ exports.handler = async (event) => {
 
         // Assign member to the division's payment (tournaments with payment_required) or the
         // event's linked payment, whichever applies, if they haven't already paid it
-        let paymentId = divisionPaymentId;
+        let paymentId = resolvedPaymentId;
         if (!paymentId) {
             const eventResult = await query(
                 `SELECT payment_id FROM events WHERE event_id = $1 LIMIT 1`,

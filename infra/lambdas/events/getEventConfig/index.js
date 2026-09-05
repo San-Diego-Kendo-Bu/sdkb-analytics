@@ -45,9 +45,15 @@ exports.handler = async (event) => {
                     t.teams_included,
                     t.payment_required,
                     COALESCE(
-                        jsonb_object_agg(dp.division_name, dp.payment_id::text) FILTER (WHERE dp.division_name IS NOT NULL),
-                        '{}'::jsonb
-                    ) AS division_payments
+                        jsonb_agg(
+                            jsonb_build_object(
+                                'payment_id', dp.payment_id::text,
+                                'restriction_type', dp.age_restriction_type,
+                                'age_limit', dp.age_limit
+                            )
+                        ) FILTER (WHERE dp.payment_id IS NOT NULL),
+                        '[]'::jsonb
+                    ) AS payment_options
                 FROM ${TOURNAMENTS_TABLE} t
                 LEFT JOIN ${TOURNAMENT_DIVISION_PAYMENTS_TABLE} dp ON dp.event_id = t.event_id
                 WHERE t.event_id = $1

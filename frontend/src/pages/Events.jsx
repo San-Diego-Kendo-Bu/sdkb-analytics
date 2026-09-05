@@ -20,7 +20,7 @@ const EMPTY_NEW = {
   title: '', description: '', maps_link: '', start_datetime: '', end_datetime: '', event_end_datetime: '',
   location: '', type: '', payment_id: '',
   shinpan_needed: false, divisions: '', teams_included: false,
-  payment_required: false, division_payments: {},
+  payment_required: false, payment_options: [],
 };
 
 const EMPTY_EDIT = {
@@ -28,8 +28,14 @@ const EMPTY_EDIT = {
   location: '', type: '', payment_id: '',
   shinpan_needed: false, event_deadline: '', divisions: '',
   teams_included: false, shinsa_levels: '', seminar_guests: '', bring_your_lunch: false,
-  external_signup_url: '', payment_required: false, division_payments: {},
+  external_signup_url: '', payment_required: false, payment_options: [],
 };
+
+let paymentOptionKeySeq = 0;
+function newPaymentOptionKey() {
+  paymentOptionKeySeq += 1;
+  return `po-${paymentOptionKeySeq}`;
+}
 
 function fmtType(type) {
   return type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
@@ -88,7 +94,23 @@ function toIso(inputValue) {
 }
 
 function TournamentConfigFields({ form, setForm, availablePayments = [] }) {
-  const divisionNames = form.divisions.split(',').map(s => s.trim()).filter(Boolean);
+  function updateOption(key, patch) {
+    setForm(f => ({
+      ...f,
+      payment_options: f.payment_options.map(o => o._key === key ? { ...o, ...patch } : o),
+    }));
+  }
+
+  function addOption() {
+    setForm(f => ({
+      ...f,
+      payment_options: [...f.payment_options, { _key: newPaymentOptionKey(), payment_id: '', restriction_type: 'none', age_limit: '' }],
+    }));
+  }
+
+  function removeOption(key) {
+    setForm(f => ({ ...f, payment_options: f.payment_options.filter(o => o._key !== key) }));
+  }
 
   return (
     <>
@@ -113,15 +135,15 @@ function TournamentConfigFields({ form, setForm, availablePayments = [] }) {
             payment_required: e.target.checked,
             payment_id: e.target.checked ? 'free' : f.payment_id,
           }))} />{' '}
-        Payment required (per division)
+        Payment required
       </label>
       {form.payment_required && (
         <div style={{ marginTop: '0.4rem' }}>
-          {divisionNames.length === 0 && (
-            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Enter at least one division above to assign payments.</p>
+          {form.payment_options.length === 0 && (
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Add at least one payment option below.</p>
           )}
-          {divisionNames.map(name => {
-            const selected = form.division_payments[name] ?? '';
+          {form.payment_options.map(opt => {
+            const selected = opt.payment_id;
             // Always include the currently-selected payment as an option, even if it's been
             // filtered out of availablePayments for some other reason (e.g. it's linked to
             // another event) — otherwise the <select> silently renders as unselected/blank
@@ -130,16 +152,12 @@ function TournamentConfigFields({ form, setForm, availablePayments = [] }) {
               ? [...availablePayments, { payment_id: selected, title: `Payment #${selected}` }]
               : availablePayments;
             return (
-              <div key={name} style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.4rem' }}>
-                <span style={{ flex: '0 0 140px', fontSize: '0.88rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</span>
+              <div key={opt._key} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.4rem', flexWrap: 'wrap' }}>
                 <select
                   className={styles.input}
-                  style={{ flex: 1, margin: 0 }}
+                  style={{ flex: '1 1 220px', margin: 0 }}
                   value={selected}
-                  onChange={e => {
-                    const val = e.target.value;
-                    setForm(f => ({ ...f, division_payments: { ...f.division_payments, [name]: val } }));
-                  }}
+                  onChange={e => updateOption(opt._key, { payment_id: e.target.value })}
                 >
                   <option value="">-- Select payment --</option>
                   {options.map(p => (
@@ -148,9 +166,31 @@ function TournamentConfigFields({ form, setForm, availablePayments = [] }) {
                     </option>
                   ))}
                 </select>
+                <select
+                  className={styles.input}
+                  style={{ flex: '0 0 140px', margin: 0 }}
+                  value={opt.restriction_type}
+                  onChange={e => updateOption(opt._key, { restriction_type: e.target.value })}
+                >
+                  <option value="none">No age limit</option>
+                  <option value="at_most">At most age</option>
+                  <option value="below">Below age</option>
+                  <option value="at_least">At least age</option>
+                </select>
+                {opt.restriction_type !== 'none' && (
+                  <input
+                    className={styles.input}
+                    type="number" min="1" placeholder="Age"
+                    style={{ flex: '0 0 80px', margin: 0 }}
+                    value={opt.age_limit}
+                    onChange={e => updateOption(opt._key, { age_limit: e.target.value })}
+                  />
+                )}
+                <button type="button" className={styles.cancelBtn} onClick={() => removeOption(opt._key)}>Remove</button>
               </div>
             );
           })}
+          <button type="button" className={styles.editBtn} onClick={addOption}>+ Add payment option</button>
         </div>
       )}
     </>
@@ -433,9 +473,22 @@ function Events() {
         return;
       }
       if (newForm.payment_required) {
-        const missing = divisionNames.filter(d => !newForm.division_payments[d]);
-        if (missing.length > 0) {
-          setError(`Please select a payment for: ${missing.join(', ')}`);
+        if (newForm.payment_options.length === 0) {
+          setError('Please add at least one payment option.');
+          return;
+        }
+        if (newForm.payment_options.some(o => !o.payment_id)) {
+          setError('Every payment option needs a payment selected.');
+          return;
+        }
+        if (newForm.payment_options.some(o => o.restriction_type !== 'none' && !(parseInt(o.age_limit, 10) > 0))) {
+          setError('Every age-restricted payment option needs a valid age.');
+          return;
+        }
+        const paymentIds = newForm.payment_options.map(o => o.payment_id);
+        const dupPayments = [...new Set(paymentIds.filter((p, i) => paymentIds.indexOf(p) !== i))];
+        if (dupPayments.length > 0) {
+          setError('Each payment can only be used once per tournament.');
           return;
         }
       }
@@ -457,7 +510,7 @@ function Events() {
       divisions: divisionNames,
       teams_included: newForm.teams_included,
       payment_required: newForm.payment_required,
-      division_payments: newForm.division_payments,
+      payment_options: newForm.payment_options.map(({ payment_id, restriction_type, age_limit }) => ({ payment_id, restriction_type, age_limit })),
     } : null;
 
     setShowNew(false);
@@ -494,7 +547,7 @@ function Events() {
       shinpan_needed: false, event_deadline: '',
       divisions: '', teams_included: false,
       shinsa_levels: '', seminar_guests: '', bring_your_lunch: false,
-      payment_required: false, division_payments: {},
+      payment_required: false, payment_options: [],
     };
     if (existing) {
       if (ev.type === 'tournament') {
@@ -505,9 +558,12 @@ function Events() {
           teams_included: existing.teams_included ?? false,
           event_deadline: toInputValue(ev.end_datetime),
           payment_required: existing.payment_required ?? false,
-          division_payments: Object.fromEntries(
-            Object.entries(existing.division_payments ?? {}).map(([k, v]) => [k, String(v)])
-          ),
+          payment_options: (existing.payment_options ?? []).map(o => ({
+            _key: newPaymentOptionKey(),
+            payment_id: String(o.payment_id),
+            restriction_type: o.restriction_type ?? 'none',
+            age_limit: o.age_limit != null ? String(o.age_limit) : '',
+          })),
         };
       } else if (ev.type === 'shinsa') {
         configFields = {
@@ -558,9 +614,22 @@ function Events() {
         return;
       }
       if (editForm.payment_required) {
-        const missing = editDivisionNames.filter(d => !editForm.division_payments[d]);
-        if (missing.length > 0) {
-          setError(`Please select a payment for: ${missing.join(', ')}`);
+        if (editForm.payment_options.length === 0) {
+          setError('Please add at least one payment option.');
+          return;
+        }
+        if (editForm.payment_options.some(o => !o.payment_id)) {
+          setError('Every payment option needs a payment selected.');
+          return;
+        }
+        if (editForm.payment_options.some(o => o.restriction_type !== 'none' && !(parseInt(o.age_limit, 10) > 0))) {
+          setError('Every age-restricted payment option needs a valid age.');
+          return;
+        }
+        const editPaymentIds = editForm.payment_options.map(o => o.payment_id);
+        const editDupPayments = [...new Set(editPaymentIds.filter((p, i) => editPaymentIds.indexOf(p) !== i))];
+        if (editDupPayments.length > 0) {
+          setError('Each payment can only be used once per tournament.');
           return;
         }
       }
@@ -588,7 +657,7 @@ function Events() {
         divisions: editDivisionNames,
         teams_included: editForm.teams_included,
         payment_required: editForm.payment_required,
-        division_payments: editForm.division_payments,
+        payment_options: editForm.payment_options.map(({ payment_id, restriction_type, age_limit }) => ({ payment_id, restriction_type, age_limit })),
       };
     } else if (editForm.type === 'shinsa') {
       configPayload = {
@@ -753,14 +822,7 @@ function Events() {
                               <div className={styles.configRow}>
                                 <span className={styles.configLabel}>Divisions</span>
                                 <div className={styles.configTags}>
-                                  {cfg.divisions.map(d => (
-                                    <span key={d} className={styles.configTag}>
-                                      {d}
-                                      {cfg.payment_required && cfg.division_payments?.[d] != null && (
-                                        ` — ${payments.find(p => p.payment_id === cfg.division_payments[d])?.title ?? `#${cfg.division_payments[d]}`}`
-                                      )}
-                                    </span>
-                                  ))}
+                                  {cfg.divisions.map(d => <span key={d} className={styles.configTag}>{d}</span>)}
                                 </div>
                               </div>
                             )}
@@ -777,11 +839,27 @@ function Events() {
                               </div>
                             )}
                             <div className={styles.configRow}>
-                              <span className={styles.configLabel}>Division Payment</span>
+                              <span className={styles.configLabel}>Payment</span>
                               <span className={cfg.payment_required ? styles.configBoolTrue : styles.configBoolFalse}>
                                 {cfg.payment_required ? 'Required' : 'Not required'}
                               </span>
                             </div>
+                            {cfg.payment_required && cfg.payment_options?.length > 0 && (
+                              <div className={styles.configRow}>
+                                <span className={styles.configLabel}>Payment Options</span>
+                                <div className={styles.configTags}>
+                                  {cfg.payment_options.map(o => {
+                                    const pay = payments.find(p => String(p.payment_id) === String(o.payment_id));
+                                    const label = pay?.title ?? `#${o.payment_id}`;
+                                    const restriction = o.restriction_type === 'at_most' ? ` (age ≤ ${o.age_limit})`
+                                      : o.restriction_type === 'below' ? ` (age < ${o.age_limit})`
+                                      : o.restriction_type === 'at_least' ? ` (age ≥ ${o.age_limit})`
+                                      : '';
+                                    return <span key={o.payment_id} className={styles.configTag}>{label}{restriction}</span>;
+                                  })}
+                                </div>
+                              </div>
+                            )}
                           </>)}
                           {ev.type === 'shinsa' && (<>
                             {cfg.shinsa_levels?.length > 0 && (
@@ -817,17 +895,19 @@ function Events() {
                               <span className={cfg.bring_your_lunch ? styles.configBoolTrue : styles.configBoolFalse}>{cfg.bring_your_lunch ? 'Yes' : 'No'}</span>
                             </div>
                           )}
-                          <div className={styles.configRow}>
-                            <span className={styles.configLabel}>Payment</span>
-                            {ev.payment_id ? (
-                              <span className={styles.configTag}>
-                                {payments.find(p => p.payment_id === ev.payment_id)?.title ?? `#${ev.payment_id}`}
-                                {' '}(#{ev.payment_id})
-                              </span>
-                            ) : (
-                              <span className={styles.configBoolFalse}>None</span>
-                            )}
-                          </div>
+                          {!(ev.type === 'tournament' && cfg.payment_required) && (
+                            <div className={styles.configRow}>
+                              <span className={styles.configLabel}>Payment</span>
+                              {ev.payment_id ? (
+                                <span className={styles.configTag}>
+                                  {payments.find(p => p.payment_id === ev.payment_id)?.title ?? `#${ev.payment_id}`}
+                                  {' '}(#{ev.payment_id})
+                                </span>
+                              ) : (
+                                <span className={styles.configBoolFalse}>None</span>
+                              )}
+                            </div>
+                          )}
                         </div>
                       );
                     })()}

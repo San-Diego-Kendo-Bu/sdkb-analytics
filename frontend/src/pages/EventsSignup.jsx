@@ -107,6 +107,8 @@ function SignUpForm({ ev, config, member, selfId, targetOptions, familyMembersIn
   const [shinpanning, setShinpanning] = useState(false);
   const [testingFor, setTestingFor] = useState('');
   const [divisionError, setDivisionError] = useState(false);
+  const [paymentError, setPaymentError] = useState(false);
+  const [selectedPaymentId, setSelectedPaymentId] = useState('');
   const [weightLbs, setWeightLbs] = useState('');
   const [heightFt, setHeightFt] = useState('');
   const [heightIn, setHeightIn] = useState('');
@@ -117,6 +119,15 @@ function SignUpForm({ ev, config, member, selfId, targetOptions, familyMembersIn
   const effectiveMember = isSelf ? member : familyMembersInfo?.[String(targetMemberId)];
 
   const age = calcAge(effectiveMember?.birthday);
+
+  const eligiblePaymentOptions = (config?.payment_options ?? []).filter(o => {
+    if (!o.restriction_type) return true;
+    if (age == null) return false;
+    if (o.restriction_type === 'at_most') return age <= o.age_limit;
+    if (o.restriction_type === 'below') return age < o.age_limit;
+    if (o.restriction_type === 'at_least') return age >= o.age_limit;
+    return true;
+  });
 
   function toggleDivision(d) {
     setDivisions(prev => prev.includes(d) ? prev.filter(x => x !== d) : [...prev, d]);
@@ -137,7 +148,12 @@ function SignUpForm({ ev, config, member, selfId, targetOptions, familyMembersIn
       setDivisionError(true);
       return;
     }
+    if (ev.type === 'tournament' && config?.payment_required && !selectedPaymentId) {
+      setPaymentError(true);
+      return;
+    }
     setDivisionError(false);
+    setPaymentError(false);
     const extra = {};
     if (ev.type === 'tournament') {
       extra.divisions = divisions;
@@ -148,6 +164,7 @@ function SignUpForm({ ev, config, member, selfId, targetOptions, familyMembersIn
         ? parseInt(heightFt || 0) * 12 + parseInt(heightIn || 0)
         : null;
       extra.age = age;
+      if (config?.payment_required) extra.payment_id = selectedPaymentId;
     } else if (ev.type === 'shinsa') {
       extra.testing_for = testingFor;
     }
@@ -186,23 +203,17 @@ function SignUpForm({ ev, config, member, selfId, targetOptions, familyMembersIn
           {config?.divisions?.length > 0 ? (
             <>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', marginBottom: '0.25rem' }}>
-                {config.divisions.map(d => {
-                  const price = config.payment_required
-                    ? paymentMap?.[String(config.division_payments?.[d])]
-                    : null;
-                  return (
-                    <label key={d} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.875rem', color: 'var(--text-primary)' }}>
-                      <input
-                        type={config.payment_required ? 'radio' : 'checkbox'}
-                        name="division"
-                        checked={divisions.includes(d)}
-                        onChange={() => config.payment_required ? selectDivision(d) : toggleDivision(d)}
-                      />
-                      {d}
-                      {price && <span style={{ color: 'var(--text-muted)' }}>— ${Number(price.payment_value ?? 0).toFixed(2)}</span>}
-                    </label>
-                  );
-                })}
+                {config.divisions.map(d => (
+                  <label key={d} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.875rem', color: 'var(--text-primary)' }}>
+                    <input
+                      type={config.payment_required ? 'radio' : 'checkbox'}
+                      name="division"
+                      checked={divisions.includes(d)}
+                      onChange={() => config.payment_required ? selectDivision(d) : toggleDivision(d)}
+                    />
+                    {d}
+                  </label>
+                ))}
               </div>
               {divisionError && (
                 <span className={styles.fieldError}>
@@ -213,6 +224,29 @@ function SignUpForm({ ev, config, member, selfId, targetOptions, familyMembersIn
           ) : (
             <input className={styles.input} placeholder="Division" value={divisions[0] ?? ''}
               onChange={e => setDivisions(e.target.value ? [e.target.value] : [])} />
+          )}
+          {config?.payment_required && (
+            <>
+              <label className={styles.label}>Payment</label>
+              {eligiblePaymentOptions.length > 0 ? (
+                <select className={styles.input} value={selectedPaymentId}
+                  onChange={e => { setSelectedPaymentId(e.target.value); setPaymentError(false); }}>
+                  <option value="">-- Select payment --</option>
+                  {eligiblePaymentOptions.map(o => {
+                    const pay = paymentMap?.[String(o.payment_id)];
+                    const label = pay ? `${pay.title} — $${Number(pay.payment_value ?? 0).toFixed(2)}` : `Payment #${o.payment_id}`;
+                    return <option key={o.payment_id} value={o.payment_id}>{label}</option>;
+                  })}
+                </select>
+              ) : (
+                <p className={styles.fieldError}>
+                  {age == null
+                    ? 'No payment option is available: please make sure your birthday is on file, then try again.'
+                    : 'No payment option is available for your age. Please contact the organizer.'}
+                </p>
+              )}
+              {paymentError && <span className={styles.fieldError}>Please select a payment option.</span>}
+            </>
           )}
           <label className={styles.label}>Weight (lbs)</label>
           <input className={styles.input} type="number" min="0" placeholder="e.g. 150"
@@ -887,16 +921,7 @@ function EventsSignup({ onPayNavigate }) {
                             <div className={styles.configRow}>
                               <span className={styles.configLabel}>Divisions</span>
                               <div className={styles.configTags}>
-                                {cfg.divisions.map(d => {
-                                  const price = cfg.payment_required
-                                    ? paymentMap[String(cfg.division_payments?.[d])]
-                                    : null;
-                                  return (
-                                    <span key={d} className={styles.configTag}>
-                                      {d}{price && ` — $${Number(price.payment_value ?? 0).toFixed(2)}`}
-                                    </span>
-                                  );
-                                })}
+                                {cfg.divisions.map(d => <span key={d} className={styles.configTag}>{d}</span>)}
                               </div>
                             </div>
                           )}
@@ -906,6 +931,22 @@ function EventsSignup({ onPayNavigate }) {
                               <span className={cfg.teams_included ? styles.configBoolTrue : styles.configBoolFalse}>
                                 {cfg.teams_included ? 'Yes' : 'No'}
                               </span>
+                            </div>
+                          )}
+                          {cfg.payment_required && cfg.payment_options?.length > 0 && (
+                            <div className={styles.configRow}>
+                              <span className={styles.configLabel}>Payment Options</span>
+                              <div className={styles.configTags}>
+                                {cfg.payment_options.map(o => {
+                                  const pay = paymentMap[String(o.payment_id)];
+                                  const label = pay ? `${pay.title} — $${Number(pay.payment_value ?? 0).toFixed(2)}` : `Payment #${o.payment_id}`;
+                                  const restriction = o.restriction_type === 'at_most' ? ` (age ≤ ${o.age_limit})`
+                                    : o.restriction_type === 'below' ? ` (age < ${o.age_limit})`
+                                    : o.restriction_type === 'at_least' ? ` (age ≥ ${o.age_limit})`
+                                    : '';
+                                  return <span key={o.payment_id} className={styles.configTag}>{label}{restriction}</span>;
+                                })}
+                              </div>
                             </div>
                           )}
                         </>)}

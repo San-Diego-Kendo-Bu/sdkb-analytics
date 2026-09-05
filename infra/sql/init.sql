@@ -106,9 +106,10 @@ CREATE TABLE IF NOT EXISTS tournaments (
 
 CREATE TABLE IF NOT EXISTS tournament_division_payments (
     event_id BIGINT NOT NULL REFERENCES tournaments(event_id) ON DELETE CASCADE,
-    division_name TEXT NOT NULL,
     payment_id BIGINT NOT NULL REFERENCES payments(payment_id) ON DELETE CASCADE,
-    PRIMARY KEY (event_id, division_name)
+    age_restriction_type TEXT,
+    age_limit INTEGER,
+    PRIMARY KEY (event_id, payment_id)
 );
 
 CREATE TABLE IF NOT EXISTS config (

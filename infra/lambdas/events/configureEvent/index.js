@@ -50,7 +50,7 @@ exports.handler = async (event) => {
             const divisions = parameters.divisions ?? [];
             const teamsIncluded = parameters.teams_included;
             const paymentRequired = parameters.payment_required ?? false;
-            const divisionPayments = parameters.division_payments ?? {};
+            const paymentOptions = parameters.payment_options ?? [];
 
             const duplicateDivisions = [...new Set(divisions.filter((d, i) => divisions.indexOf(d) !== i))];
             if (duplicateDivisions.length > 0) {
@@ -62,19 +62,39 @@ exports.handler = async (event) => {
             }
 
             if (paymentRequired) {
-                if (!Array.isArray(divisions) || divisions.length === 0) {
+                if (!Array.isArray(paymentOptions) || paymentOptions.length === 0) {
                     return {
                         statusCode: 400,
                         headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ error: "At least one division is required when payment is required." })
+                        body: JSON.stringify({ error: "At least one payment option is required when payment is required." })
                     };
                 }
-                const missing = divisions.filter((d) => !divisionPayments[d]);
-                if (missing.length > 0) {
+                const missingPaymentId = paymentOptions.some((o) => !o.payment_id);
+                if (missingPaymentId) {
                     return {
                         statusCode: 400,
                         headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ error: `A payment must be selected for: ${missing.join(", ")}` })
+                        body: JSON.stringify({ error: "Every payment option must have a payment selected." })
+                    };
+                }
+                const invalidRestriction = paymentOptions.some((o) =>
+                    o.restriction_type && o.restriction_type !== "none" &&
+                    (!Number.isInteger(parseInt(o.age_limit, 10)) || parseInt(o.age_limit, 10) <= 0)
+                );
+                if (invalidRestriction) {
+                    return {
+                        statusCode: 400,
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ error: "Every age-restricted payment option needs a valid positive age limit." })
+                    };
+                }
+                const paymentIdsRaw = paymentOptions.map((o) => o.payment_id);
+                const duplicatePaymentIds = [...new Set(paymentIdsRaw.filter((p, i) => paymentIdsRaw.indexOf(p) !== i))];
+                if (duplicatePaymentIds.length > 0) {
+                    return {
+                        statusCode: 400,
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ error: "Each payment can only be used once per tournament." })
                     };
                 }
             }
@@ -104,19 +124,21 @@ exports.handler = async (event) => {
                 [eventId]
             );
 
-            let divisionPaymentRows = [];
-            if (paymentRequired && divisions.length > 0) {
-                const paymentIds = divisions.map((d) => parseInt(divisionPayments[d], 10));
+            let paymentOptionRows = [];
+            if (paymentRequired && paymentOptions.length > 0) {
+                const paymentIds = paymentOptions.map((o) => parseInt(o.payment_id, 10));
+                const restrictionTypes = paymentOptions.map((o) => (o.restriction_type === "none" ? null : o.restriction_type ?? null));
+                const ageLimits = paymentOptions.map((o) => (o.restriction_type && o.restriction_type !== "none" ? parseInt(o.age_limit, 10) : null));
                 const insertResult = await query(
                     `
-                    INSERT INTO ${TOURNAMENT_DIVISION_PAYMENTS_TABLE} (event_id, division_name, payment_id)
-                    SELECT $1, name, pid
-                    FROM unnest($2::text[], $3::bigint[]) AS t(name, pid)
-                    RETURNING division_name, payment_id
+                    INSERT INTO ${TOURNAMENT_DIVISION_PAYMENTS_TABLE} (event_id, payment_id, age_restriction_type, age_limit)
+                    SELECT $1, pid, rtype, alimit
+                    FROM unnest($2::bigint[], $3::text[], $4::int[]) AS t(pid, rtype, alimit)
+                    RETURNING payment_id, age_restriction_type, age_limit
                     `,
-                    [eventId, divisions, paymentIds]
+                    [eventId, paymentIds, restrictionTypes, ageLimits]
                 );
-                divisionPaymentRows = insertResult.rows;
+                paymentOptionRows = insertResult.rows;
             }
 
             return {
@@ -130,9 +152,7 @@ exports.handler = async (event) => {
                     config_type: configType,
                     data: {
                         ...result.rows[0],
-                        division_payments: Object.fromEntries(
-                            divisionPaymentRows.map((r) => [r.division_name, r.payment_id])
-                        ),
+                        payment_options: paymentOptionRows,
                     },
                 })
             };
