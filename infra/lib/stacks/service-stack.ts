@@ -334,6 +334,10 @@ export class ServiceStack extends Stack {
       entry: path.join(__dirname, "../../lambdas/recurring_payments/createRecurring/index.js"),
       handler: "handler",
       ...commonNodejs,
+      bundling: { ...commonNodejs.bundling, nodeModules: ["nodemailer"] },
+      memorySize: 256,
+      timeout: Duration.seconds(30),
+      environment: { GMAIL_SECRET_ID: props.gmailSecret.secretName },
     });
 
     const deleteRecurringLambda = new NodejsFunction(this, "DeleteRecurringLambda", {
