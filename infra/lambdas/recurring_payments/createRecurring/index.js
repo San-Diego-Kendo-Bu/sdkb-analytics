@@ -1,12 +1,14 @@
 const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
 const { DynamoDBDocumentClient, UpdateCommand } = require("@aws-sdk/lib-dynamodb");
+const { LambdaClient, InvokeCommand } = require("@aws-sdk/client-lambda");
 const { query } = require("../../shared_utils/db");
 const { normalizeGroups } = require("../../shared_utils/normalize_claim");
 const { getAllMembers } = require("../../shared_utils/members");
-const { sendEmails } = require("../../shared_utils/mailer");
 
 const REGION = process.env.AWS_REGION;
+const SEND_RECURRING_NOTIFICATION_FN = process.env.SEND_RECURRING_NOTIFICATION_FN;
 const ddb = DynamoDBDocumentClient.from(new DynamoDBClient({ region: REGION }));
+const lambdaClient = new LambdaClient({ region: REGION });
 
 const H = { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" };
 const VALID_TARGETS = ["all", "dojo_due", "adults", "students", "kids", "families"];
@@ -49,19 +51,17 @@ async function allocatePaymentId() {
     return result.Attributes.idCounter;
 }
 
-async function sendPaymentEmail(emails, title, paymentValue, dueDate) {
-    if (!emails.length) return;
+async function sendNotificationJobs(jobs) {
+    const nonEmpty = jobs.filter((j) => j.emails?.length);
+    if (nonEmpty.length === 0 || !SEND_RECURRING_NOTIFICATION_FN) return;
     try {
-        const dueDateStr = new Date(dueDate).toLocaleDateString("en-US", {
-            weekday: "long", year: "numeric", month: "long", day: "numeric",
-        });
-        const amount = `$${parseFloat(paymentValue).toFixed(2)}`;
-        const subject = `Payment Due: ${title}`;
-        const html = `<p>A payment has been assigned to your account.</p><p><strong>Title:</strong> ${title}</p><p><strong>Amount:</strong> ${amount}</p><p><strong>Due Date:</strong> ${dueDateStr}</p><p>Log in to the SDKB portal to submit your payment: <a href="https://sdkbportal.org">sdkbportal.org</a></p>`;
-        const text = `Payment Due: ${title}\n\nAmount: ${amount}\nDue Date: ${dueDateStr}\n\nLog in at https://sdkbportal.org`;
-        await sendEmails(emails, subject, html, text);
-    } catch (err) {
-        console.error("createRecurring: email error:", err);
+        await lambdaClient.send(new InvokeCommand({
+            FunctionName: SEND_RECURRING_NOTIFICATION_FN,
+            InvocationType: "Event",
+            Payload: Buffer.from(JSON.stringify({ jobs: nonEmpty })),
+        }));
+    } catch (invokeErr) {
+        console.error("createRecurring: notification invoke error:", invokeErr);
     }
 }
 
@@ -114,6 +114,7 @@ exports.handler = async (event) => {
         // --- Immediate first-cycle assignment ---
         const allMembers = await getAllMembers();
         const allMemberMap = new Map(allMembers.map((m) => [m.member_id, m]));
+        const notificationJobs = [];
 
         if (isFamilies) {
             const familyRows = await query(`
@@ -169,7 +170,7 @@ exports.handler = async (event) => {
                         [memberId, templateId, now]
                     );
                 }
-                await sendPaymentEmail(getEmails(parentIds), title.trim(), value, next_due_date);
+                notificationJobs.push({ type: "payment", emails: getEmails(parentIds), title: title.trim(), amount: value, dueDate: next_due_date });
             }
 
             // Create a separate 50%-off payment for non-parents
@@ -188,21 +189,11 @@ exports.handler = async (event) => {
                         [memberId, halfId, now]
                     );
                 }
-                await sendPaymentEmail(getEmails(nonParentIds), halfTitle, halfPrice, next_due_date);
+                notificationJobs.push({ type: "payment", emails: getEmails(nonParentIds), title: halfTitle, amount: halfPrice, dueDate: next_due_date });
             }
 
             if (guestFamilyEmails.size > 0) {
-                try {
-                    const dueDateStr = new Date(next_due_date).toLocaleDateString("en-US", {
-                        weekday: "long", year: "numeric", month: "long", day: "numeric",
-                    });
-                    const subject = `Family Payment Notice: ${title.trim()}`;
-                    const html = `<p>A payment has been issued for your family.</p><p><strong>Title:</strong> ${title.trim()}</p><p><strong>Due Date:</strong> ${dueDateStr}</p><p>Log in to the SDKB portal for details: <a href="https://sdkbportal.org">sdkbportal.org</a></p>`;
-                    const text = `Family Payment Notice: ${title.trim()}\n\nDue Date: ${dueDateStr}\n\nLog in at https://sdkbportal.org`;
-                    await sendEmails([...guestFamilyEmails], subject, html, text);
-                } catch (emailErr) {
-                    console.error("createRecurring: guest email error:", emailErr);
-                }
+                notificationJobs.push({ type: "notice", emails: [...guestFamilyEmails], title: title.trim(), dueDate: next_due_date });
             }
         } else {
             const familyMemberRows = await query(`SELECT DISTINCT member_id FROM family_members`);
@@ -218,8 +209,10 @@ exports.handler = async (event) => {
                     [memberId, templateId, now]
                 );
             }
-            await sendPaymentEmail(memberEmails, title.trim(), value, next_due_date);
+            notificationJobs.push({ type: "payment", emails: memberEmails, title: title.trim(), amount: value, dueDate: next_due_date });
         }
+
+        await sendNotificationJobs(notificationJobs);
 
         // Advance next_due_date so processRecurrings picks up the next cycle 2 weeks before that date
         await query(

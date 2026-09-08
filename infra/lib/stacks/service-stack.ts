@@ -334,11 +334,20 @@ export class ServiceStack extends Stack {
       entry: path.join(__dirname, "../../lambdas/recurring_payments/createRecurring/index.js"),
       handler: "handler",
       ...commonNodejs,
+      timeout: Duration.seconds(15),
+    });
+
+    const sendRecurringPaymentNotificationLambda = new NodejsFunction(this, "SendRecurringPaymentNotificationLambda", {
+      entry: path.join(__dirname, "../../lambdas/recurring_payments/sendRecurringPaymentNotification/index.js"),
+      handler: "handler",
+      ...commonNodejs,
       bundling: { ...commonNodejs.bundling, nodeModules: ["nodemailer"] },
       memorySize: 256,
-      timeout: Duration.seconds(30),
+      timeout: Duration.seconds(60),
       environment: { GMAIL_SECRET_ID: props.gmailSecret.secretName },
     });
+    createRecurringLambda.addEnvironment("SEND_RECURRING_NOTIFICATION_FN", sendRecurringPaymentNotificationLambda.functionName);
+    sendRecurringPaymentNotificationLambda.grantInvoke(createRecurringLambda);
 
     const deleteRecurringLambda = new NodejsFunction(this, "DeleteRecurringLambda", {
       entry: path.join(__dirname, "../../lambdas/recurring_payments/deleteRecurring/index.js"),
@@ -631,7 +640,7 @@ export class ServiceStack extends Stack {
     props.gmailSecret.grantRead(broadcastPaymentLambda);
     props.gmailSecret.grantRead(paymentDeadlineReminderLambda);
     props.gmailSecret.grantRead(processRecurringsLambda);
-    props.gmailSecret.grantRead(createRecurringLambda);
+    props.gmailSecret.grantRead(sendRecurringPaymentNotificationLambda);
 
     // sendEventNotification needs to scan members to send new-event emails
     sendEventNotificationLambda.role?.addToPrincipalPolicy(new iam.PolicyStatement({
