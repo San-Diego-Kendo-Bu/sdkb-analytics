@@ -152,6 +152,14 @@ function SignUpForm({ ev, config, member, selfId, targetOptions, familyMembersIn
       setPaymentError(true);
       return;
     }
+    if (ev.type === 'shinsa' && config?.payment_required && !testingFor) {
+      setDivisionError(true);
+      return;
+    }
+    if (ev.type === 'shinsa' && config?.payment_required && !selectedPaymentId) {
+      setPaymentError(true);
+      return;
+    }
     setDivisionError(false);
     setPaymentError(false);
     const extra = {};
@@ -167,6 +175,8 @@ function SignUpForm({ ev, config, member, selfId, targetOptions, familyMembersIn
       if (config?.payment_required) extra.payment_id = selectedPaymentId;
     } else if (ev.type === 'shinsa') {
       extra.testing_for = testingFor;
+      extra.age = age;
+      if (config?.payment_required) extra.payment_id = selectedPaymentId;
     }
     onSubmit(extra, targetMemberId);
   }
@@ -283,13 +293,45 @@ function SignUpForm({ ev, config, member, selfId, targetOptions, familyMembersIn
         <>
           <label className={styles.label}>Testing for</label>
           {config?.shinsa_levels?.length > 0 ? (
-            <select className={styles.input} value={testingFor} onChange={e => setTestingFor(e.target.value)}>
+            <select className={styles.input} value={testingFor}
+              onChange={e => { setTestingFor(e.target.value); setDivisionError(false); }}>
               <option value="">Select level</option>
               {config.shinsa_levels.map(l => <option key={l} value={l}>{l}</option>)}
             </select>
           ) : (
             <input className={styles.input} placeholder="e.g. 1dan" value={testingFor}
-              onChange={e => setTestingFor(e.target.value)} />
+              onChange={e => { setTestingFor(e.target.value); setDivisionError(false); }} />
+          )}
+          {divisionError && (
+            <span className={styles.fieldError}>Please select a level to test for.</span>
+          )}
+          {config?.payment_required && (
+            <>
+              <label className={styles.label}>Payment</label>
+              {eligiblePaymentOptions.length > 0 ? (
+                <select className={styles.input} value={selectedPaymentId}
+                  onChange={e => { setSelectedPaymentId(e.target.value); setPaymentError(false); }}>
+                  <option value="">-- Select payment --</option>
+                  {eligiblePaymentOptions.map(o => {
+                    const pay = paymentMap?.[String(o.payment_id)];
+                    const label = pay ? `${pay.title} — $${Number(pay.payment_value ?? 0).toFixed(2)}` : `Payment #${o.payment_id}`;
+                    return <option key={o.payment_id} value={o.payment_id}>{label}</option>;
+                  })}
+                </select>
+              ) : (
+                <p className={styles.fieldError}>
+                  {age == null
+                    ? 'No payment option is available: please make sure your birthday is on file, then try again.'
+                    : 'No payment option is available for your age. Please contact the organizer.'}
+                </p>
+              )}
+              {paymentError && <span className={styles.fieldError}>Please select a payment option.</span>}
+              {age !== null && (
+                <div className={styles.label} style={{ marginTop: '0.5rem' }}>
+                  Age: <strong>{age}</strong>
+                </div>
+              )}
+            </>
           )}
         </>
       )}
@@ -950,14 +992,32 @@ function EventsSignup({ onPayNavigate }) {
                             </div>
                           )}
                         </>)}
-                        {ev.type === 'shinsa' && cfg.shinsa_levels?.length > 0 && (
-                          <div className={styles.configRow}>
-                            <span className={styles.configLabel}>Levels</span>
-                            <div className={styles.configTags}>
-                              {cfg.shinsa_levels.map(l => <span key={l} className={styles.configTag}>{l}</span>)}
+                        {ev.type === 'shinsa' && (<>
+                          {cfg.shinsa_levels?.length > 0 && (
+                            <div className={styles.configRow}>
+                              <span className={styles.configLabel}>Levels</span>
+                              <div className={styles.configTags}>
+                                {cfg.shinsa_levels.map(l => <span key={l} className={styles.configTag}>{l}</span>)}
+                              </div>
                             </div>
-                          </div>
-                        )}
+                          )}
+                          {cfg.payment_required && cfg.payment_options?.length > 0 && (
+                            <div className={styles.configRow}>
+                              <span className={styles.configLabel}>Payment Options</span>
+                              <div className={styles.configTags}>
+                                {cfg.payment_options.map(o => {
+                                  const pay = paymentMap[String(o.payment_id)];
+                                  const label = pay ? `${pay.title} — $${Number(pay.payment_value ?? 0).toFixed(2)}` : `Payment #${o.payment_id}`;
+                                  const restriction = o.restriction_type === 'at_most' ? ` (age ≤ ${o.age_limit})`
+                                    : o.restriction_type === 'below' ? ` (age < ${o.age_limit})`
+                                    : o.restriction_type === 'at_least' ? ` (age ≥ ${o.age_limit})`
+                                    : '';
+                                  return <span key={o.payment_id} className={styles.configTag}>{label}{restriction}</span>;
+                                })}
+                              </div>
+                            </div>
+                          )}
+                        </>)}
                         {ev.type === 'seminar' && cfg.seminar_guests?.length > 0 && (
                           <div className={styles.configRow}>
                             <span className={styles.configLabel}>Guests</span>

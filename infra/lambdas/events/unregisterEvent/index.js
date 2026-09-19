@@ -68,7 +68,7 @@ exports.handler = async (event) => {
                 `
                 DELETE FROM ${SHINSA_REGISTRATION_TABLE}
                 WHERE event_id = $1 AND member_id = $2
-                RETURNING event_id, member_id, registration_date, testing_for
+                RETURNING event_id, member_id, registration_date, testing_for, payment_id
                 `,
                 [eventId, memberId]
             );
@@ -106,11 +106,11 @@ exports.handler = async (event) => {
             };
         }
 
-        // Remove the member's assigned payment for this event. For tournaments, use the
-        // payment_id recorded directly on the registration at signup time (not re-derived
-        // from the tournament's *current* division-to-payment mapping, which may have
-        // changed since they registered) so this stays correct regardless of later config edits.
-        let paymentId = configType === "tournament" ? result.rows[0].payment_id : null;
+        // Remove the member's assigned payment for this event. For tournaments and shinsas, use
+        // the payment_id recorded directly on the registration at signup time (not re-derived
+        // from the event's *current* payment-option config, which may have changed since they
+        // registered) so this stays correct regardless of later config edits.
+        let paymentId = (configType === "tournament" || configType === "shinsa") ? result.rows[0].payment_id : null;
         if (paymentId == null) {
             const eventResult = await query(
                 `SELECT payment_id FROM events WHERE event_id = $1 LIMIT 1`,

@@ -62,13 +62,24 @@ CREATE TABLE IF NOT EXISTS shinsa_registrations (
     member_id BIGINT NOT NULL,
     registration_date TIMESTAMPTZ NOT NULL,
     testing_for TEXT NOT NULL,
+    age INTEGER,
+    payment_id BIGINT REFERENCES payments(payment_id) ON DELETE SET NULL,
     PRIMARY KEY (event_id, member_id)
 );
 
 CREATE TABLE IF NOT EXISTS shinsa_exams (
     event_id BIGINT PRIMARY KEY REFERENCES events(event_id) ON DELETE CASCADE,
     shinsa_levels TEXT[] NOT NULL DEFAULT '{}',
-    external_signup_url TEXT
+    external_signup_url TEXT,
+    payment_required BOOLEAN NOT NULL DEFAULT FALSE
+);
+
+CREATE TABLE IF NOT EXISTS shinsa_payment_options (
+    event_id BIGINT NOT NULL REFERENCES shinsa_exams(event_id) ON DELETE CASCADE,
+    payment_id BIGINT NOT NULL REFERENCES payments(payment_id) ON DELETE CASCADE,
+    age_restriction_type TEXT,
+    age_limit INTEGER,
+    PRIMARY KEY (event_id, payment_id)
 );
 
 CREATE TABLE IF NOT EXISTS submitted_payments (

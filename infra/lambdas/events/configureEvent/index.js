@@ -4,9 +4,54 @@ const { normalizeGroups } = require("../../shared_utils/normalize_claim");
 const TOURNAMENTS_TABLE = "tournaments";
 const TOURNAMENT_DIVISION_PAYMENTS_TABLE = "tournament_division_payments";
 const SHINSA_TABLE = "shinsa_exams";
+const SHINSA_PAYMENT_OPTIONS_TABLE = "shinsa_payment_options";
 const SEMINAR_TABLE = "seminars";
 const SPECIAL_EVENTS_TABLE = "special_events";
 const EVENTS_TABLE = "events";
+
+function validatePaymentOptions(paymentOptions, paymentRequired) {
+    if (!paymentRequired) return null;
+    if (!Array.isArray(paymentOptions) || paymentOptions.length === 0) {
+        return "At least one payment option is required when payment is required.";
+    }
+    const missingPaymentId = paymentOptions.some((o) => !o.payment_id);
+    if (missingPaymentId) {
+        return "Every payment option must have a payment selected.";
+    }
+    const invalidRestriction = paymentOptions.some((o) =>
+        o.restriction_type && o.restriction_type !== "none" &&
+        (!Number.isInteger(parseInt(o.age_limit, 10)) || parseInt(o.age_limit, 10) <= 0)
+    );
+    if (invalidRestriction) {
+        return "Every age-restricted payment option needs a valid positive age limit.";
+    }
+    const paymentIdsRaw = paymentOptions.map((o) => o.payment_id);
+    const duplicatePaymentIds = [...new Set(paymentIdsRaw.filter((p, i) => paymentIdsRaw.indexOf(p) !== i))];
+    if (duplicatePaymentIds.length > 0) {
+        return "Each payment can only be used once per event.";
+    }
+    return null;
+}
+
+async function upsertPaymentOptions(table, eventId, paymentOptions, paymentRequired) {
+    await query(`DELETE FROM ${table} WHERE event_id = $1`, [eventId]);
+
+    if (!paymentRequired || paymentOptions.length === 0) return [];
+
+    const paymentIds = paymentOptions.map((o) => parseInt(o.payment_id, 10));
+    const restrictionTypes = paymentOptions.map((o) => (o.restriction_type === "none" ? null : o.restriction_type ?? null));
+    const ageLimits = paymentOptions.map((o) => (o.restriction_type && o.restriction_type !== "none" ? parseInt(o.age_limit, 10) : null));
+    const insertResult = await query(
+        `
+        INSERT INTO ${table} (event_id, payment_id, age_restriction_type, age_limit)
+        SELECT $1, pid, rtype, alimit
+        FROM unnest($2::bigint[], $3::text[], $4::int[]) AS t(pid, rtype, alimit)
+        RETURNING payment_id, age_restriction_type, age_limit
+        `,
+        [eventId, paymentIds, restrictionTypes, ageLimits]
+    );
+    return insertResult.rows;
+}
 
 exports.handler = async (event) => {
     const claims =
@@ -61,42 +106,13 @@ exports.handler = async (event) => {
                 };
             }
 
-            if (paymentRequired) {
-                if (!Array.isArray(paymentOptions) || paymentOptions.length === 0) {
-                    return {
-                        statusCode: 400,
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ error: "At least one payment option is required when payment is required." })
-                    };
-                }
-                const missingPaymentId = paymentOptions.some((o) => !o.payment_id);
-                if (missingPaymentId) {
-                    return {
-                        statusCode: 400,
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ error: "Every payment option must have a payment selected." })
-                    };
-                }
-                const invalidRestriction = paymentOptions.some((o) =>
-                    o.restriction_type && o.restriction_type !== "none" &&
-                    (!Number.isInteger(parseInt(o.age_limit, 10)) || parseInt(o.age_limit, 10) <= 0)
-                );
-                if (invalidRestriction) {
-                    return {
-                        statusCode: 400,
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ error: "Every age-restricted payment option needs a valid positive age limit." })
-                    };
-                }
-                const paymentIdsRaw = paymentOptions.map((o) => o.payment_id);
-                const duplicatePaymentIds = [...new Set(paymentIdsRaw.filter((p, i) => paymentIdsRaw.indexOf(p) !== i))];
-                if (duplicatePaymentIds.length > 0) {
-                    return {
-                        statusCode: 400,
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ error: "Each payment can only be used once per tournament." })
-                    };
-                }
+            const paymentOptionsError = validatePaymentOptions(paymentOptions, paymentRequired);
+            if (paymentOptionsError) {
+                return {
+                    statusCode: 400,
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ error: paymentOptionsError })
+                };
             }
 
             const result = await query(
@@ -119,27 +135,9 @@ exports.handler = async (event) => {
                 [eventId, shinpanNeeded, divisions, teamsIncluded, paymentRequired]
             );
 
-            await query(
-                `DELETE FROM ${TOURNAMENT_DIVISION_PAYMENTS_TABLE} WHERE event_id = $1`,
-                [eventId]
+            const paymentOptionRows = await upsertPaymentOptions(
+                TOURNAMENT_DIVISION_PAYMENTS_TABLE, eventId, paymentOptions, paymentRequired
             );
-
-            let paymentOptionRows = [];
-            if (paymentRequired && paymentOptions.length > 0) {
-                const paymentIds = paymentOptions.map((o) => parseInt(o.payment_id, 10));
-                const restrictionTypes = paymentOptions.map((o) => (o.restriction_type === "none" ? null : o.restriction_type ?? null));
-                const ageLimits = paymentOptions.map((o) => (o.restriction_type && o.restriction_type !== "none" ? parseInt(o.age_limit, 10) : null));
-                const insertResult = await query(
-                    `
-                    INSERT INTO ${TOURNAMENT_DIVISION_PAYMENTS_TABLE} (event_id, payment_id, age_restriction_type, age_limit)
-                    SELECT $1, pid, rtype, alimit
-                    FROM unnest($2::bigint[], $3::text[], $4::int[]) AS t(pid, rtype, alimit)
-                    RETURNING payment_id, age_restriction_type, age_limit
-                    `,
-                    [eventId, paymentIds, restrictionTypes, ageLimits]
-                );
-                paymentOptionRows = insertResult.rows;
-            }
 
             return {
                 statusCode: 200,
@@ -161,21 +159,38 @@ exports.handler = async (event) => {
         if (configType === "shinsa") {
             const shinsaLevels = parameters.shinsa_levels;
             const externalSignupUrl = parameters.external_signup_url ?? null;
+            const paymentRequired = parameters.payment_required ?? false;
+            const paymentOptions = parameters.payment_options ?? [];
+
+            const paymentOptionsError = validatePaymentOptions(paymentOptions, paymentRequired);
+            if (paymentOptionsError) {
+                return {
+                    statusCode: 400,
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ error: paymentOptionsError })
+                };
+            }
 
             const result = await query(
                 `
                 INSERT INTO ${SHINSA_TABLE} (
                     event_id,
                     shinsa_levels,
-                    external_signup_url
+                    external_signup_url,
+                    payment_required
                 )
-                VALUES ($1, $2, $3)
+                VALUES ($1, $2, $3, $4)
                 ON CONFLICT (event_id) DO UPDATE SET
                     shinsa_levels = EXCLUDED.shinsa_levels,
-                    external_signup_url = EXCLUDED.external_signup_url
-                RETURNING event_id, shinsa_levels, external_signup_url
+                    external_signup_url = EXCLUDED.external_signup_url,
+                    payment_required = EXCLUDED.payment_required
+                RETURNING event_id, shinsa_levels, external_signup_url, payment_required
                 `,
-                [eventId, shinsaLevels, externalSignupUrl]
+                [eventId, shinsaLevels, externalSignupUrl, paymentRequired]
+            );
+
+            const paymentOptionRows = await upsertPaymentOptions(
+                SHINSA_PAYMENT_OPTIONS_TABLE, eventId, paymentOptions, paymentRequired
             );
 
             return {
@@ -187,7 +202,10 @@ exports.handler = async (event) => {
                 body: JSON.stringify({
                     message: "Configured Event Successfully",
                     config_type: configType,
-                    data: result.rows[0],
+                    data: {
+                        ...result.rows[0],
+                        payment_options: paymentOptionRows,
+                    },
                 })
             };
         }

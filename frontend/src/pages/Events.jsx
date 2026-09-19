@@ -20,6 +20,7 @@ const EMPTY_NEW = {
   title: '', description: '', maps_link: '', start_datetime: '', end_datetime: '', event_end_datetime: '',
   location: '', type: '', payment_id: '',
   shinpan_needed: false, divisions: '', teams_included: false,
+  shinsa_levels: '', external_signup_url: '',
   payment_required: false, payment_options: [],
 };
 
@@ -93,7 +94,7 @@ function toIso(inputValue) {
   return inputValue ? inputValue + ':00Z' : null;
 }
 
-function TournamentConfigFields({ form, setForm, availablePayments = [] }) {
+function PaymentOptionsFields({ form, setForm, availablePayments = [] }) {
   function updateOption(key, patch) {
     setForm(f => ({
       ...f,
@@ -114,20 +115,6 @@ function TournamentConfigFields({ form, setForm, availablePayments = [] }) {
 
   return (
     <>
-      <p className={styles.formTitle} style={{ fontSize: '0.85rem', marginTop: '0.75rem', marginBottom: 0 }}>Tournament Config</p>
-      <label className={styles.label}>Divisions (comma-separated)</label>
-      <input className={styles.input} placeholder="e.g. kyu, yudansha" value={form.divisions}
-        onChange={e => setForm(f => ({ ...f, divisions: e.target.value }))} />
-      <label className={styles.label}>
-        <input type="checkbox" checked={form.shinpan_needed}
-          onChange={e => setForm(f => ({ ...f, shinpan_needed: e.target.checked }))} />{' '}
-        Shinpan needed
-      </label>
-      <label className={styles.label}>
-        <input type="checkbox" checked={form.teams_included}
-          onChange={e => setForm(f => ({ ...f, teams_included: e.target.checked }))} />{' '}
-        Teams included
-      </label>
       <label className={styles.label}>
         <input type="checkbox" checked={form.payment_required}
           onChange={e => setForm(f => ({
@@ -197,6 +184,67 @@ function TournamentConfigFields({ form, setForm, availablePayments = [] }) {
   );
 }
 
+function validatePaymentOptions(form, label) {
+  if (!form.payment_required) return null;
+  if (form.payment_options.length === 0) {
+    return 'Please add at least one payment option.';
+  }
+  if (form.payment_options.some(o => !o.payment_id)) {
+    return 'Every payment option needs a payment selected.';
+  }
+  if (form.payment_options.some(o => o.restriction_type !== 'none' && !(parseInt(o.age_limit, 10) > 0))) {
+    return 'Every age-restricted payment option needs a valid age.';
+  }
+  const paymentIds = form.payment_options.map(o => o.payment_id);
+  const dupPayments = [...new Set(paymentIds.filter((p, i) => paymentIds.indexOf(p) !== i))];
+  if (dupPayments.length > 0) {
+    return `Each payment can only be used once per ${label}.`;
+  }
+  return null;
+}
+
+function TournamentConfigFields({ form, setForm, availablePayments = [] }) {
+  return (
+    <>
+      <p className={styles.formTitle} style={{ fontSize: '0.85rem', marginTop: '0.75rem', marginBottom: 0 }}>Tournament Config</p>
+      <label className={styles.label}>Divisions (comma-separated)</label>
+      <input className={styles.input} placeholder="e.g. kyu, yudansha" value={form.divisions}
+        onChange={e => setForm(f => ({ ...f, divisions: e.target.value }))} />
+      <label className={styles.label}>
+        <input type="checkbox" checked={form.shinpan_needed}
+          onChange={e => setForm(f => ({ ...f, shinpan_needed: e.target.checked }))} />{' '}
+        Shinpan needed
+      </label>
+      <label className={styles.label}>
+        <input type="checkbox" checked={form.teams_included}
+          onChange={e => setForm(f => ({ ...f, teams_included: e.target.checked }))} />{' '}
+        Teams included
+      </label>
+      <PaymentOptionsFields form={form} setForm={setForm} availablePayments={availablePayments} />
+    </>
+  );
+}
+
+function ShinsaConfigFields({ form, setForm, availablePayments = [] }) {
+  return (
+    <>
+      <p className={styles.formTitle} style={{ fontSize: '0.85rem', marginTop: '0.75rem', marginBottom: 0 }}>Shinsa Config</p>
+      <label className={styles.label}>Shinsa Levels (comma-separated)</label>
+      <input className={styles.input} placeholder="e.g. 1dan, 2dan" value={form.shinsa_levels}
+        onChange={e => setForm(f => ({ ...f, shinsa_levels: e.target.value }))} />
+      <label className={styles.label}>External Sign-Up URL (optional)</label>
+      <input className={styles.input} placeholder="https://..." value={form.external_signup_url}
+        onChange={e => setForm(f => ({ ...f, external_signup_url: e.target.value }))} />
+      <label className={styles.label}>
+        <input type="checkbox" checked={form.shinpan_needed}
+          onChange={e => setForm(f => ({ ...f, shinpan_needed: e.target.checked }))} />{' '}
+        Shinpan needed
+      </label>
+      <PaymentOptionsFields form={form} setForm={setForm} availablePayments={availablePayments} />
+    </>
+  );
+}
+
 function NewEventForm({ form, setForm, onSave, onCancel, availablePayments = [], divisionAvailablePayments = [] }) {
   return (
     <div className={styles.formBox}>
@@ -226,7 +274,7 @@ function NewEventForm({ form, setForm, onSave, onCancel, availablePayments = [],
         <option value="seminar">Seminar</option>
         <option value="special_event">Special Event</option>
       </select>
-      {!(form.type === 'tournament' && form.payment_required) && (<>
+      {!((form.type === 'tournament' || form.type === 'shinsa') && form.payment_required) && (<>
         <label className={styles.label}>Payment</label>
         <select className={styles.input} value={form.payment_id}
           onChange={e => setForm(f => ({ ...f, payment_id: e.target.value }))}>
@@ -242,6 +290,10 @@ function NewEventForm({ form, setForm, onSave, onCancel, availablePayments = [],
 
       {form.type === 'tournament' && (
         <TournamentConfigFields form={form} setForm={setForm} availablePayments={divisionAvailablePayments} />
+      )}
+
+      {form.type === 'shinsa' && (
+        <ShinsaConfigFields form={form} setForm={setForm} availablePayments={divisionAvailablePayments} />
       )}
 
       <div className={styles.formActions}>
@@ -280,7 +332,7 @@ function EditEventForm({ form, setForm, onSave, onCancel, availablePayments = []
         <option value="seminar">Seminar</option>
         <option value="special_event">Special Event</option>
       </select>
-      {!(form.type === 'tournament' && form.payment_required) && (<>
+      {!((form.type === 'tournament' || form.type === 'shinsa') && form.payment_required) && (<>
         <label className={styles.label}>Payment</label>
         <select className={styles.input} value={form.payment_id}
           onChange={e => setForm(f => ({ ...f, payment_id: e.target.value }))}>
@@ -299,20 +351,7 @@ function EditEventForm({ form, setForm, onSave, onCancel, availablePayments = []
       )}
 
       {form.type === 'shinsa' && (
-        <>
-          <p className={styles.formTitle} style={{ fontSize: '0.85rem', marginTop: '0.75rem', marginBottom: 0 }}>Shinsa Config</p>
-          <label className={styles.label}>Shinsa Levels (comma-separated)</label>
-          <input className={styles.input} placeholder="e.g. 1dan, 2dan" value={form.shinsa_levels}
-            onChange={e => setForm(f => ({ ...f, shinsa_levels: e.target.value }))} />
-          <label className={styles.label}>External Sign-Up URL (optional)</label>
-          <input className={styles.input} placeholder="https://..." value={form.external_signup_url}
-            onChange={e => setForm(f => ({ ...f, external_signup_url: e.target.value }))} />
-          <label className={styles.label}>
-            <input type="checkbox" checked={form.shinpan_needed}
-              onChange={e => setForm(f => ({ ...f, shinpan_needed: e.target.checked }))} />{' '}
-            Shinpan needed
-          </label>
-        </>
+        <ShinsaConfigFields form={form} setForm={setForm} availablePayments={divisionAvailablePayments} />
       )}
 
       {form.type === 'seminar' && (
@@ -461,6 +500,7 @@ function Events() {
       return;
     }
     let divisionNames = [];
+    let shinsaLevels = [];
     if (newForm.type === 'tournament') {
       divisionNames = newForm.divisions.split(',').map(s => s.trim()).filter(Boolean);
       if (divisionNames.length === 0) {
@@ -472,25 +512,17 @@ function Events() {
         setError(`Division names must be unique. Duplicate: ${duplicates.join(', ')}`);
         return;
       }
-      if (newForm.payment_required) {
-        if (newForm.payment_options.length === 0) {
-          setError('Please add at least one payment option.');
-          return;
-        }
-        if (newForm.payment_options.some(o => !o.payment_id)) {
-          setError('Every payment option needs a payment selected.');
-          return;
-        }
-        if (newForm.payment_options.some(o => o.restriction_type !== 'none' && !(parseInt(o.age_limit, 10) > 0))) {
-          setError('Every age-restricted payment option needs a valid age.');
-          return;
-        }
-        const paymentIds = newForm.payment_options.map(o => o.payment_id);
-        const dupPayments = [...new Set(paymentIds.filter((p, i) => paymentIds.indexOf(p) !== i))];
-        if (dupPayments.length > 0) {
-          setError('Each payment can only be used once per tournament.');
-          return;
-        }
+      const paymentOptionsError = validatePaymentOptions(newForm, 'tournament');
+      if (paymentOptionsError) {
+        setError(paymentOptionsError);
+        return;
+      }
+    } else if (newForm.type === 'shinsa') {
+      shinsaLevels = newForm.shinsa_levels.split(',').map(s => s.trim()).filter(Boolean);
+      const paymentOptionsError = validatePaymentOptions(newForm, 'shinsa');
+      if (paymentOptionsError) {
+        setError(paymentOptionsError);
+        return;
       }
     }
     const payload = {
@@ -512,6 +544,14 @@ function Events() {
       payment_required: newForm.payment_required,
       payment_options: newForm.payment_options.map(({ payment_id, restriction_type, age_limit }) => ({ payment_id, restriction_type, age_limit })),
     } : null;
+    const shinsaConfig = newForm.type === 'shinsa' ? {
+      shinpan_needed: newForm.shinpan_needed,
+      shinsa_levels: shinsaLevels,
+      external_signup_url: newForm.external_signup_url || null,
+      payment_required: newForm.payment_required,
+      payment_options: newForm.payment_options.map(({ payment_id, restriction_type, age_limit }) => ({ payment_id, restriction_type, age_limit })),
+    } : null;
+    const eventConfig = tournamentConfig ?? shinsaConfig;
 
     setShowNew(false);
     setNewForm(EMPTY_NEW);
@@ -523,11 +563,11 @@ function Events() {
           .then(res => { if (!res.ok) return res.json().then(b => { throw new Error(b.error || `HTTP ${res.status}`); }); return res.json(); })
           .then(body => {
             const newEventId = body.data?.event_id ?? body.id;
-            if (tournamentConfig && newEventId) {
+            if (eventConfig && newEventId) {
               return fetch(CONFIGURE_API, {
                 method: 'POST',
                 headers,
-                body: JSON.stringify({ event_id: newEventId, ...tournamentConfig }),
+                body: JSON.stringify({ event_id: newEventId, ...eventConfig }),
               }).then(cfgRes => {
                 if (!cfgRes.ok) return cfgRes.json().then(b => { throw new Error(b.error || b.message || `HTTP ${cfgRes.status}`); });
               });
@@ -571,6 +611,13 @@ function Events() {
           shinpan_needed: existing.shinpan_needed ?? false,
           shinsa_levels: existing.shinsa_levels?.join(', ') ?? '',
           external_signup_url: existing.external_signup_url ?? '',
+          payment_required: existing.payment_required ?? false,
+          payment_options: (existing.payment_options ?? []).map(o => ({
+            _key: newPaymentOptionKey(),
+            payment_id: String(o.payment_id),
+            restriction_type: o.restriction_type ?? 'none',
+            age_limit: o.age_limit != null ? String(o.age_limit) : '',
+          })),
         };
       } else if (ev.type === 'seminar') {
         configFields = {
@@ -613,25 +660,16 @@ function Events() {
         setError(`Division names must be unique. Duplicate: ${editDuplicates.join(', ')}`);
         return;
       }
-      if (editForm.payment_required) {
-        if (editForm.payment_options.length === 0) {
-          setError('Please add at least one payment option.');
-          return;
-        }
-        if (editForm.payment_options.some(o => !o.payment_id)) {
-          setError('Every payment option needs a payment selected.');
-          return;
-        }
-        if (editForm.payment_options.some(o => o.restriction_type !== 'none' && !(parseInt(o.age_limit, 10) > 0))) {
-          setError('Every age-restricted payment option needs a valid age.');
-          return;
-        }
-        const editPaymentIds = editForm.payment_options.map(o => o.payment_id);
-        const editDupPayments = [...new Set(editPaymentIds.filter((p, i) => editPaymentIds.indexOf(p) !== i))];
-        if (editDupPayments.length > 0) {
-          setError('Each payment can only be used once per tournament.');
-          return;
-        }
+      const tournamentPaymentOptionsError = validatePaymentOptions(editForm, 'tournament');
+      if (tournamentPaymentOptionsError) {
+        setError(tournamentPaymentOptionsError);
+        return;
+      }
+    } else if (editForm.type === 'shinsa') {
+      const shinsaPaymentOptionsError = validatePaymentOptions(editForm, 'shinsa');
+      if (shinsaPaymentOptionsError) {
+        setError(shinsaPaymentOptionsError);
+        return;
       }
     }
 
@@ -665,6 +703,8 @@ function Events() {
         shinpan_needed: editForm.shinpan_needed,
         shinsa_levels: editForm.shinsa_levels.split(',').map(s => s.trim()).filter(Boolean),
         external_signup_url: editForm.external_signup_url || null,
+        payment_required: editForm.payment_required,
+        payment_options: editForm.payment_options.map(({ payment_id, restriction_type, age_limit }) => ({ payment_id, restriction_type, age_limit })),
       };
     } else if (editForm.type === 'seminar') {
       configPayload = {
@@ -874,6 +914,28 @@ function Events() {
                                 <span className={cfg.shinpan_needed ? styles.configBoolTrue : styles.configBoolFalse}>{cfg.shinpan_needed ? 'Yes' : 'No'}</span>
                               </div>
                             )}
+                            <div className={styles.configRow}>
+                              <span className={styles.configLabel}>Payment</span>
+                              <span className={cfg.payment_required ? styles.configBoolTrue : styles.configBoolFalse}>
+                                {cfg.payment_required ? 'Required' : 'Not required'}
+                              </span>
+                            </div>
+                            {cfg.payment_required && cfg.payment_options?.length > 0 && (
+                              <div className={styles.configRow}>
+                                <span className={styles.configLabel}>Payment Options</span>
+                                <div className={styles.configTags}>
+                                  {cfg.payment_options.map(o => {
+                                    const pay = payments.find(p => String(p.payment_id) === String(o.payment_id));
+                                    const label = pay?.title ?? `#${o.payment_id}`;
+                                    const restriction = o.restriction_type === 'at_most' ? ` (age ≤ ${o.age_limit})`
+                                      : o.restriction_type === 'below' ? ` (age < ${o.age_limit})`
+                                      : o.restriction_type === 'at_least' ? ` (age ≥ ${o.age_limit})`
+                                      : '';
+                                    return <span key={o.payment_id} className={styles.configTag}>{label}{restriction}</span>;
+                                  })}
+                                </div>
+                              </div>
+                            )}
                           </>)}
                           {ev.type === 'seminar' && (<>
                             {cfg.seminar_guests?.length > 0 && (
@@ -895,7 +957,7 @@ function Events() {
                               <span className={cfg.bring_your_lunch ? styles.configBoolTrue : styles.configBoolFalse}>{cfg.bring_your_lunch ? 'Yes' : 'No'}</span>
                             </div>
                           )}
-                          {!(ev.type === 'tournament' && cfg.payment_required) && (
+                          {!((ev.type === 'tournament' || ev.type === 'shinsa') && cfg.payment_required) && (
                             <div className={styles.configRow}>
                               <span className={styles.configLabel}>Payment</span>
                               {ev.payment_id ? (

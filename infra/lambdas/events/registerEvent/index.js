@@ -8,6 +8,26 @@ const SHINSA_REGISTRATION_TABLE = "shinsa_registrations";
 const SEMINAR_REGISTRATION_TABLE = "seminar_registrations";
 const SPECIAL_EVENT_REGISTRATION_TABLE = "special_event_registrations";
 
+// Returns { errorMessage } if the member fails the option's age restriction (or has no
+// birthday on file), otherwise { memberAge } for the caller to store alongside the registration.
+async function checkPaymentAgeEligibility(option, memberId) {
+    if (!option.age_restriction_type) return { memberAge: null };
+
+    const memberRecords = await getMemberById(memberId);
+    const memberAge = calcAge(memberRecords[0]?.birthday ?? null);
+    if (memberAge == null) {
+        return { errorMessage: "This payment option has an age restriction, but no birthday is on file. Please update your profile." };
+    }
+    const eligible = option.age_restriction_type === "at_most" ? memberAge <= option.age_limit
+        : option.age_restriction_type === "below" ? memberAge < option.age_limit
+        : option.age_restriction_type === "at_least" ? memberAge >= option.age_limit
+        : true;
+    if (!eligible) {
+        return { errorMessage: "You do not meet the age requirement for the selected payment option." };
+    }
+    return { memberAge };
+}
+
 exports.handler = async (event) => {
     try {
         const claims =
@@ -117,27 +137,13 @@ exports.handler = async (event) => {
                     };
                 }
                 const option = optResult.rows[0];
-                if (option.age_restriction_type) {
-                    const memberRecords = await getMemberById(memberId);
-                    const memberAge = calcAge(memberRecords[0]?.birthday ?? null);
-                    if (memberAge == null) {
-                        return {
-                            statusCode: 400,
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({ error: "This payment option has an age restriction, but no birthday is on file. Please update your profile." })
-                        };
-                    }
-                    const eligible = option.age_restriction_type === "at_most" ? memberAge <= option.age_limit
-                        : option.age_restriction_type === "below" ? memberAge < option.age_limit
-                        : option.age_restriction_type === "at_least" ? memberAge >= option.age_limit
-                        : true;
-                    if (!eligible) {
-                        return {
-                            statusCode: 400,
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({ error: "You do not meet the age requirement for the selected payment option." })
-                        };
-                    }
+                const eligibility = await checkPaymentAgeEligibility(option, memberId);
+                if (eligibility.errorMessage) {
+                    return {
+                        statusCode: 400,
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ error: eligibility.errorMessage })
+                    };
                 }
                 resolvedPaymentId = option.payment_id;
             }
@@ -156,16 +162,63 @@ exports.handler = async (event) => {
 
         } else if (configType === "shinsa") {
             const testingFor = parameters.testing_for;
+            const selectedPaymentId = parameters.payment_id ?? null;
+            let age = parameters.age ?? null;
+
+            const shinsaResult = await query(
+                `SELECT payment_required FROM shinsa_exams WHERE event_id = $1 LIMIT 1`,
+                [eventId]
+            );
+            const paymentRequired = shinsaResult.rows[0]?.payment_required ?? false;
+
+            if (paymentRequired) {
+                if (!testingFor) {
+                    return {
+                        statusCode: 400,
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ error: "Please select a level to test for." })
+                    };
+                }
+                if (!selectedPaymentId) {
+                    return {
+                        statusCode: 400,
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ error: "Please select a payment option." })
+                    };
+                }
+                const optResult = await query(
+                    `SELECT payment_id, age_restriction_type, age_limit FROM shinsa_payment_options WHERE event_id = $1 AND payment_id = $2 LIMIT 1`,
+                    [eventId, selectedPaymentId]
+                );
+                if (optResult.rowCount === 0) {
+                    return {
+                        statusCode: 400,
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ error: "Selected payment is not a valid option for this shinsa." })
+                    };
+                }
+                const option = optResult.rows[0];
+                const eligibility = await checkPaymentAgeEligibility(option, memberId);
+                if (eligibility.errorMessage) {
+                    return {
+                        statusCode: 400,
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ error: eligibility.errorMessage })
+                    };
+                }
+                resolvedPaymentId = option.payment_id;
+                if (eligibility.memberAge != null) age = eligibility.memberAge;
+            }
 
             const result = await query(
                 `
                 INSERT INTO ${SHINSA_REGISTRATION_TABLE} (
-                    event_id, member_id, registration_date, testing_for
+                    event_id, member_id, registration_date, testing_for, age, payment_id
                 )
-                VALUES ($1, $2, $3, $4)
-                RETURNING event_id, member_id, registration_date, testing_for
+                VALUES ($1, $2, $3, $4, $5, $6)
+                RETURNING event_id, member_id, registration_date, testing_for, age, payment_id
                 `,
-                [eventId, memberId, registeredDate, testingFor]
+                [eventId, memberId, registeredDate, testingFor, age, resolvedPaymentId]
             );
             registrationData = result.rows[0];
 

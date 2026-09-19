@@ -3,6 +3,7 @@ const { query } = require("../../shared_utils/db");
 const TOURNAMENTS_TABLE = "tournaments";
 const TOURNAMENT_DIVISION_PAYMENTS_TABLE = "tournament_division_payments";
 const SHINSA_TABLE = "shinsa_exams";
+const SHINSA_PAYMENT_OPTIONS_TABLE = "shinsa_payment_options";
 const SEMINAR_TABLE = "seminars";
 const SPECIAL_EVENTS_TABLE = "special_events";
 const EVENTS_TABLE = "events";
@@ -64,7 +65,28 @@ exports.handler = async (event) => {
             );
         } else if (eventType === "shinsa") {
             configResult = await query(
-                `SELECT event_id, shinsa_levels, external_signup_url FROM ${SHINSA_TABLE} WHERE event_id = $1 LIMIT 1`,
+                `
+                SELECT
+                    s.event_id,
+                    s.shinsa_levels,
+                    s.external_signup_url,
+                    s.payment_required,
+                    COALESCE(
+                        jsonb_agg(
+                            jsonb_build_object(
+                                'payment_id', sp.payment_id::text,
+                                'restriction_type', sp.age_restriction_type,
+                                'age_limit', sp.age_limit
+                            )
+                        ) FILTER (WHERE sp.payment_id IS NOT NULL),
+                        '[]'::jsonb
+                    ) AS payment_options
+                FROM ${SHINSA_TABLE} s
+                LEFT JOIN ${SHINSA_PAYMENT_OPTIONS_TABLE} sp ON sp.event_id = s.event_id
+                WHERE s.event_id = $1
+                GROUP BY s.event_id, s.shinsa_levels, s.external_signup_url, s.payment_required
+                LIMIT 1
+                `,
                 [eventId]
             );
         } else if (eventType === "seminar") {
