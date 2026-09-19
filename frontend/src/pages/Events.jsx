@@ -235,11 +235,6 @@ function ShinsaConfigFields({ form, setForm, availablePayments = [] }) {
       <label className={styles.label}>External Sign-Up URL (optional)</label>
       <input className={styles.input} placeholder="https://..." value={form.external_signup_url}
         onChange={e => setForm(f => ({ ...f, external_signup_url: e.target.value }))} />
-      <label className={styles.label}>
-        <input type="checkbox" checked={form.shinpan_needed}
-          onChange={e => setForm(f => ({ ...f, shinpan_needed: e.target.checked }))} />{' '}
-        Shinpan needed
-      </label>
       <PaymentOptionsFields form={form} setForm={setForm} availablePayments={availablePayments} />
     </>
   );
@@ -545,7 +540,6 @@ function Events() {
       payment_options: newForm.payment_options.map(({ payment_id, restriction_type, age_limit }) => ({ payment_id, restriction_type, age_limit })),
     } : null;
     const shinsaConfig = newForm.type === 'shinsa' ? {
-      shinpan_needed: newForm.shinpan_needed,
       shinsa_levels: shinsaLevels,
       external_signup_url: newForm.external_signup_url || null,
       payment_required: newForm.payment_required,
@@ -608,7 +602,6 @@ function Events() {
       } else if (ev.type === 'shinsa') {
         configFields = {
           ...configFields,
-          shinpan_needed: existing.shinpan_needed ?? false,
           shinsa_levels: existing.shinsa_levels?.join(', ') ?? '',
           external_signup_url: existing.external_signup_url ?? '',
           payment_required: existing.payment_required ?? false,
@@ -700,7 +693,6 @@ function Events() {
     } else if (editForm.type === 'shinsa') {
       configPayload = {
         ...configPayload,
-        shinpan_needed: editForm.shinpan_needed,
         shinsa_levels: editForm.shinsa_levels.split(',').map(s => s.trim()).filter(Boolean),
         external_signup_url: editForm.external_signup_url || null,
         payment_required: editForm.payment_required,
@@ -906,12 +898,6 @@ function Events() {
                               <div className={styles.configRow}>
                                 <span className={styles.configLabel}>Levels</span>
                                 <div className={styles.configTags}>{cfg.shinsa_levels.map(l => <span key={l} className={styles.configTag}>{l}</span>)}</div>
-                              </div>
-                            )}
-                            {cfg.shinpan_needed != null && (
-                              <div className={styles.configRow}>
-                                <span className={styles.configLabel}>Shinpan</span>
-                                <span className={cfg.shinpan_needed ? styles.configBoolTrue : styles.configBoolFalse}>{cfg.shinpan_needed ? 'Yes' : 'No'}</span>
                               </div>
                             )}
                             <div className={styles.configRow}>
