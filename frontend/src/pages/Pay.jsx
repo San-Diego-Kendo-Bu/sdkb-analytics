@@ -3,7 +3,7 @@ import { loadStripe } from '@stripe/stripe-js';
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { userManager } from '../js/cognitoManager';
 import styles from '../../css/pay.module.css';
-import { isOffHours, OFF_HOURS_MSG } from '../js/offHours';
+import { isOffHours, OFF_HOURS_MSG, isPaymentsClosed, PAYMENTS_CLOSED_MSG } from '../js/offHours';
 import OffHoursCard from '../react_components/OffHoursCard';
 
 const BASE_URL = 'https://qh3c0tz6s9.execute-api.us-east-2.amazonaws.com';
@@ -203,7 +203,7 @@ export default function Pay({ autoPaymentId, onAutoPayConsumed }) {
   }
 
   async function handlePayClick(payment) {
-    if (isOffHours()) { showToast(OFF_HOURS_MSG); return; }
+    if (isPaymentsClosed()) { showToast(PAYMENTS_CLOSED_MSG); return; }
     setPayingId(payingKey(payment));
     setStripeData(null);
     setLoadingIntent(true);
@@ -325,13 +325,17 @@ export default function Pay({ autoPaymentId, onAutoPayConsumed }) {
               )}
 
               {!isThisOne && (
-                <button
-                  className={styles.payBtn}
-                  onClick={() => handlePayClick(p)}
-                  disabled={payingId !== null}
-                >
-                  Pay Now
-                </button>
+                isPaymentsClosed() ? (
+                  <p className={styles.fieldError}>{PAYMENTS_CLOSED_MSG}</p>
+                ) : (
+                  <button
+                    className={styles.payBtn}
+                    onClick={() => handlePayClick(p)}
+                    disabled={payingId !== null}
+                  >
+                    Pay Now
+                  </button>
+                )
               )}
             </div>
           );

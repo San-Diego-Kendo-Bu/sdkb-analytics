@@ -26,20 +26,11 @@ async function processPaymentIntent(memberId, paymentId, paidByMemberId) {
 
         const submittedOn = getCurrentTimeUTC();
 
-        const assignedResult = await query(
-            `SELECT * FROM assigned_payments WHERE member_id = $1 AND payment_id = $2`,
-            [memberId, paymentId]
-        );
-        if (assignedResult.rows.length === 0) {
-            await query("ROLLBACK");
-            // Could be a duplicate webhook — not an error
-            console.log(`No assigned payment for member ${memberId}, payment ${paymentId} — skipping`);
-            return { statusCode: 200, body: "No assigned payment found" };
-        }
-
-        const assignedRow = assignedResult.rows[0];
-
-        // Idempotency check
+        // Idempotency check — this is the real duplicate-webhook guard, so it must run before
+        // looking at assigned_payments. That row can legitimately be gone (or recreated with a
+        // new assigned_on) by the time a successful charge's webhook arrives — e.g. the member
+        // unregistered and re-registered for the event while the charge was still in flight —
+        // without that meaning the charge itself should be discarded.
         const alreadySubmitted = await query(
             `SELECT 1 FROM submitted_payments WHERE member_id = $1 AND payment_id = $2 LIMIT 1`,
             [memberId, paymentId]
@@ -49,6 +40,19 @@ async function processPaymentIntent(memberId, paymentId, paidByMemberId) {
             console.log(`Duplicate webhook: payment ${paymentId} already submitted for member ${memberId}`);
             return { statusCode: 200, body: "Already submitted" };
         }
+
+        // The assigned_payments row is only used for its assigned_on timestamp when present.
+        // Its absence is NOT treated as "nothing to do": createPaymentIntent already verified
+        // eligibility before Stripe charged the card, so a successful charge is always recorded
+        // here even if the assignment row has since changed for unrelated reasons.
+        const assignedResult = await query(
+            `SELECT * FROM assigned_payments WHERE member_id = $1 AND payment_id = $2`,
+            [memberId, paymentId]
+        );
+        if (assignedResult.rows.length === 0) {
+            console.warn(`stripeWebhook: no assigned_payments row for member ${memberId}, payment ${paymentId} at submission time — recording the payment anyway.`);
+        }
+        const assignedRow = assignedResult.rows[0] ?? null;
 
         const paymentResult = await query(
             `SELECT payment_value, overdue_penalty, due_date, has_submission FROM payments WHERE payment_id = $1`,
@@ -77,9 +81,9 @@ async function processPaymentIntent(memberId, paymentId, paidByMemberId) {
             `INSERT INTO submitted_payments (member_id, payment_id, assigned_on, submitted_on, total_paid, overdue, paid_by_member_id)
              VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
             [
-                assignedRow.member_id,
-                assignedRow.payment_id,
-                assignedRow.assigned_on,
+                memberId,
+                paymentId,
+                assignedRow?.assigned_on ?? submittedOn,
                 submittedOn,
                 totalPaid,
                 overdue,
@@ -89,9 +93,10 @@ async function processPaymentIntent(memberId, paymentId, paidByMemberId) {
 
         const submittedEntry = submitResult.rows[0];
 
+        // Harmless no-op if the row is already gone (e.g. the case handled above).
         await query(
             `DELETE FROM assigned_payments WHERE member_id = $1 AND payment_id = $2`,
-            [submittedEntry.member_id, submittedEntry.payment_id]
+            [memberId, paymentId]
         );
 
         await query("COMMIT");

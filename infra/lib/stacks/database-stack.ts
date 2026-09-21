@@ -100,10 +100,10 @@ export class DatabaseStack extends Stack {
       })
     );
 
-    // Weekdays (Mon–Fri): stop at 1 AM, start at 7 AM PT
+    // Weekdays (Mon–Fri): stop at 2 AM, start at 7 AM PT
     new scheduler.CfnSchedule(this, "StopWeekdaysPT", {
       flexibleTimeWindow: { mode: "OFF" },
-      scheduleExpression: "cron(0 1 ? * MON-FRI *)",
+      scheduleExpression: "cron(0 2 ? * MON-FRI *)",
       scheduleExpressionTimezone: "America/Los_Angeles",
       target: {
         arn: controlDbLambda.functionArn,

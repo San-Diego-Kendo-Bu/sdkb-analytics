@@ -1,6 +1,7 @@
 const { SecretsManagerClient, GetSecretValueCommand } = require("@aws-sdk/client-secrets-manager");
 const { getMemberById } = require("../../shared_utils/members");
 const { resolveActingMemberId, canActFor } = require("../../shared_utils/families");
+const { isPaymentsClosed } = require("../../shared_utils/dates");
 const { query } = require("../../shared_utils/db");
 const Stripe = require("stripe");
 
@@ -18,6 +19,14 @@ async function getSecretValue(secretId) {
 
 exports.handler = async (event) => {
     try {
+        if (isPaymentsClosed()) {
+            return {
+                statusCode: 400,
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ error: "Payments are closed ahead of scheduled maintenance. Please try again after 7am PT on weekdays (5am PT on weekends)." }),
+            };
+        }
+
         const claims =
             event.requestContext?.authorizer?.jwt?.claims ??
             event.requestContext?.authorizer?.claims ?? {};
