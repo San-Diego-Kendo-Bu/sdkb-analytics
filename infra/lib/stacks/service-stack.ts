@@ -379,7 +379,11 @@ export class ServiceStack extends Stack {
       entry: path.join(__dirname, "../../lambdas/webhooks/stripeWebhook/index.js"),
       handler: "handler",
       ...commonNodejs,
-      environment: { SECRET_ID: props.stripeSecret.secretName },
+      timeout: Duration.seconds(15),
+      environment: {
+        SECRET_ID: props.stripeSecret.secretName,
+        GMAIL_SECRET_ID: props.gmailSecret.secretName,
+      },
     });
 
     const createTournamentResultLambda = new NodejsFunction(this, "CreateTournamentResultLambda", {
@@ -639,6 +643,7 @@ export class ServiceStack extends Stack {
     props.gmailSecret.grantRead(assignPaymentLambda);
     props.gmailSecret.grantRead(broadcastPaymentLambda);
     props.gmailSecret.grantRead(paymentDeadlineReminderLambda);
+    props.gmailSecret.grantRead(stripeWebhookLambda);
     props.gmailSecret.grantRead(processRecurringsLambda);
     props.gmailSecret.grantRead(sendRecurringPaymentNotificationLambda);
 

@@ -1,6 +1,7 @@
 const { SecretsManagerClient, GetSecretValueCommand } = require("@aws-sdk/client-secrets-manager");
 const { getCurrentTimeUTC } = require("../../shared_utils/dates");
-const { verifyMemberExists } = require("../../shared_utils/members");
+const { verifyMemberExists, getMemberById } = require("../../shared_utils/members");
+const { sendEmails } = require("../../shared_utils/mailer");
 const { query } = require("../../shared_utils/db");
 const Stripe = require("stripe");
 
@@ -13,6 +14,36 @@ async function getSecretValue(secretId) {
     const r = await secrets.send(new GetSecretValueCommand({ SecretId: secretId }));
     const raw = r.SecretString ?? Buffer.from(r.SecretBinary || "", "base64").toString("utf8");
     return JSON.parse(raw);
+}
+
+// Notifies whoever actually paid (the parent if they paid on behalf of a kid, otherwise the
+// member themselves) that the payment succeeded. Runs after the DB transaction has already
+// committed, so an email failure here never affects whether the payment itself gets recorded.
+async function sendPaymentConfirmationEmail(memberId, paidByMemberId, title, totalPaid) {
+    try {
+        const payerId = paidByMemberId ?? memberId;
+        const payerRecords = await getMemberById(payerId);
+        const payer = payerRecords[0];
+        if (!payer?.email) return;
+
+        const isOnBehalf = paidByMemberId != null && Number(paidByMemberId) !== Number(memberId);
+        let forWhom = "your";
+        if (isOnBehalf) {
+            const beneficiaryRecords = await getMemberById(memberId);
+            const beneficiary = beneficiaryRecords[0];
+            const beneficiaryName = beneficiary ? `${beneficiary.first_name} ${beneficiary.last_name}` : `member #${memberId}`;
+            forWhom = `${beneficiaryName}'s`;
+        }
+
+        const amount = `$${totalPaid.toFixed(2)}`;
+        const subject = `Payment Successful: ${title}`;
+        const html = `<p>Hi ${payer.first_name ?? ""},</p><p>Your payment of <strong>${amount}</strong> for ${forWhom} <strong>${title}</strong> was successful.</p><p>Thank you!</p><p>— SDKB Portal</p>`;
+        const text = `Hi ${payer.first_name ?? ""},\n\nYour payment of ${amount} for ${forWhom} ${title} was successful.\n\nThank you!\n\n— SDKB Portal`;
+
+        await sendEmails([payer.email], subject, html, text);
+    } catch (emailErr) {
+        console.error("stripeWebhook: payment confirmation email error:", emailErr);
+    }
 }
 
 async function processPaymentIntent(memberId, paymentId, paidByMemberId) {
@@ -55,7 +86,7 @@ async function processPaymentIntent(memberId, paymentId, paidByMemberId) {
         const assignedRow = assignedResult.rows[0] ?? null;
 
         const paymentResult = await query(
-            `SELECT payment_value, overdue_penalty, due_date, has_submission FROM payments WHERE payment_id = $1`,
+            `SELECT title, payment_value, overdue_penalty, due_date, has_submission FROM payments WHERE payment_id = $1`,
             [paymentId]
         );
         if (paymentResult.rows.length === 0) {
@@ -102,6 +133,7 @@ async function processPaymentIntent(memberId, paymentId, paidByMemberId) {
         await query("COMMIT");
 
         console.log(`Payment ${paymentId} submitted successfully for member ${memberId}`);
+        await sendPaymentConfirmationEmail(memberId, paidByMemberId, paymentRow.title, totalPaid);
         return {
             statusCode: 200,
             headers: { "Content-Type": "application/json" },
