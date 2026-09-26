@@ -57,18 +57,21 @@ A full-stack member management portal for San Diego Kendo Bu, built on AWS serve
 | Table | Description |
 |---|---|
 | `events` | All dojo events (tournaments, shinsa, seminars, special events) |
-| `tournaments` / `shinsa_exams` / `seminars` / `special_events` | Event type detail rows |
-| `tournament_registrations` | Member → tournament event signups |
-| `shinsa_registrations` | Member → shinsa signups |
+| `tournaments` / `shinsa_exams` / `seminars` / `special_events` | Event type detail rows. Tournaments and shinsa both support `payment_required` — when set, payment options come from the tables below instead of the event's single `payment_id` |
+| `tournament_division_payments` | Payment options for a tournament (not tied to a specific division) — each optionally age-restricted (`age_restriction_type` + `age_limit`) |
+| `shinsa_payment_options` | Payment options for a shinsa, same shape as `tournament_division_payments` |
+| `tournament_registrations` | Member → tournament event signups; snapshots `age` and the resolved `payment_id` at signup time |
+| `shinsa_registrations` | Member → shinsa signups; snapshots `age` and the resolved `payment_id` at signup time |
 | `seminar_registrations` | Member → seminar signups |
 | `special_event_registrations` | Member → special event signups |
 | `payments` | Payment definitions (title, amount, due date, overdue penalty) |
-| `assigned_payments` | Payments assigned to specific members |
-| `submitted_payments` | Completed payment records (written by Stripe webhook) |
+| `assigned_payments` | Payments currently outstanding for specific members — a to-do list, not a ledger |
+| `submitted_payments` | Completed payment records, including `paid_by_member_id` when someone paid on another member's behalf (written by the Stripe webhook) |
 | `recurring_payments` | Recurring config linked to a template payment (interval, broadcast target, next_due_date, designated_parents) |
 | `announcements` | Announcement records (subject, body, attachments, target: `all`/`senseis`) |
 | `families` | Family group records (name) |
 | `family_members` | Family membership with `is_parent` flag |
+| `extra_broadcast_emails` | Admin-managed extra recipients (e.g. parents without their own member account) included in "all members" announcement broadcasts |
 | `tournament_results` | Placement records per tournament (FK → events, CASCADE delete) |
 
 **DynamoDB** (`members` table) stores member identity: name, rank, email, birthday, status, Stripe `customer_id`, Cognito `username`. GSIs: `username-index`, `email-index`, `dedup_key-index`.
@@ -108,8 +111,8 @@ infra/lambdas/
 │   ├── createPayment/         POST /payments (admin)
 │   ├── updatePayment/         PATCH /payments (admin)
 │   ├── removePayment/         DELETE /payments (admin)
-│   ├── createPaymentIntent/   POST /payments/intent — creates Stripe PaymentIntent
-│   └── clearOverduePayments/  scheduled — marks past-due assigned payments as overdue
+│   ├── createPaymentIntent/   POST /payments/intent — creates Stripe PaymentIntent; blocked during the payments-closed window (see Off-Hours)
+│   └── clearOverduePayments/  scheduled (daily) — deletes a payment (and its submitted_payments rows) once its due_date has passed AND no members still have it assigned
 ├── assigned_payments/
 │   ├── getAsgnPayment/        GET /assignedpayments
 │   ├── assignPayment/         POST /assignedpayments (admin)
@@ -135,7 +138,7 @@ infra/lambdas/
 │   ├── updateFamily/          PATCH /families (admin) — rename, add/remove members, set is_parent
 │   └── deleteFamily/          DELETE /families (admin)
 ├── webhooks/
-│   └── stripeWebhook/         POST /webhook — handles payment_intent.succeeded, writes submitted_payments
+│   └── stripeWebhook/         POST /webhook — handles payment_intent.succeeded; always records submitted_payments on a genuine Stripe success (not gated on assigned_payments still existing), then emails the payer a confirmation
 ├── rds/
 │   └── controlDb/             invoked by EventBridge Scheduler to start/stop RDS
 ├── psql/
@@ -145,7 +148,7 @@ infra/lambdas/
     ├── members.js             DynamoDB helpers (getMemberById, getAllMemberIds, getMemberIdByToken, etc.)
     ├── dates.js               UTC time helpers
     ├── normalize_claim.js     normalizes Cognito group claims across token types
-    └── mailer.js              SES email helper used by announcements and recurring payments
+    └── mailer.js              Gmail SMTP (nodemailer) email helper used by announcements, payment assignment/reminders, and payment confirmations
 ```
 
 ---
@@ -159,7 +162,7 @@ frontend/
 │   ├── pages/
 │   │   ├── Home.jsx           Top-level router — navbar, tab state, auth events
 │   │   ├── Overview.jsx       Landing page — upcoming events, pending payments, latest announcement
-│   │   ├── EventsSignup.jsx   Events list with registration + payment status per event
+│   │   ├── EventsSignup.jsx   Events list with registration + payment status per event; parents can register/pay on behalf of family members
 │   │   ├── Pay.jsx            Stripe payment form (Elements) — auto-opens for a specific payment
 │   │   ├── AnnouncementsView.jsx  Member-facing announcements feed
 │   │   ├── ResultsSummary.jsx Tournament results browser — grouped by year, open to all members
@@ -216,11 +219,16 @@ frontend/
 
 ## Payments (Stripe)
 
-1. Admin creates a payment and assigns it to members (individually or broadcast by group)
-2. Member clicks "Pay Now" → frontend calls `POST /payments/intent` → Lambda creates a Stripe `PaymentIntent` and returns `client_secret`
+1. Admin creates a payment and assigns it to members (individually, broadcast by group, or via a recurring template)
+2. Member clicks "Pay Now" → frontend calls `POST /payments/intent` → Lambda verifies the member has that payment assigned, then creates a Stripe `PaymentIntent` and returns `client_secret`. Blocked during the payments-closed window (see Off-Hours)
 3. Stripe Elements renders the payment form; on confirmation `payment_intent.succeeded` fires
-4. Stripe webhook (`POST /webhook`) writes to `submitted_payments` and marks the assignment complete
-5. Overdue penalty applied client-side based on `due_date`
+4. Stripe webhook (`POST /webhook`) writes to `submitted_payments` and deletes the `assigned_payments` row. The `submitted_payments` write happens on any genuine Stripe success — it is **not** conditional on `assigned_payments` still matching at that instant (that row can legitimately change in the meantime, e.g. an unregister/re-register), so a completed charge is never silently lost. The only true skip condition is a real duplicate delivery (the payment is already in `submitted_payments`)
+5. The payer (the parent if they paid on behalf of a family member, otherwise the member themselves) receives a confirmation email naming who the payment was for and the amount charged
+6. Overdue penalty is computed both client-side (preview, based on `due_date`) and server-side in the webhook (authoritative, stored on the `submitted_payments` row)
+
+**Paying for family members:** a parent can pay any payment assigned to their own family members from the same `Pay.jsx` list (scoped via `family_members`), not just their own. `paid_by_member_id` on `submitted_payments` records who actually paid when it differs from who owed it.
+
+**Age-gated multi-option payments:** tournaments and shinsa can require payment at signup with multiple options instead of the event's single generic `payment_id` — each option optionally restricted by age (`at_most` / `below` / `at_least`, via `tournament_division_payments` / `shinsa_payment_options`). At signup, the member only sees options they're currently eligible for; the resolved `payment_id` and their `age` are snapshotted onto the registration row.
 
 Stripe credentials and webhook secret stored in Secrets Manager.
 
@@ -228,12 +236,14 @@ Stripe credentials and webhook secret stored in Secrets Manager.
 
 ## Off-Hours
 
-RDS is stopped during off-hours via EventBridge schedules. The frontend `offHours.js` mirrors this per-day-of-week window — during off-hours, payment and event actions are blocked and an `OffHoursCard` is displayed instead.
+RDS is stopped during off-hours via EventBridge schedules (`database-stack.ts`). The frontend `offHours.js` mirrors this per-day-of-week window — during off-hours, payment and event actions are blocked and an `OffHoursCard` is displayed instead.
 
 | Day | Stop (PT) | Start (PT) |
 |---|---|---|
-| Weekdays (Mon–Fri) | 1:00 AM | 7:00 AM |
+| Weekdays (Mon–Fri) | 2:00 AM | 7:00 AM |
 | Weekends (Sat–Sun) | 2:00 AM | 5:00 AM |
+
+**Payments close earlier than general maintenance mode.** A checkout can be *initiated* while the DB is still up but not *finish* (Stripe confirmation + webhook) until after RDS actually stops — e.g. a declined card requiring a retry can stretch that gap by minutes. `isPaymentsClosed()` (`offHours.js` on the frontend, `shared_utils/dates.js` on the backend, enforced in `createPaymentIntent`) closes new payments at **midnight PT every day** — 2 hours ahead of the 2 AM stop, on both weekdays and weekends — rather than only at the general off-hours boundary above. Everything else (browsing, registering, admin actions) stays available until the general off-hours window starts.
 
 ---
 
@@ -262,6 +272,30 @@ ALTER TABLE recurring_payments ADD COLUMN IF NOT EXISTS designated_parents JSONB
 
 -- Family parent designation
 ALTER TABLE family_members ADD COLUMN IF NOT EXISTS is_parent BOOLEAN NOT NULL DEFAULT FALSE;
+
+-- Age-gated multi-option payments for tournaments
+ALTER TABLE tournaments ADD COLUMN IF NOT EXISTS payment_required BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE tournament_registrations ADD COLUMN IF NOT EXISTS age INTEGER;
+ALTER TABLE tournament_registrations ADD COLUMN IF NOT EXISTS payment_id BIGINT REFERENCES payments(payment_id) ON DELETE SET NULL;
+CREATE TABLE IF NOT EXISTS tournament_division_payments (
+    event_id BIGINT NOT NULL REFERENCES tournaments(event_id) ON DELETE CASCADE,
+    payment_id BIGINT NOT NULL REFERENCES payments(payment_id) ON DELETE CASCADE,
+    age_restriction_type TEXT,
+    age_limit INTEGER,
+    PRIMARY KEY (event_id, payment_id)
+);
+
+-- Age-gated multi-option payments for shinsa (same shape, for parity with tournaments)
+ALTER TABLE shinsa_exams ADD COLUMN IF NOT EXISTS payment_required BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE shinsa_registrations ADD COLUMN IF NOT EXISTS age INTEGER;
+ALTER TABLE shinsa_registrations ADD COLUMN IF NOT EXISTS payment_id BIGINT REFERENCES payments(payment_id) ON DELETE SET NULL;
+CREATE TABLE IF NOT EXISTS shinsa_payment_options (
+    event_id BIGINT NOT NULL REFERENCES shinsa_exams(event_id) ON DELETE CASCADE,
+    payment_id BIGINT NOT NULL REFERENCES payments(payment_id) ON DELETE CASCADE,
+    age_restriction_type TEXT,
+    age_limit INTEGER,
+    PRIMARY KEY (event_id, payment_id)
+);
 ```
 
 ---
@@ -272,5 +306,5 @@ ALTER TABLE family_members ADD COLUMN IF NOT EXISTS is_parent BOOLEAN NOT NULL D
 |---|---|---|
 | RDS admin credentials | Secrets Manager (`rds-db-creds`) | `username`, `password` |
 | App DB credentials | Secrets Manager (`rds-db-creds`) | `PGUSER`, `PGPASSWORD`, `PGDATABASE` |
-| Stripe keys | Secrets Manager (per `SECRET_ID` env var) | `STRIPE_TEST_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` |
-| Gmail credentials | Secrets Manager (per `GMAIL_SECRET_ID` env var) | `GMAIL_USER`, `GMAIL_APP_PASSWORD` |
+| Stripe keys | Secrets Manager (per `SECRET_ID`/`PK_SECRET_ID` env vars) | `STRIPE_PROD_SECRET_KEY`, `STRIPE_PROD_PUBLISHABLE_KEY`, `STRIPE_PROD_WEBHOOK_SECRET` |
+| Gmail credentials | Secrets Manager (per `GMAIL_SECRET_ID` env var) | `GMAIL_USER`, `GMAIL_APP_PASSWORD` — now also granted to `stripeWebhookLambda` for payment confirmation emails |
