@@ -62,6 +62,8 @@ CREATE TABLE IF NOT EXISTS shinsa_registrations (
     member_id BIGINT NOT NULL,
     registration_date TIMESTAMPTZ NOT NULL,
     testing_for TEXT NOT NULL,
+    weight NUMERIC,
+    height NUMERIC,
     age INTEGER,
     payment_id BIGINT REFERENCES payments(payment_id) ON DELETE SET NULL,
     PRIMARY KEY (event_id, member_id)

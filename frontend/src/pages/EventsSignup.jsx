@@ -108,6 +108,7 @@ function SignUpForm({ ev, config, member, selfId, targetOptions, familyMembersIn
   const [testingFor, setTestingFor] = useState('');
   const [divisionError, setDivisionError] = useState(false);
   const [paymentError, setPaymentError] = useState(false);
+  const [weightHeightError, setWeightHeightError] = useState(false);
   const [selectedPaymentId, setSelectedPaymentId] = useState('');
   const [weightLbs, setWeightLbs] = useState('');
   const [heightFt, setHeightFt] = useState('');
@@ -156,12 +157,17 @@ function SignUpForm({ ev, config, member, selfId, targetOptions, familyMembersIn
       setDivisionError(true);
       return;
     }
+    if (ev.type === 'shinsa' && (!weightLbs || !(heightFt || heightIn))) {
+      setWeightHeightError(true);
+      return;
+    }
     if (ev.type === 'shinsa' && config?.payment_required && !selectedPaymentId) {
       setPaymentError(true);
       return;
     }
     setDivisionError(false);
     setPaymentError(false);
+    setWeightHeightError(false);
     const extra = {};
     if (ev.type === 'tournament') {
       extra.divisions = divisions;
@@ -175,6 +181,8 @@ function SignUpForm({ ev, config, member, selfId, targetOptions, familyMembersIn
       if (config?.payment_required) extra.payment_id = selectedPaymentId;
     } else if (ev.type === 'shinsa') {
       extra.testing_for = testingFor;
+      extra.weight = parseFloat(weightLbs);
+      extra.height = parseInt(heightFt || 0) * 12 + parseInt(heightIn || 0);
       extra.age = age;
       if (config?.payment_required) extra.payment_id = selectedPaymentId;
     }
@@ -332,6 +340,19 @@ function SignUpForm({ ev, config, member, selfId, targetOptions, familyMembersIn
                 </div>
               )}
             </>
+          )}
+          <label className={styles.label}>Weight (lbs)</label>
+          <input className={styles.input} type="number" min="0" placeholder="e.g. 150"
+            value={weightLbs} onChange={e => { setWeightLbs(e.target.value); setWeightHeightError(false); }} />
+          <label className={styles.label}>Height</label>
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <input className={styles.input} type="number" min="0" max="8" placeholder="ft"
+              value={heightFt} onChange={e => { setHeightFt(e.target.value); setWeightHeightError(false); }} style={{ flex: 1 }} />
+            <input className={styles.input} type="number" min="0" max="11" placeholder="in"
+              value={heightIn} onChange={e => { setHeightIn(e.target.value); setWeightHeightError(false); }} style={{ flex: 1 }} />
+          </div>
+          {weightHeightError && (
+            <span className={styles.fieldError}>Weight and height are required.</span>
           )}
         </>
       )}

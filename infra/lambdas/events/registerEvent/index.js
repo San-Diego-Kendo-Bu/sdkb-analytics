@@ -164,6 +164,16 @@ exports.handler = async (event) => {
             const testingFor = parameters.testing_for;
             const selectedPaymentId = parameters.payment_id ?? null;
             let age = parameters.age ?? null;
+            const weight = parameters.weight ?? null;
+            const height = parameters.height ?? null;
+
+            if (!(parseFloat(weight) > 0) || !(parseFloat(height) > 0)) {
+                return {
+                    statusCode: 400,
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ error: "Weight and height are required to sign up for a shinsa." })
+                };
+            }
 
             const shinsaResult = await query(
                 `SELECT payment_required FROM shinsa_exams WHERE event_id = $1 LIMIT 1`,
@@ -213,12 +223,12 @@ exports.handler = async (event) => {
             const result = await query(
                 `
                 INSERT INTO ${SHINSA_REGISTRATION_TABLE} (
-                    event_id, member_id, registration_date, testing_for, age, payment_id
+                    event_id, member_id, registration_date, testing_for, weight, height, age, payment_id
                 )
-                VALUES ($1, $2, $3, $4, $5, $6)
-                RETURNING event_id, member_id, registration_date, testing_for, age, payment_id
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                RETURNING event_id, member_id, registration_date, testing_for, weight, height, age, payment_id
                 `,
-                [eventId, memberId, registeredDate, testingFor, age, resolvedPaymentId]
+                [eventId, memberId, registeredDate, testingFor, weight, height, age, resolvedPaymentId]
             );
             registrationData = result.rows[0];
 
