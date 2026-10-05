@@ -384,7 +384,7 @@ export default function Profile() {
                         <div key={i} className={styles.tooltipRow}>
                           <span className={styles.tooltipName}>{ev.name}</span>
                           <span className={styles.tooltipDate}>
-                            {new Date(ev.date).toLocaleDateString('en-US', { timeZone: 'UTC', month: 'short', day: 'numeric' })}
+                            {new Date(ev.date).toLocaleDateString('en-US', { timeZone: 'America/Los_Angeles', month: 'short', day: 'numeric' })}
                           </span>
                         </div>
                       ))}
@@ -433,7 +433,7 @@ export default function Profile() {
                       {r.division}
                       {r.is_teams ? ' · Team' : ''}
                       {' · '}
-                      {new Date(r.event_date).toLocaleDateString('en-US', { timeZone: 'UTC', year: 'numeric', month: 'short', day: 'numeric' })}
+                      {new Date(r.event_date).toLocaleDateString('en-US', { timeZone: 'America/Los_Angeles', year: 'numeric', month: 'short', day: 'numeric' })}
                     </span>
                   </div>
                 </div>

@@ -14,13 +14,16 @@ exports.handler = async () => {
                   AND p.due_date >= NOW() + INTERVAL '3 days'
                   AND p.due_date <  NOW() + INTERVAL '4 days'
             `),
-            // Overdue: every 3 days after the due date
+            // Overdue: every 3 days after the due date. CURRENT_DATE depends on the session's
+            // timezone (UTC here), which flips to the next calendar day hours before the dojo's
+            // own Pacific midnight — using the Pacific calendar date instead keeps "today" in
+            // sync with when the dojo actually considers a payment overdue.
             query(`
                 SELECT ap.member_id, p.title, p.due_date, p.payment_value
                 FROM assigned_payments ap
                 JOIN payments p ON ap.payment_id = p.payment_id
-                WHERE (CURRENT_DATE - p.due_date::date) > 0
-                  AND (CURRENT_DATE - p.due_date::date) % 3 = 0
+                WHERE ((NOW() AT TIME ZONE 'America/Los_Angeles')::date - p.due_date::date) > 0
+                  AND ((NOW() AT TIME ZONE 'America/Los_Angeles')::date - p.due_date::date) % 3 = 0
             `),
         ]);
 

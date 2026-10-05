@@ -270,7 +270,7 @@ function RecordTab({ pastEvents, members }) {
           <option value="">— Select a tournament —</option>
           {pastEvents.map(e => (
             <option key={e.event_id} value={e.event_id}>
-              {e.event_name} ({new Date(e.event_date).toLocaleDateString('en-US', { timeZone: 'UTC' })})
+              {e.event_name} ({new Date(e.event_date).toLocaleDateString('en-US', { timeZone: 'America/Los_Angeles' })})
             </option>
           ))}
         </select>
@@ -424,7 +424,7 @@ function HistoryTab({ historyEvents }) {
               <div style={S.historyHeader} onClick={() => toggleEvent(e.event_id)}>
                 <span style={{ fontWeight: 600 }}>{e.event_name}</span>
                 <span style={{ color: '#aaa', fontSize: '0.85rem' }}>
-                  {new Date(e.event_date).toLocaleDateString('en-US', { timeZone: 'UTC' })}
+                  {new Date(e.event_date).toLocaleDateString('en-US', { timeZone: 'America/Los_Angeles' })}
                   {' '}{isOpen ? '▲' : '▼'}
                 </span>
               </div>

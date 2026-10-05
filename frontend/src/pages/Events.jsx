@@ -56,19 +56,24 @@ function compareEvents(a, b) {
   return aPast ? -diff : diff;
 }
 
+// Event dates/deadlines are stored as the real UTC instant corresponding to the Pacific
+// wall-clock time an admin picked (see toIso below) — so displaying them has to convert back
+// to Pacific, not show the raw UTC digits, or they'll look shifted by the UTC offset.
+const EVENT_TZ = 'America/Los_Angeles';
+
 function formatDateBadge(iso) {
   const d = new Date(iso);
   return {
-    day: d.getUTCDate(),
-    month: d.toLocaleString('en-US', { month: 'short', timeZone: 'UTC' }).toUpperCase(),
+    day: new Intl.DateTimeFormat('en-US', { day: 'numeric', timeZone: EVENT_TZ }).format(d),
+    month: d.toLocaleString('en-US', { month: 'short', timeZone: EVENT_TZ }).toUpperCase(),
   };
 }
 
 function formatDateRange(start, end, location) {
   const s = new Date(start);
   const e = end ? new Date(end) : null;
-  const dateOpts = { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' };
-  const timeOpts = { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'UTC' };
+  const dateOpts = { day: 'numeric', month: 'short', year: 'numeric', timeZone: EVENT_TZ };
+  const timeOpts = { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: EVENT_TZ };
   const startDateStr = s.toLocaleDateString('en-GB', dateOpts);
   const startTimeStr = s.toLocaleTimeString('en-GB', timeOpts);
   if (e && e.toUTCString().slice(0, 16) !== s.toUTCString().slice(0, 16)) {
@@ -81,17 +86,46 @@ function formatDateRange(start, end, location) {
 
 function formatDateTime(iso) {
   const d = new Date(iso);
-  const dateOpts = { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' };
-  const timeOpts = { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'UTC' };
+  const dateOpts = { day: 'numeric', month: 'short', year: 'numeric', timeZone: EVENT_TZ };
+  const timeOpts = { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: EVENT_TZ };
   return `${d.toLocaleDateString('en-GB', dateOpts)} · ${d.toLocaleTimeString('en-GB', timeOpts)}`;
 }
 
+// The dojo and everyone using this admin panel are always Pacific time, regardless of where
+// an admin's browser happens to be — so these convert against America/Los_Angeles explicitly,
+// not the browser's own local timezone (which would give wrong results for a traveling admin).
+function pacificOffsetMinutesAt(utcInstant) {
+  const part = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Los_Angeles',
+    timeZoneName: 'shortOffset',
+  }).formatToParts(utcInstant).find(p => p.type === 'timeZoneName')?.value ?? 'GMT-8';
+  const match = part.match(/GMT([+-]\d+)/);
+  const offsetHours = match ? parseInt(match[1], 10) : -8;
+  return offsetHours * 60;
+}
+
 function toInputValue(iso) {
-  return iso ? iso.slice(0, 16) : '';
+  if (!iso) return '';
+  const d = new Date(iso);
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Los_Angeles',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', hour12: false,
+  }).formatToParts(d);
+  const get = type => parts.find(p => p.type === type)?.value;
+  let hour = get('hour');
+  if (hour === '24') hour = '00';
+  return `${get('year')}-${get('month')}-${get('day')}T${hour}:${get('minute')}`;
 }
 
 function toIso(inputValue) {
-  return inputValue ? inputValue + ':00Z' : null;
+  if (!inputValue) return null;
+  // inputValue is "YYYY-MM-DDTHH:mm" wall-clock digits meant as Pacific time. Treat them as
+  // UTC first just to get a rough instant, find Pacific's real offset around that instant
+  // (handles DST automatically), then shift by that offset to get the actual UTC instant.
+  const naiveUtc = new Date(inputValue + ':00.000Z');
+  const offsetMin = pacificOffsetMinutesAt(naiveUtc);
+  return new Date(naiveUtc.getTime() - offsetMin * 60000).toISOString();
 }
 
 function PaymentOptionsFields({ form, setForm, availablePayments = [] }) {

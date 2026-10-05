@@ -3,7 +3,7 @@ import { loadStripe } from '@stripe/stripe-js';
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { userManager } from '../js/cognitoManager';
 import styles from '../../css/pay.module.css';
-import { isOffHours, OFF_HOURS_MSG, isPaymentsClosed, PAYMENTS_CLOSED_MSG } from '../js/offHours';
+import { isOffHours, OFF_HOURS_MSG, isPaymentsClosed, PAYMENTS_CLOSED_MSG, pacificToday } from '../js/offHours';
 import OffHoursCard from '../react_components/OffHoursCard';
 
 const BASE_URL = 'https://qh3c0tz6s9.execute-api.us-east-2.amazonaws.com';
@@ -264,7 +264,7 @@ export default function Pay({ autoPaymentId, onAutoPayConsumed }) {
       ) : (
         assignedPayments.map(p => {
           const isThisOne = payingId === payingKey(p);
-          const isOverdue = p.due_date ? new Date().toISOString().slice(0, 10) > p.due_date.slice(0, 10) : p.due_status === 'overdue';
+          const isOverdue = p.due_date ? pacificToday() > p.due_date.slice(0, 10) : p.due_status === 'overdue';
           const statusLabel = isOverdue ? 'overdue' : 'due';
           const showOwner = scopeIdsRef.current.length > 1;
           const ownerName = Number(p.member_id) === Number(memberIdRef.current)

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { userManager } from '../js/cognitoManager';
 import { mapWithConcurrency } from '../js/shared/concurrency';
 import { fetchJsonSafe } from '../js/shared/fetchSafe';
+import { pacificToday, pacificDateString } from '../js/offHours';
 
 const BASE_URL = 'https://qh3c0tz6s9.execute-api.us-east-2.amazonaws.com';
 const MEMBERS_API = `${BASE_URL}/members`;
@@ -45,8 +46,12 @@ const S = {
   annBody: { fontSize: '0.85rem', color: '#bbb', lineHeight: 1.5, display: '-webkit-box', WebkitLineClamp: 4, WebkitBoxOrient: 'vertical', overflow: 'hidden', whiteSpace: 'pre-wrap' },
 };
 
-function formatDate(iso) {
-  return new Date(iso).toLocaleDateString('en-US', { timeZone: 'UTC', month: 'short', day: 'numeric', year: 'numeric' });
+// event_date/created_at are stored as the real UTC instant for a Pacific wall-clock time, so
+// they display correctly only when converted back to Pacific. due_date is different — it's
+// stored as UTC midnight of the picked day on purpose (see Payments.jsx), so its UTC digits
+// already ARE the intended day; call formatDate(p.due_date, 'UTC') for that one.
+function formatDate(iso, timeZone = 'America/Los_Angeles') {
+  return new Date(iso).toLocaleDateString('en-US', { timeZone, month: 'short', day: 'numeric', year: 'numeric' });
 }
 
 const REGISTRATION_TYPE_ENDPOINTS = [
@@ -103,7 +108,7 @@ export default function Overview({ onNavigate }) {
       const specialEventData = specialEventR.data ?? { body: [] };
 
       const mid = Number(memberId);
-      const todayStr = new Date().toISOString().slice(0, 10);
+      const todayStr = pacificToday();
 
       const eventMap = Object.fromEntries((evData.body ?? []).map(e => [String(e.event_id), e]));
 
@@ -118,7 +123,7 @@ export default function Overview({ onNavigate }) {
         .map(r => {
           const ev = eventMap[String(r.event_id)];
           if (!ev) return null;
-          return { ...ev, type: r.type, dateStr: new Date(ev.event_date).toISOString().slice(0, 10) };
+          return { ...ev, type: r.type, dateStr: pacificDateString(new Date(ev.event_date)) };
         })
         .filter(ev => ev && ev.dateStr >= todayStr)
         .sort((a, b) => a.dateStr.localeCompare(b.dateStr));
@@ -166,7 +171,7 @@ export default function Overview({ onNavigate }) {
     );
   }
 
-  const todayStr = new Date().toISOString().slice(0, 10);
+  const todayStr = pacificToday();
 
   return (
     <div style={S.page}>
@@ -243,7 +248,7 @@ export default function Overview({ onNavigate }) {
                     </div>
                     {p.due_date && (
                       <div style={S.payDue(isOverdue)}>
-                        Due {formatDate(p.due_date)}
+                        Due {formatDate(p.due_date, 'UTC')}
                       </div>
                     )}
                   </div>

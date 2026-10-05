@@ -139,7 +139,7 @@ export default function ResultsSummary() {
                       <div style={S.eventHeader} onClick={() => toggleEvent(eid)}>
                         <span style={{ fontWeight: 600, fontSize: '0.95rem' }}>{e.event_name}</span>
                         <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
-                          {new Date(e.event_date).toLocaleDateString('en-US', { timeZone: 'UTC', month: 'short', day: 'numeric' })}
+                          {new Date(e.event_date).toLocaleDateString('en-US', { timeZone: 'America/Los_Angeles', month: 'short', day: 'numeric' })}
                           {' · '}{rows.length} entr{rows.length !== 1 ? 'ies' : 'y'}
                           {' '}{isEventOpen ? '▲' : '▼'}
                         </span>

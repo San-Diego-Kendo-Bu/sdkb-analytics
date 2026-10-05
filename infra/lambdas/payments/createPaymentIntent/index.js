@@ -1,7 +1,7 @@
 const { SecretsManagerClient, GetSecretValueCommand } = require("@aws-sdk/client-secrets-manager");
 const { getMemberById } = require("../../shared_utils/members");
 const { resolveActingMemberId, canActFor } = require("../../shared_utils/families");
-const { isPaymentsClosed } = require("../../shared_utils/dates");
+const { isPaymentsClosed, getPacificDateString } = require("../../shared_utils/dates");
 const { query } = require("../../shared_utils/db");
 const Stripe = require("stripe");
 
@@ -97,7 +97,7 @@ exports.handler = async (event) => {
         }
 
         const { payment_value, overdue_penalty, due_date } = paymentResult.rows[0];
-        const todayStr = new Date().toISOString().slice(0, 10);
+        const todayStr = getPacificDateString();
         const dueDateStr = due_date ? new Date(due_date).toISOString().slice(0, 10) : '';
         const isOverdue = !!dueDateStr && todayStr > dueDateStr;
         const total = parseFloat(payment_value) + (isOverdue ? parseFloat(overdue_penalty ?? 0) : 0);

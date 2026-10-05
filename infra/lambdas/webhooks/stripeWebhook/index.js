@@ -1,5 +1,5 @@
 const { SecretsManagerClient, GetSecretValueCommand } = require("@aws-sdk/client-secrets-manager");
-const { getCurrentTimeUTC } = require("../../shared_utils/dates");
+const { getCurrentTimeUTC, getPacificDateString } = require("../../shared_utils/dates");
 const { verifyMemberExists, getMemberById } = require("../../shared_utils/members");
 const { sendEmails } = require("../../shared_utils/mailer");
 const { query } = require("../../shared_utils/db");
@@ -103,7 +103,7 @@ async function processPaymentIntent(memberId, paymentId, paidByMemberId) {
             );
         }
 
-        const submittedDateStr = new Date(submittedOn).toISOString().slice(0, 10);
+        const submittedDateStr = getPacificDateString(new Date(submittedOn));
         const dueDateStr = paymentRow.due_date ? new Date(paymentRow.due_date).toISOString().slice(0, 10) : '';
         const overdue = !!dueDateStr && submittedDateStr > dueDateStr;
         const totalPaid = parseFloat(paymentRow.payment_value) + (overdue ? parseFloat(paymentRow.overdue_penalty ?? 0) : 0);

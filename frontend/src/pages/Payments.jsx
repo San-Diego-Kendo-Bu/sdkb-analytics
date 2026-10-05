@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { userManager } from '../js/cognitoManager';
 import PaymentEntry from '../react_components/PaymentEntry';
 import styles from '../../css/paymentpage.module.css';
-import { isOffHours, OFF_HOURS_MSG } from '../js/offHours';
+import { isOffHours, OFF_HOURS_MSG, pacificToday } from '../js/offHours';
 import OffHoursCard from '../react_components/OffHoursCard';
 
 const BASE_URL = 'https://qh3c0tz6s9.execute-api.us-east-2.amazonaws.com';
@@ -118,7 +118,7 @@ function Payments() {
 
   const filtered = payments
     .filter(p => {
-      const isPast = p.due_date ? new Date().toISOString().slice(0, 10) > p.due_date.slice(0, 10) : false;
+      const isPast = p.due_date ? pacificToday() > p.due_date.slice(0, 10) : false;
       const matchFilter = filter === 'All' || (filter === 'Past' ? isPast : !isPast);
       return matchFilter && p.title.toLowerCase().includes(search.toLowerCase());
     })
@@ -193,7 +193,7 @@ function Payments() {
   function handleAssign(payment) {
     if (isOffHours()) { setError(OFF_HOURS_MSG); return; }
     if (!assignMemberId) return;
-    const due_status = payment.due_date && new Date().toISOString().slice(0, 10) > payment.due_date.slice(0, 10) ? 'overdue' : 'due';
+    const due_status = payment.due_date && pacificToday() > payment.due_date.slice(0, 10) ? 'overdue' : 'due';
     const selectedMemberId = assignMemberId;
     const member = members.find(m => String(m.member_id) === String(selectedMemberId));
     const memberName = member ? `${member.first_name} ${member.last_name}` : `Member #${selectedMemberId}`;

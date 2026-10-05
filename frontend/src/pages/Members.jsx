@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { userManager } from '../js/cognitoManager';
+import { pacificToday, pacificDateString } from '../js/offHours';
 import styles from '../../css/members.module.css';
 
 const BASE_URL = 'https://qh3c0tz6s9.execute-api.us-east-2.amazonaws.com';
@@ -143,10 +144,10 @@ function FilterToggle({ showAll, onToggle }) {
 
 function EventsTab({ bins, memberMap, onSelect }) {
   const [showAll, setShowAll] = useState(false);
-  const today = new Date().toISOString().slice(0, 10);
+  const today = pacificToday();
   const visible = showAll
     ? bins
-    : bins.filter(({ event }) => !event.event_date || event.event_date.slice(0, 10) >= today);
+    : bins.filter(({ event }) => !event.event_date || pacificDateString(new Date(event.event_date)) >= today);
 
   if (bins.length === 0) {
     return <p className="text-muted mt-3">No event signups yet.</p>;
@@ -169,7 +170,7 @@ function EventsTab({ bins, memberMap, onSelect }) {
                   {event.event_date && (
                     <span className={styles.eventDate}>
                       {new Date(event.event_date).toLocaleDateString('en-US', {
-                        timeZone: 'UTC', month: 'short', day: 'numeric', year: 'numeric',
+                        timeZone: 'America/Los_Angeles', month: 'short', day: 'numeric', year: 'numeric',
                       })}
                     </span>
                   )}
@@ -218,7 +219,7 @@ function UnassignableTag({ label, color, bg, onUnassign }) {
 
 function PaymentsTab({ bins, onUnassign }) {
   const [showAll, setShowAll] = useState(false);
-  const today = new Date().toISOString().slice(0, 10);
+  const today = pacificToday();
   const visible = showAll
     ? bins
     : bins.filter(({ payment, assigned }) => {
@@ -910,7 +911,7 @@ export default function Members() {
             .map(a => ({
               ...a,
               member: memberMap[String(a.member_id)],
-              isOverdue: p.due_date ? new Date().toISOString().slice(0, 10) > p.due_date.slice(0, 10) : a.due_status === 'overdue',
+              isOverdue: p.due_date ? pacificToday() > p.due_date.slice(0, 10) : a.due_status === 'overdue',
             }));
           const mySubmitted = submitted
             .filter(s => String(s.payment_id) === String(p.payment_id))

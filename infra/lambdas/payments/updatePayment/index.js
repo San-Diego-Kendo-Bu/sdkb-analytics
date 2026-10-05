@@ -69,7 +69,7 @@ exports.handler = async (event) => {
 
         const paymentCheck = await query(
             `
-            SELECT has_submission
+            SELECT has_submission, payment_value, overdue_penalty
             FROM payments
             WHERE payment_id = $1
             `,
@@ -84,13 +84,29 @@ exports.handler = async (event) => {
             };
         }
 
-        const hasSub = paymentCheck.rows[0].has_submission;
-        if (hasSub) {
+        // Once someone has paid, the amount and overdue penalty are frozen — changing them
+        // now would create inconsistent pricing between whoever already paid and whoever
+        // hasn't yet. The due date and other details aren't money-sensitive the same way,
+        // so they stay editable even after a submission exists (e.g. to extend the deadline
+        // for stragglers on a payment others have already settled).
+        //
+        // The admin form always resubmits payment_value/overdue_penalty alongside whatever
+        // actually changed (it's a "save the whole form" UI, not a diff), so presence alone
+        // can't tell us intent — compare against the currently stored value instead, and only
+        // block when the request would actually change one of them.
+        const current = paymentCheck.rows[0];
+        const hasSub = current.has_submission;
+        const requestedValue = payload.payment_value !== null ? parseFloat(payload.payment_value) : null;
+        const requestedPenalty = payload.overdue_penalty !== null ? parseFloat(payload.overdue_penalty) : null;
+        const valueChanged = requestedValue !== null && requestedValue !== parseFloat(current.payment_value);
+        const penaltyChanged = requestedPenalty !== null && requestedPenalty !== (current.overdue_penalty != null ? parseFloat(current.overdue_penalty) : null);
+        const changingLockedFields = valueChanged || penaltyChanged;
+        if (hasSub && changingLockedFields) {
             return {
                 statusCode: 400,
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    error: "Could not update payment: a submission has already been made to this payment."
+                    error: "Could not update the amount or overdue penalty: a submission has already been made to this payment. The due date and other details can still be changed."
                 })
             };
         }

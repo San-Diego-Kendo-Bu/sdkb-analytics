@@ -44,3 +44,21 @@ export function paymentsClosedMessage() {
 }
 
 export const PAYMENTS_CLOSED_MSG = paymentsClosedMessage();
+
+// "Today" for due-date/overdue comparisons needs to be the dojo's own calendar day (Pacific),
+// not UTC's. UTC rolls over to the next calendar date at 5pm PDT / 4pm PST — comparing against
+// new Date().toISOString().slice(0, 10) made everything look overdue several hours early, every
+// single evening, in the dojo's own timezone. Pass an explicit Date to get ITS Pacific calendar
+// day instead of today's — e.g. to find what Pacific day an event's real datetime falls on.
+export function pacificDateString(date = new Date()) {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Los_Angeles',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+  }).formatToParts(date);
+  const get = type => parts.find(p => p.type === type)?.value;
+  return `${get('year')}-${get('month')}-${get('day')}`;
+}
+
+export function pacificToday() {
+  return pacificDateString();
+}

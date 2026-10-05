@@ -1,5 +1,6 @@
 const { query } = require("../../shared_utils/db");
 const { normalizeGroups } = require("../../shared_utils/normalize_claim");
+const { getPacificDateString } = require("../../shared_utils/dates");
 
 const EVENTS_TABLE = "events";
 const FIELDS = [
@@ -159,7 +160,7 @@ exports.handler = async (event) => {
                 [payload.payment_id]
             );
             const dueDate = paymentResult.rows[0]?.due_date;
-            const todayStr = new Date().toISOString().slice(0, 10);
+            const todayStr = getPacificDateString();
             const dueDateStr = dueDate ? new Date(dueDate).toISOString().slice(0, 10) : null;
             const dueStatus = dueDateStr && todayStr > dueDateStr ? 'overdue' : 'due';
             const now = new Date().toISOString();

@@ -1,5 +1,6 @@
 import paymentStyles from '../../css/paymentpage.module.css';
 import {extractDate, getMonthAbreviation} from '/src/js/shared/dateTools';
+import { pacificToday } from '../js/offHours';
 function PaymentEntry({id,title,created_at,due_date,payment_value,overdue_penalty,is_dojo_due,actions}){
 
     const dueDateObj = extractDate(due_date);
@@ -7,7 +8,7 @@ function PaymentEntry({id,title,created_at,due_date,payment_value,overdue_penalt
     const monthAbreviation = getMonthAbreviation(dueDateObj.month);
     const numPayment = Number(payment_value);
     const numPenalty = overdue_penalty != null ? Number(overdue_penalty) : null;
-    const isOverdue = due_date ? new Date().toISOString().slice(0, 10) > due_date.slice(0, 10) : false;
+    const isOverdue = due_date ? pacificToday() > due_date.slice(0, 10) : false;
     const total = isOverdue && numPenalty ? numPayment + numPenalty : numPayment;
 
     return(

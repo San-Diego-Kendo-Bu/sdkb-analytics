@@ -2,6 +2,7 @@ const { query } = require("../../shared_utils/db");
 const { getAllMembers } = require("../../shared_utils/members");
 const { normalizeGroups } = require("../../shared_utils/normalize_claim");
 const { sendEmails } = require("../../shared_utils/mailer");
+const { getPacificDateString } = require("../../shared_utils/dates");
 
 function calcAge(birthday) {
     if (!birthday) return null;
@@ -64,7 +65,7 @@ exports.handler = async (event) => {
         }
         const payment = paymentResult.rows[0];
 
-        const todayStr = new Date().toISOString().slice(0, 10);
+        const todayStr = getPacificDateString();
         const dueDateStr10 = payment.due_date ? new Date(payment.due_date).toISOString().slice(0, 10) : null;
         const dueStatus = dueDateStr10 && todayStr > dueDateStr10 ? "overdue" : "due";
 

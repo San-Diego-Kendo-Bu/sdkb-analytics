@@ -47,4 +47,18 @@ function isPaymentsClosed(){
     return hour < (isWeekend ? 5 : 7);
 }
 
-module.exports = { getTodayDate, getCurrentTimeUTC, calcAge, isPaymentsClosed }
+// "Today" for due-date/overdue comparisons needs to be the dojo's own calendar day (Pacific),
+// not UTC's. UTC rolls over to the next calendar date at 5pm PDT / 4pm PST — comparing against
+// a UTC-based "today" made payments look overdue several hours early every single evening,
+// in the dojo's own timezone. `date` defaults to now; pass an explicit instant (e.g. the
+// moment a payment was submitted) to get that instant's Pacific calendar date instead.
+function getPacificDateString(date = new Date()){
+    const parts = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'America/Los_Angeles',
+        year: 'numeric', month: '2-digit', day: '2-digit',
+    }).formatToParts(date);
+    const get = (type) => parts.find(p => p.type === type)?.value;
+    return `${get('year')}-${get('month')}-${get('day')}`;
+}
+
+module.exports = { getTodayDate, getCurrentTimeUTC, calcAge, isPaymentsClosed, getPacificDateString }

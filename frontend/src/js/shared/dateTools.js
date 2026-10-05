@@ -23,30 +23,35 @@ function getCurrentTimeUTC(){
     return `${year}-${month}-${day} ${hour}:${minute}:${second}`;
 }
 
+// Dates like due_date/created_at are stored as UTC midnight of the intended calendar day
+// (see Payments.jsx's toIsoDate) — the UTC digits ARE the intended day. Reading them back with
+// the local getters (getDate(), getMonth(), ...) reinterprets those digits in the viewer's own
+// timezone instead, which rolls the displayed day back by one for anyone west of UTC (e.g.
+// Pacific). The UTC getters read the stored digits back literally, independent of the viewer.
 export function tzToMMDDYYY(tzString){
     const date = new Date(tzString);
-    const month = date.getMonth() + 1;
-    const day = date.getDate();
-    const year = date.getFullYear();
-    const hours = date.getHours();
-    const minutes = date.getMinutes();
+    const month = date.getUTCMonth() + 1;
+    const day = date.getUTCDate();
+    const year = date.getUTCFullYear();
+    const hours = date.getUTCHours();
+    const minutes = date.getUTCMinutes();
     return `
-        ${month < 10 ? '0' + month : month}/${day < 10 ? '0' + day : day}/${year}  
+        ${month < 10 ? '0' + month : month}/${day < 10 ? '0' + day : day}/${year}
         ${hours < 10 ? '0' + hours : hours}:${minutes < 10 ? '0' + minutes : minutes}
     `;
 }
 
 export function extractDate(tzString){
     const date = new Date(tzString);
-    const month = date.getMonth() + 1;
-    const day = date.getDate();
-    const year = date.getFullYear();
+    const month = date.getUTCMonth() + 1;
+    const day = date.getUTCDate();
+    const year = date.getUTCFullYear();
     return {
         year: year,
         month: month < 10 ? '0' + month : month,
         day: day < 10 ? '0' + day : day,
-        hours: date.getHours(),
-        minutes: date.getMinutes()
+        hours: date.getUTCHours(),
+        minutes: date.getUTCMinutes()
     };
 }
 
