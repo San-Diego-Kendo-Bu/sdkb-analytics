@@ -349,7 +349,7 @@ export default function Pay({ autoPaymentId, onAutoPayConsumed }) {
           onClick={() => setShowCompleted(s => !s)}
         >
           <span>{showCompleted ? '▲' : '▼'}</span>
-          Completed Payments ({completedPayments.length})
+          Most Recent Payments ({completedPayments.length})
         </button>
 
         {showCompleted && (
