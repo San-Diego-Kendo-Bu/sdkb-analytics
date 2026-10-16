@@ -162,6 +162,12 @@ export class ServiceStack extends Stack {
       ...commonNodejs,
     });
 
+    const getEventCarpoolsLambda = new NodejsFunction(this, "GetEventCarpoolsLambda", {
+      entry: path.join(__dirname, "../../lambdas/events/getEventCarpools/index.js"),
+      handler: "handler",
+      ...commonNodejs,
+    });
+
     const getTournamentRegistrationsLambda = new NodejsFunction(this, "GetTournamentRegistrationsLambda", {
       entry: path.join(__dirname, "../../lambdas/events/getTournamentRegistrations/index.js"),
       handler: "handler",
@@ -280,6 +286,12 @@ export class ServiceStack extends Stack {
 
     const clearPastSpecialEventsLambda = new NodejsFunction(this, "ClearPastSpecialEventsLambda", {
       entry: path.join(__dirname, "../../lambdas/events/clearPastSpecialEvents/index.js"),
+      handler: "handler",
+      ...commonNodejs,
+    });
+
+    const clearPastEventCarpoolsLambda = new NodejsFunction(this, "ClearPastEventCarpoolsLambda", {
+      entry: path.join(__dirname, "../../lambdas/events/clearPastEventCarpools/index.js"),
       handler: "handler",
       ...commonNodejs,
     });
@@ -496,9 +508,11 @@ export class ServiceStack extends Stack {
     props.databaseStack.grantDatabaseAccess(updateEventLambda);
     props.databaseStack.grantDatabaseAccess(removeEventLambda);
     props.databaseStack.grantDatabaseAccess(clearPastSpecialEventsLambda);
+    props.databaseStack.grantDatabaseAccess(clearPastEventCarpoolsLambda);
     props.databaseStack.grantDatabaseAccess(getSeminarRegistrationsLambda);
     props.databaseStack.grantDatabaseAccess(getSpecialEventRegistrationsLambda);
     props.databaseStack.grantDatabaseAccess(getShinsaRegistrationsLambda);
+    props.databaseStack.grantDatabaseAccess(getEventCarpoolsLambda);
     props.databaseStack.grantDatabaseAccess(getTournamentRegistrationsLambda);
     props.databaseStack.grantDatabaseAccess(registerEventLambda);
     props.databaseStack.grantDatabaseAccess(unregisterEventLambda);
@@ -887,6 +901,11 @@ export class ServiceStack extends Stack {
       integration: new HttpLambdaIntegration("EventsGetTournamentRegistrationsInt", getTournamentRegistrationsLambda),
     });
     httpApi.addRoutes({
+      path: "/events/carpools",
+      methods: [HttpMethod.GET],
+      integration: new HttpLambdaIntegration("EventsGetCarpoolsInt", getEventCarpoolsLambda),
+    });
+    httpApi.addRoutes({
       path: "/events/shinsaRegistrations",
       methods: [HttpMethod.GET],
       integration: new HttpLambdaIntegration("EventsGetShinsaRegistrationsInt", getShinsaRegistrationsLambda),
@@ -1055,6 +1074,17 @@ export class ServiceStack extends Stack {
       target: new targets.LambdaInvoke(clearPastSpecialEventsLambda, { role: clearPastSpecialEventsScheduleRole }),
       enabled: true,
       description: 'Daily cleanup: deletes special events (and their registrations) more than 2 days past their end date.',
+    });
+
+    const clearPastEventCarpoolsScheduleRole = new iam.Role(this, 'clearPastEventCarpoolsScheduleRole', {
+      assumedBy: new iam.ServicePrincipal('scheduler.amazonaws.com'),
+    });
+    clearPastEventCarpoolsLambda.grantInvoke(clearPastEventCarpoolsScheduleRole);
+    new scheduler.Schedule(this, 'ClearPastEventCarpoolsSchedule', {
+      schedule: scheduler.ScheduleExpression.rate(Duration.days(1)),
+      target: new targets.LambdaInvoke(clearPastEventCarpoolsLambda, { role: clearPastEventCarpoolsScheduleRole }),
+      enabled: true,
+      description: 'Daily cleanup: clears carpool signups for tournament/shinsa/seminar events once their event date has passed.',
     });
 
     const processRecurringsScheduleRole = new iam.Role(this, 'processRecurringsScheduleRole', {

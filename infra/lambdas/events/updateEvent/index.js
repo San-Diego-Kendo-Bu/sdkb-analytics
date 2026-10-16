@@ -14,7 +14,8 @@ const FIELDS = [
     "event_location",
     "description",
     "maps_link",
-    "payment_id"
+    "payment_id",
+    "carpooling_enabled"
 ];
 const DATE_FIELDS = ["event_date", "event_deadline", "event_end_date", "created_at"];
 

@@ -50,6 +50,7 @@ exports.handler = async (event) => {
         const description = parameters.description ?? null;
         const mapsLink = parameters.maps_link ?? null;
         const paymentId = parameters.payment_id ? parseInt(parameters.payment_id, 10) : null;
+        const carpoolingEnabled = parameters.carpooling_enabled ?? false;
 
         const conflict = await query(
             `SELECT event_id FROM ${EVENTS_TABLE} WHERE payment_id = $1 LIMIT 1`,
@@ -76,9 +77,10 @@ exports.handler = async (event) => {
                 event_location,
                 description,
                 maps_link,
-                payment_id
+                payment_id,
+                carpooling_enabled
             )
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
             RETURNING *
             `,
             [
@@ -93,6 +95,7 @@ exports.handler = async (event) => {
                 description,
                 mapsLink,
                 paymentId,
+                carpoolingEnabled,
             ]
         );
 

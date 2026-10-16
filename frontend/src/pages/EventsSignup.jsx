@@ -114,6 +114,8 @@ function SignUpForm({ ev, config, member, selfId, targetOptions, familyMembersIn
   const [divisionError, setDivisionError] = useState(false);
   const [paymentError, setPaymentError] = useState(false);
   const [weightHeightError, setWeightHeightError] = useState(false);
+  const [carpoolStatus, setCarpoolStatus] = useState('');
+  const [carpoolError, setCarpoolError] = useState(false);
   const [selectedPaymentId, setSelectedPaymentId] = useState('');
   const [weightLbs, setWeightLbs] = useState('');
   const [heightFt, setHeightFt] = useState('');
@@ -170,9 +172,14 @@ function SignUpForm({ ev, config, member, selfId, targetOptions, familyMembersIn
       setPaymentError(true);
       return;
     }
+    if (ev.carpooling_enabled && !carpoolStatus) {
+      setCarpoolError(true);
+      return;
+    }
     setDivisionError(false);
     setPaymentError(false);
     setWeightHeightError(false);
+    setCarpoolError(false);
     const extra = {};
     if (ev.type === 'tournament') {
       extra.divisions = divisions;
@@ -191,6 +198,7 @@ function SignUpForm({ ev, config, member, selfId, targetOptions, familyMembersIn
       extra.age = age;
       if (config?.payment_required) extra.payment_id = selectedPaymentId;
     }
+    if (ev.carpooling_enabled) extra.carpool_status = carpoolStatus;
     onSubmit(extra, targetMemberId);
   }
 
@@ -370,6 +378,32 @@ function SignUpForm({ ev, config, member, selfId, targetOptions, familyMembersIn
         <p className={styles.cardDesc}>Click confirm to register for this event.</p>
       )}
 
+      {ev.carpooling_enabled && (
+        <>
+          <label className={styles.label}>Carpooling</label>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', marginBottom: '0.25rem' }}>
+            {[
+              ['driving_alone', 'I am driving on my own'],
+              ['driving_others', 'I can drive and take people'],
+              ['need_ride', 'I need a ride'],
+            ].map(([value, label]) => (
+              <label key={value} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.875rem', color: 'var(--text-primary)' }}>
+                <input
+                  type="radio"
+                  name="carpool_status"
+                  checked={carpoolStatus === value}
+                  onChange={() => { setCarpoolStatus(value); setCarpoolError(false); }}
+                />
+                {label}
+              </label>
+            ))}
+          </div>
+          {carpoolError && (
+            <span className={styles.fieldError}>Please select a carpooling option.</span>
+          )}
+        </>
+      )}
+
       <div className={styles.formActions}>
         <button className={styles.saveBtn} onClick={handleSubmit} disabled={submitting}>
           {submitting ? 'Registering...' : 'Confirm'}
@@ -543,6 +577,7 @@ function EventsSignup({ onPayNavigate }) {
           payment_id: e.payment_id ?? null,
           description: e.description ?? '',
           maps_link: e.maps_link ?? '',
+          carpooling_enabled: e.carpooling_enabled ?? false,
         }));
         setEvents(evs);
         return evs;
@@ -981,6 +1016,9 @@ function EventsSignup({ onPayNavigate }) {
                       <a href={ev.maps_link} target="_blank" rel="noopener noreferrer" className={styles.mapsLink}>
                         📍 View on Google Maps
                       </a>
+                    )}
+                    {ev.carpooling_enabled && (
+                      <p className={styles.cardMeta}>🚗 Carpooling info requested at signup</p>
                     )}
                     {cfg && (
                       <div className={styles.configSection}>

@@ -10,6 +10,7 @@ const TOURNAMENT_API = `${BASE_URL}/events/tournamentRegistrations`;
 const SHINSA_API = `${BASE_URL}/events/shinsaRegistrations`;
 const SEMINAR_API = `${BASE_URL}/events/seminarRegistrations`;
 const SPECIAL_API = `${BASE_URL}/events/specialEventRegistrations`;
+const CARPOOLS_API = `${BASE_URL}/events/carpools`;
 const ASSIGNED_API = `${BASE_URL}/assignedpayments`;
 const SUBMITTED_API = `${BASE_URL}/submittedpayments`;
 const PAYMENTS_API = `${BASE_URL}/payments`;
@@ -191,6 +192,90 @@ function EventsTab({ bins, memberMap, onSelect }) {
               </div>
             );
           })}
+        </div>
+      }
+    </div>
+  );
+}
+
+const CARPOOL_STYLE = { bg: '#1a2230', border: '#6c7a94', text: '#a9b4c7', badgeBg: '#495469' };
+// Reuses the same three hue families already established in TYPE_STYLE (tournament blue,
+// seminar green, shinsa orange) so the categories read as consistent with the rest of the app,
+// even though they're a different axis (carpool role, not event type).
+const CARPOOL_CATEGORIES = [
+  { value: 'driving_alone', label: 'Driving alone', icon: '🚗', text: '#6ea8fe', bg: '#1a2744', border: '#0d6efd' },
+  { value: 'driving_others', label: 'Can take riders', icon: '🚗', text: '#75b798', bg: '#0e2a1a', border: '#198754' },
+  { value: 'need_ride', label: 'Needs a ride', icon: '🙋', text: '#fd9843', bg: '#2e1d0e', border: '#fd7e14' },
+];
+
+function CarpoolingTab({ bins }) {
+  const [showAll, setShowAll] = useState(false);
+  const today = pacificToday();
+  const visible = showAll
+    ? bins
+    : bins.filter(({ event }) => !event.event_date || pacificDateString(new Date(event.event_date)) >= today);
+
+  if (bins.length === 0) {
+    return <p className="text-muted mt-3">No carpooling signups yet.</p>;
+  }
+  return (
+    <div>
+      <FilterToggle showAll={showAll} onToggle={setShowAll} />
+      {visible.length === 0
+        ? <p style={{ color: 'var(--text-muted)', padding: '2rem 0', textAlign: 'center' }}>No active carpooling signups.</p>
+        : <div className={styles.binGrid}>
+          {visible.map(({ event, signups }) => (
+            <div key={event.event_id} className={styles.eventBin} style={{ borderColor: CARPOOL_STYLE.border }}>
+              <div className={styles.eventHeader} style={{ background: CARPOOL_STYLE.bg }}>
+                <span className={styles.typeBadge} style={{ background: CARPOOL_STYLE.badgeBg, color: '#fff' }}>
+                  Carpooling
+                </span>
+                <span className={styles.eventName} style={{ color: CARPOOL_STYLE.text }}>{event.event_name}</span>
+                {event.event_date && (
+                  <span className={styles.eventDate}>
+                    {new Date(event.event_date).toLocaleDateString('en-US', {
+                      timeZone: 'America/Los_Angeles', month: 'short', day: 'numeric', year: 'numeric',
+                    })}
+                  </span>
+                )}
+              </div>
+              {CARPOOL_CATEGORIES.map(cat => {
+                const inCategory = signups.filter(s => s.carpool_status === cat.value);
+                if (inCategory.length === 0) return null;
+                return (
+                  <div key={cat.value}>
+                    <div style={{
+                      display: 'flex', alignItems: 'center', gap: '0.4rem',
+                      padding: '0.4rem 0.75rem', background: cat.bg,
+                    }}>
+                      <span style={{
+                        fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase',
+                        letterSpacing: '0.03em', color: cat.text,
+                      }}>
+                        {cat.icon} {cat.label}
+                      </span>
+                      <span style={{
+                        fontSize: '0.72rem', color: cat.text, background: cat.border,
+                        borderRadius: 10, padding: '0 6px', opacity: 0.85,
+                      }}>
+                        {inCategory.length}
+                      </span>
+                    </div>
+                    <ul className={styles.memberList}>
+                      {inCategory.map((s, i) => {
+                        const name = s.member ? `${s.member.first_name} ${s.member.last_name}` : `Member #${s.member_id}`;
+                        return (
+                          <li key={i} className={styles.memberRow} style={{ borderLeft: `3px solid ${cat.border}` }}>
+                            <span className={styles.memberName}>{name}</span>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                );
+              })}
+            </div>
+          ))}
         </div>
       }
     </div>
@@ -849,14 +934,14 @@ export default function Members() {
       const endpoints = [
         MEMBERS_API, EVENTS_API,
         TOURNAMENT_API, SHINSA_API, SEMINAR_API, SPECIAL_API,
-        ASSIGNED_API, SUBMITTED_API, PAYMENTS_API,
+        ASSIGNED_API, SUBMITTED_API, PAYMENTS_API, CARPOOLS_API,
       ];
 
       const settled = await Promise.allSettled(
         endpoints.map(url => fetch(url).then(r => r.json()))
       );
 
-      const labels = ['members', 'events', 'tournament', 'shinsa', 'seminar', 'special', 'assigned', 'submitted', 'payments'];
+      const labels = ['members', 'events', 'tournament', 'shinsa', 'seminar', 'special', 'assigned', 'submitted', 'payments', 'carpools'];
       settled.forEach((s, i) => {
         if (s.status === 'rejected') console.error(`Members: failed to fetch ${labels[i]}:`, s.reason);
         else console.log(`Members: ${labels[i]}`, s.value);
@@ -873,6 +958,7 @@ export default function Members() {
       const assignedData = get(6);
       const submittedData = get(7);
       const paymentsData = get(8);
+      const carpoolsData = get(9);
 
       const members = membersData.items ?? [];
       const events = eventsData.body ?? [];
@@ -883,6 +969,7 @@ export default function Members() {
       const assigned = assignedData.data ?? [];
       const submitted = submittedData.data ?? [];
       const payments = paymentsData.data ?? [];
+      const carpools = carpoolsData.body ?? [];
 
       const memberMap = Object.fromEntries(members.map(m => [String(m.member_id), m]));
 
@@ -924,8 +1011,19 @@ export default function Members() {
         })
         .filter(b => b.assigned.length > 0 || b.submitted.length > 0);
 
+      // Build carpool bins: group carpool signups by event_id, same shape as eventBins
+      const carpoolsByEventId = {};
+      for (const e of events) carpoolsByEventId[e.event_id] = { event: e, signups: [] };
+      for (const c of carpools) {
+        carpoolsByEventId[c.event_id]?.signups.push({
+          ...c,
+          member: memberMap[String(c.member_id)],
+        });
+      }
+      const carpoolBins = Object.values(carpoolsByEventId).filter(b => b.signups.length > 0);
+
       setAllMembers(members);
-      setOverview({ eventBins, paymentBins, memberMap });
+      setOverview({ eventBins, paymentBins, carpoolBins, memberMap });
     } catch (err) {
       console.error('Members load error:', err);
     }
@@ -1089,6 +1187,9 @@ export default function Members() {
         <button className={`${styles.tab} ${tab === 'families' ? styles.activeTab : ''}`} onClick={() => setTab('families')}>
           Families
         </button>
+        <button className={`${styles.tab} ${tab === 'carpooling' ? styles.activeTab : ''}`} onClick={() => setTab('carpooling')}>
+          Carpooling
+        </button>
       </div>
 
       {tab === 'events' && (
@@ -1102,6 +1203,9 @@ export default function Members() {
       )}
       {tab === 'families' && (
         <FamiliesTab allMembers={allMembers} />
+      )}
+      {tab === 'carpooling' && (
+        <CarpoolingTab bins={overview.carpoolBins} />
       )}
 
       {selected && <MemberModal selection={selected} onClose={() => setSelected(null)} />}

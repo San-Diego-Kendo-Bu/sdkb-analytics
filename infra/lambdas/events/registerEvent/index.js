@@ -7,6 +7,7 @@ const TOURNAMENT_REGISTRATION_TABLE = "tournament_registrations";
 const SHINSA_REGISTRATION_TABLE = "shinsa_registrations";
 const SEMINAR_REGISTRATION_TABLE = "seminar_registrations";
 const SPECIAL_EVENT_REGISTRATION_TABLE = "special_event_registrations";
+const VALID_CARPOOL_STATUSES = ["driving_alone", "driving_others", "need_ride"];
 
 // Returns { errorMessage } if the member fails the option's age restriction (or has no
 // birthday on file), otherwise { memberAge } for the caller to store alongside the registration.
@@ -67,7 +68,7 @@ exports.handler = async (event) => {
         }
 
         const eventRow = await query(
-            `SELECT event_date, event_deadline FROM events WHERE event_id = $1 LIMIT 1`,
+            `SELECT event_date, event_deadline, carpooling_enabled FROM events WHERE event_id = $1 LIMIT 1`,
             [eventId]
         );
         if (eventRow.rowCount === 0) {
@@ -89,6 +90,16 @@ exports.handler = async (event) => {
                 statusCode: 400,
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ error: "Registration is closed: the sign-up deadline has passed." })
+            };
+        }
+
+        const carpoolingEnabled = eventRow.rows[0].carpooling_enabled ?? false;
+        const carpoolStatus = parameters.carpool_status ?? null;
+        if (carpoolingEnabled && !VALID_CARPOOL_STATUSES.includes(carpoolStatus)) {
+            return {
+                statusCode: 400,
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ error: "Please select a carpooling option." })
             };
         }
 
@@ -264,6 +275,21 @@ exports.handler = async (event) => {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ error: "Invalid config_type" })
             };
+        }
+
+        // Carpooling is a cross-cutting, event-level option (not tied to a specific config_type),
+        // so it's recorded in its own table regardless of which event type this registration is for.
+        if (carpoolingEnabled) {
+            await query(
+                `
+                INSERT INTO event_carpools (event_id, member_id, carpool_status, created_at)
+                VALUES ($1, $2, $3, $4)
+                ON CONFLICT (event_id, member_id) DO UPDATE SET
+                    carpool_status = EXCLUDED.carpool_status,
+                    created_at = EXCLUDED.created_at
+                `,
+                [eventId, memberId, carpoolStatus, registeredDate]
+            );
         }
 
         // Assign member to the division's payment (tournaments with payment_required) or the

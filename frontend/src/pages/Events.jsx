@@ -18,7 +18,7 @@ const STATUS_COLORS = {
 
 const EMPTY_NEW = {
   title: '', description: '', maps_link: '', start_datetime: '', end_datetime: '', event_end_datetime: '',
-  location: '', type: '', payment_id: '',
+  location: '', type: '', payment_id: '', carpooling_enabled: false,
   shinpan_needed: false, divisions: '', teams_included: false,
   shinsa_levels: '', external_signup_url: '',
   payment_required: false, payment_options: [],
@@ -26,7 +26,7 @@ const EMPTY_NEW = {
 
 const EMPTY_EDIT = {
   title: '', description: '', maps_link: '', start_datetime: '', end_datetime: '', event_end_datetime: '',
-  location: '', type: '', payment_id: '',
+  location: '', type: '', payment_id: '', carpooling_enabled: false,
   shinpan_needed: false, event_deadline: '', divisions: '',
   teams_included: false, shinsa_levels: '', seminar_guests: '', bring_your_lunch: false,
   external_signup_url: '', payment_required: false, payment_options: [],
@@ -295,6 +295,11 @@ function NewEventForm({ form, setForm, onSave, onCancel, availablePayments = [],
         onChange={e => setForm(f => ({ ...f, end_datetime: e.target.value }))} />
       <input className={styles.input} placeholder="Location" value={form.location}
         onChange={e => setForm(f => ({ ...f, location: e.target.value }))} />
+      <label className={styles.label}>
+        <input type="checkbox" checked={form.carpooling_enabled}
+          onChange={e => setForm(f => ({ ...f, carpooling_enabled: e.target.checked }))} />{' '}
+        Request carpooling information
+      </label>
       <select className={styles.input} value={form.type}
         onChange={e => setForm(f => ({ ...f, type: e.target.value }))}>
         <option value="">Select type</option>
@@ -355,6 +360,11 @@ function EditEventForm({ form, setForm, onSave, onCancel, availablePayments = []
         onChange={e => setForm(f => ({ ...f, end_datetime: e.target.value }))} />
       <input className={styles.input} placeholder="Location" value={form.location}
         onChange={e => setForm(f => ({ ...f, location: e.target.value }))} />
+      <label className={styles.label}>
+        <input type="checkbox" checked={form.carpooling_enabled}
+          onChange={e => setForm(f => ({ ...f, carpooling_enabled: e.target.checked }))} />{' '}
+        Request carpooling information
+      </label>
       <select className={styles.input} value={form.type} disabled style={{ opacity: 0.6, cursor: 'not-allowed' }}>
         <option value="tournament">Tournament</option>
         <option value="shinsa">Shinsa</option>
@@ -459,6 +469,7 @@ function Events() {
           location: e.event_location,
           type: e.event_type,
           payment_id: e.payment_id ?? null,
+          carpooling_enabled: e.carpooling_enabled ?? false,
         }));
         setEvents(evs);
         return evs;
@@ -519,6 +530,7 @@ function Events() {
       location: e.event_location,
       type: e.event_type,
       payment_id: e.payment_id ?? null,
+      carpooling_enabled: e.carpooling_enabled ?? false,
     };
   }
 
@@ -565,6 +577,7 @@ function Events() {
       event_end_date: toIso(newForm.event_end_datetime),
       created_at: new Date().toISOString().replace(/\.\d{3}Z$/, 'Z'),
       payment_id: newForm.payment_id === 'free' ? null : parseInt(newForm.payment_id, 10),
+      carpooling_enabled: newForm.carpooling_enabled,
     };
     const tournamentConfig = newForm.type === 'tournament' ? {
       shinpan_needed: newForm.shinpan_needed,
@@ -665,6 +678,7 @@ function Events() {
       location: ev.location,
       type: ev.type,
       payment_id: ev.payment_id ? String(ev.payment_id) : 'free',
+      carpooling_enabled: ev.carpooling_enabled ?? false,
       ...configFields,
     });
   }
@@ -711,6 +725,7 @@ function Events() {
       event_end_date: toIso(editForm.event_end_datetime),
       event_location: editForm.location,
       payment_id: editForm.payment_id === 'free' ? null : parseInt(editForm.payment_id, 10),
+      carpooling_enabled: editForm.carpooling_enabled,
     };
 
     let configPayload = { event_id: parseInt(editingId, 10) };
@@ -878,6 +893,9 @@ function Events() {
                       <a href={ev.maps_link} target="_blank" rel="noopener noreferrer" className={styles.mapsLink}>
                         📍 View on Google Maps
                       </a>
+                    )}
+                    {ev.carpooling_enabled && (
+                      <p className={styles.cardMeta}>🚗 Carpooling information requested at signup</p>
                     )}
                     {configs[ev.event_id] && (() => {
                       const cfg = configs[ev.event_id];

@@ -20,7 +20,16 @@ CREATE TABLE IF NOT EXISTS events (
     event_location TEXT NOT NULL,
     description TEXT,
     maps_link TEXT,
-    payment_id BIGINT REFERENCES payments(payment_id) ON DELETE SET NULL
+    payment_id BIGINT REFERENCES payments(payment_id) ON DELETE SET NULL,
+    carpooling_enabled BOOLEAN NOT NULL DEFAULT FALSE
+);
+
+CREATE TABLE IF NOT EXISTS event_carpools (
+    event_id BIGINT NOT NULL REFERENCES events(event_id) ON DELETE CASCADE,
+    member_id BIGINT NOT NULL,
+    carpool_status TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL,
+    PRIMARY KEY (event_id, member_id)
 );
 
 CREATE TABLE IF NOT EXISTS assigned_payments (

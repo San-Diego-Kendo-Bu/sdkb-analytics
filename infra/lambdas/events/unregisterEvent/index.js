@@ -125,6 +125,13 @@ exports.handler = async (event) => {
             );
         }
 
+        // Carpooling is cross-cutting (not tied to configType), so clean it up regardless of
+        // which event type this was — harmless no-op if the event never had it enabled.
+        await query(
+            `DELETE FROM event_carpools WHERE event_id = $1 AND member_id = $2`,
+            [eventId, memberId]
+        );
+
         return {
             statusCode: 200,
             headers: {
