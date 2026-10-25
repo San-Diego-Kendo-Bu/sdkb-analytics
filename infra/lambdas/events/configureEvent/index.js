@@ -94,6 +94,7 @@ exports.handler = async (event) => {
             const shinpanNeeded = parameters.shinpan_needed;
             const divisions = parameters.divisions ?? [];
             const teamsIncluded = parameters.teams_included;
+            const externalSignupUrl = parameters.external_signup_url ?? null;
             const paymentRequired = parameters.payment_required ?? false;
             const paymentOptions = parameters.payment_options ?? [];
 
@@ -122,17 +123,19 @@ exports.handler = async (event) => {
                     shinpan_needed,
                     divisions,
                     teams_included,
+                    external_signup_url,
                     payment_required
                 )
-                VALUES ($1, $2, $3, $4, $5)
+                VALUES ($1, $2, $3, $4, $5, $6)
                 ON CONFLICT (event_id) DO UPDATE SET
                     shinpan_needed = EXCLUDED.shinpan_needed,
                     divisions = EXCLUDED.divisions,
                     teams_included = EXCLUDED.teams_included,
+                    external_signup_url = EXCLUDED.external_signup_url,
                     payment_required = EXCLUDED.payment_required
-                RETURNING event_id, shinpan_needed, divisions, teams_included, payment_required
+                RETURNING event_id, shinpan_needed, divisions, teams_included, external_signup_url, payment_required
                 `,
-                [eventId, shinpanNeeded, divisions, teamsIncluded, paymentRequired]
+                [eventId, shinpanNeeded, divisions, teamsIncluded, externalSignupUrl, paymentRequired]
             );
 
             const paymentOptionRows = await upsertPaymentOptions(

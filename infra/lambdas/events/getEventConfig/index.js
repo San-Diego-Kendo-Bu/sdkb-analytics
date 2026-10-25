@@ -44,6 +44,7 @@ exports.handler = async (event) => {
                     t.shinpan_needed,
                     t.divisions,
                     t.teams_included,
+                    t.external_signup_url,
                     t.payment_required,
                     COALESCE(
                         jsonb_agg(
@@ -58,7 +59,7 @@ exports.handler = async (event) => {
                 FROM ${TOURNAMENTS_TABLE} t
                 LEFT JOIN ${TOURNAMENT_DIVISION_PAYMENTS_TABLE} dp ON dp.event_id = t.event_id
                 WHERE t.event_id = $1
-                GROUP BY t.event_id, t.shinpan_needed, t.divisions, t.teams_included, t.payment_required
+                GROUP BY t.event_id, t.shinpan_needed, t.divisions, t.teams_included, t.external_signup_url, t.payment_required
                 LIMIT 1
                 `,
                 [eventId]

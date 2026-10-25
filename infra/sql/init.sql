@@ -123,6 +123,7 @@ CREATE TABLE IF NOT EXISTS tournaments (
     shinpan_needed BOOLEAN NOT NULL,
     divisions TEXT[] NOT NULL DEFAULT '{}',
     teams_included BOOLEAN NOT NULL,
+    external_signup_url TEXT,
     payment_required BOOLEAN NOT NULL DEFAULT FALSE
 );
 

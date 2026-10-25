@@ -254,6 +254,9 @@ function TournamentConfigFields({ form, setForm, availablePayments = [] }) {
           onChange={e => setForm(f => ({ ...f, teams_included: e.target.checked }))} />{' '}
         Teams included
       </label>
+      <label className={styles.label}>External Sign-Up URL (optional)</label>
+      <input className={styles.input} placeholder="https://..." value={form.external_signup_url}
+        onChange={e => setForm(f => ({ ...f, external_signup_url: e.target.value }))} />
       <PaymentOptionsFields form={form} setForm={setForm} availablePayments={availablePayments} />
     </>
   );
@@ -583,6 +586,7 @@ function Events() {
       shinpan_needed: newForm.shinpan_needed,
       divisions: divisionNames,
       teams_included: newForm.teams_included,
+      external_signup_url: newForm.external_signup_url || null,
       payment_required: newForm.payment_required,
       payment_options: newForm.payment_options.map(({ payment_id, restriction_type, age_limit }) => ({ payment_id, restriction_type, age_limit })),
     } : null;
@@ -637,6 +641,7 @@ function Events() {
           shinpan_needed: existing.shinpan_needed ?? false,
           divisions: existing.divisions?.join(', ') ?? '',
           teams_included: existing.teams_included ?? false,
+          external_signup_url: existing.external_signup_url ?? '',
           event_deadline: toInputValue(ev.end_datetime),
           payment_required: existing.payment_required ?? false,
           payment_options: (existing.payment_options ?? []).map(o => ({
@@ -736,6 +741,7 @@ function Events() {
         event_deadline: toIso(editForm.end_datetime),
         divisions: editDivisionNames,
         teams_included: editForm.teams_included,
+        external_signup_url: editForm.external_signup_url || null,
         payment_required: editForm.payment_required,
         payment_options: editForm.payment_options.map(({ payment_id, restriction_type, age_limit }) => ({ payment_id, restriction_type, age_limit })),
       };
