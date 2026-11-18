@@ -288,13 +288,13 @@ function NewEventForm({ form, setForm, onSave, onCancel, availablePayments = [],
       <input className={styles.input} placeholder="Google Maps link (optional)" value={form.maps_link}
         onChange={e => setForm(f => ({ ...f, maps_link: e.target.value }))} />
       <label className={styles.label}>Event Date</label>
-      <input className={styles.input} type="datetime-local" value={form.start_datetime}
+      <input className={styles.input} type="datetime-local" defaultValue={form.start_datetime}
         onChange={e => setForm(f => ({ ...f, start_datetime: e.target.value }))} />
       <label className={styles.label}>Event End Date (optional)</label>
-      <input className={styles.input} type="datetime-local" value={form.event_end_datetime}
+      <input className={styles.input} type="datetime-local" defaultValue={form.event_end_datetime}
         onChange={e => setForm(f => ({ ...f, event_end_datetime: e.target.value }))} />
       <label className={styles.label}>Sign Up Deadline</label>
-      <input className={styles.input} type="datetime-local" value={form.end_datetime}
+      <input className={styles.input} type="datetime-local" defaultValue={form.end_datetime}
         onChange={e => setForm(f => ({ ...f, end_datetime: e.target.value }))} />
       <input className={styles.input} placeholder="Location" value={form.location}
         onChange={e => setForm(f => ({ ...f, location: e.target.value }))} />
@@ -353,13 +353,13 @@ function EditEventForm({ form, setForm, onSave, onCancel, availablePayments = []
       <input className={styles.input} placeholder="Google Maps link (optional)" value={form.maps_link}
         onChange={e => setForm(f => ({ ...f, maps_link: e.target.value }))} />
       <label className={styles.label}>Event Date</label>
-      <input className={styles.input} type="datetime-local" value={form.start_datetime}
+      <input className={styles.input} type="datetime-local" defaultValue={form.start_datetime}
         onChange={e => setForm(f => ({ ...f, start_datetime: e.target.value }))} />
       <label className={styles.label}>Event End Date (optional)</label>
-      <input className={styles.input} type="datetime-local" value={form.event_end_datetime}
+      <input className={styles.input} type="datetime-local" defaultValue={form.event_end_datetime}
         onChange={e => setForm(f => ({ ...f, event_end_datetime: e.target.value }))} />
       <label className={styles.label}>Sign Up Deadline</label>
-      <input className={styles.input} type="datetime-local" value={form.end_datetime}
+      <input className={styles.input} type="datetime-local" defaultValue={form.end_datetime}
         onChange={e => setForm(f => ({ ...f, end_datetime: e.target.value }))} />
       <input className={styles.input} placeholder="Location" value={form.location}
         onChange={e => setForm(f => ({ ...f, location: e.target.value }))} />
@@ -539,6 +539,10 @@ function Events() {
 
   function handleCreate() {
     if (isOffHours()) { setError(OFF_HOURS_MSG); return; }
+    if (!newForm.title || !newForm.start_datetime || !newForm.end_datetime || !newForm.location) {
+      setError('Please fill in title, event date, sign up deadline, and location.');
+      return;
+    }
     if (!newForm.payment_id) {
       setError('Please select a payment or mark as a free event.');
       return;
@@ -690,6 +694,10 @@ function Events() {
 
   function handleEditSave() {
     if (isOffHours()) { setError(OFF_HOURS_MSG); return; }
+    if (!editForm.title || !editForm.start_datetime || !editForm.end_datetime || !editForm.location) {
+      setError('Please fill in title, event date, sign up deadline, and location.');
+      return;
+    }
     if (!editForm.payment_id) {
       setError('Please select a payment or mark as a free event.');
       return;

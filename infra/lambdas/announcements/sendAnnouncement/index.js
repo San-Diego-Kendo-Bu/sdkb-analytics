@@ -121,6 +121,16 @@ function isSendingLimitError(errorMessage = "") {
 }
 
 /**
+ * Gmail recipients are sent together as a hidden BCC batch for efficiency. Every other
+ * provider gets its own individual send instead, so a single bounced/rejected address at
+ * another provider can never be lumped in with (and can't jeopardize delivery to) the rest
+ * of a shared BCC batch.
+ */
+function isGmailAddress(email = "") {
+    return /@(gmail|googlemail)\.com$/i.test(email);
+}
+
+/**
  * Logs elapsed execution time and remaining Lambda time.
  */
 function logTiming(context, startedAt, stage, details = {}) {
@@ -387,22 +397,32 @@ exports.handler = async (event, context) => {
         let failed = 0;
 
         const failures = [];
+        let sendingLimitHit = false;
+
+        // Gmail recipients can share a hidden BCC batch safely. Every other provider is
+        // sent to individually below, so one rejected/bouncing non-Gmail address can't be
+        // bundled in with (or risk) delivery to the rest of a shared batch.
+        const gmailEmails = emails.filter(isGmailAddress);
+        const otherEmails = emails.filter((email) => !isGmailAddress(email));
+
         const BCC_BATCH_SIZE = 25;
-        const totalBatches = Math.ceil(emails.length / BCC_BATCH_SIZE);
+        const totalBatches = Math.ceil(gmailEmails.length / BCC_BATCH_SIZE);
         const sendStartedAt = Date.now();
 
         logTiming(context, handlerStartedAt, "email_sending_started", {
             recipientCount: emails.length,
+            gmailRecipientCount: gmailEmails.length,
+            otherRecipientCount: otherEmails.length,
             batchSize: BCC_BATCH_SIZE,
             totalBatches,
         });
 
         for (
             let i = 0;
-            i < emails.length;
+            i < gmailEmails.length;
             i += BCC_BATCH_SIZE
         ) {
-            const batch = emails.slice(i, i + BCC_BATCH_SIZE);
+            const batch = gmailEmails.slice(i, i + BCC_BATCH_SIZE);
             const batchNumber =
                 Math.floor(i / BCC_BATCH_SIZE) + 1;
             const batchStartedAt = Date.now();
@@ -490,8 +510,10 @@ exports.handler = async (event, context) => {
                 });
 
                 if (isSendingLimitError(rawError)) {
+                    sendingLimitHit = true;
+
                     const remainingEmails =
-                        emails.slice(i + BCC_BATCH_SIZE);
+                        gmailEmails.slice(i + BCC_BATCH_SIZE);
 
                     failed += remainingEmails.length;
 
@@ -527,6 +549,106 @@ exports.handler = async (event, context) => {
                 failed,
                 processed: sent + failed,
                 recipientCount: emails.length,
+            });
+        }
+
+        if (sendingLimitHit) {
+            failed += otherEmails.length;
+
+            otherEmails.forEach((email) => {
+                failures.push({
+                    email,
+                    reason:
+                        "Email sending limit was reached before this recipient could be processed.",
+                });
+            });
+        } else {
+            // Each non-Gmail recipient gets its own send, isolated from everyone else's,
+            // so a rejected/bouncing address at another provider can only ever fail for
+            // itself instead of affecting (or being bundled in with) a shared batch.
+            const INDIVIDUAL_BATCH_SIZE = 10;
+            const individualTotalBatches = Math.ceil(otherEmails.length / INDIVIDUAL_BATCH_SIZE);
+
+            logTiming(context, handlerStartedAt, "individual_sending_started", {
+                recipientCount: otherEmails.length,
+                batchSize: INDIVIDUAL_BATCH_SIZE,
+                totalBatches: individualTotalBatches,
+            });
+
+            for (
+                let i = 0;
+                i < otherEmails.length && !sendingLimitHit;
+                i += INDIVIDUAL_BATCH_SIZE
+            ) {
+                const batch = otherEmails.slice(i, i + INDIVIDUAL_BATCH_SIZE);
+                const batchNumber = Math.floor(i / INDIVIDUAL_BATCH_SIZE) + 1;
+
+                const results = await Promise.allSettled(
+                    batch.map((email) => transporter.sendMail({
+                        from: `SDKB Portal <${gmailUser}>`,
+                        to: email,
+                        subject,
+                        html: htmlBody,
+                        text: textBody,
+                        attachments,
+                    }))
+                );
+
+                results.forEach((result, idx) => {
+                    const email = batch[idx];
+
+                    if (result.status === "fulfilled") {
+                        sent += 1;
+                        return;
+                    }
+
+                    const rawError = result.reason?.message || "Unknown delivery error";
+
+                    console.error("Individual send failed", {
+                        requestId: context?.awsRequestId,
+                        batchNumber,
+                        email,
+                        message: rawError,
+                        code: result.reason?.code,
+                        responseCode: result.reason?.responseCode,
+                    });
+
+                    failed += 1;
+                    failures.push({ email, reason: getSafeEmailError(rawError) });
+
+                    if (isSendingLimitError(rawError)) {
+                        sendingLimitHit = true;
+                    }
+                });
+
+                if (sendingLimitHit) {
+                    const remainingEmails = otherEmails.slice(i + INDIVIDUAL_BATCH_SIZE);
+
+                    failed += remainingEmails.length;
+
+                    remainingEmails.forEach((email) => {
+                        failures.push({
+                            email,
+                            reason:
+                                "Email sending limit was reached before this recipient could be processed.",
+                        });
+                    });
+
+                    console.error(
+                        "Stopping remaining individual sends because the sending limit was reached",
+                        {
+                            requestId: context?.awsRequestId,
+                            batchNumber,
+                            remainingRecipientCount: remainingEmails.length,
+                        }
+                    );
+                }
+            }
+
+            logTiming(context, handlerStartedAt, "individual_sending_completed", {
+                recipientCount: otherEmails.length,
+                sent,
+                failed,
             });
         }
 

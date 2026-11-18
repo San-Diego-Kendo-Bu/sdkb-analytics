@@ -244,7 +244,7 @@ export default function Announcements() {
             {result.message}
             {result.failed > 0 && (
               <div style={{ marginTop: 4, color: '#888', fontSize: '0.8rem' }}>
-                Failed addresses: {result.failures.join(', ')}
+                Failed addresses: {result.failures.map(f => `${f.email} (${f.reason})`).join(', ')}
               </div>
             )}
           </div>
