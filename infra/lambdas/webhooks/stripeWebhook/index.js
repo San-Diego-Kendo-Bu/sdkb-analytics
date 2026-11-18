@@ -37,8 +37,8 @@ async function sendPaymentConfirmationEmail(memberId, paidByMemberId, title, tot
 
         const amount = `$${totalPaid.toFixed(2)}`;
         const subject = `Payment Successful: ${title}`;
-        const html = `<p>Hi ${payer.first_name ?? ""},</p><p>Your payment of <strong>${amount}</strong> for ${forWhom} <strong>${title}</strong> was successful.</p><p>Thank you!</p><p>— SDKB Portal</p>`;
-        const text = `Hi ${payer.first_name ?? ""},\n\nYour payment of ${amount} for ${forWhom} ${title} was successful.\n\nThank you!\n\n— SDKB Portal`;
+        const html = `<p>Hi ${payer.first_name ?? ""},</p><p>Your payment of <strong>${amount}</strong> for ${forWhom} <strong>${title}</strong> was successful.</p><p>Thank you!</p><p>— SDKB Portal</p><p style="color:#888;font-size:0.85em;margin-top:1.5em;">This is an automated message. Please do not reply to this email.</p>`;
+        const text = `Hi ${payer.first_name ?? ""},\n\nYour payment of ${amount} for ${forWhom} ${title} was successful.\n\nThank you!\n\n— SDKB Portal\n\n---\nThis is an automated message. Please do not reply to this email.`;
 
         await sendEmails([payer.email], subject, html, text);
     } catch (emailErr) {

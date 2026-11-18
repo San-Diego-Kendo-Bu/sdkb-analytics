@@ -390,8 +390,8 @@ exports.handler = async (event, context) => {
             .replace(/>/g, "&gt;")
             .replace(/\n/g, "<br>");
 
-        const htmlBody = `<p>${escapedBody}</p>`;
-        const textBody = body;
+        const htmlBody = `<p>${escapedBody}</p><p style="color:#888;font-size:0.85em;margin-top:1.5em;">This is an automated message. Please do not reply to this email.</p>`;
+        const textBody = `${body}\n\n---\nThis is an automated message. Please do not reply to this email.`;
 
         let sent = 0;
         let failed = 0;

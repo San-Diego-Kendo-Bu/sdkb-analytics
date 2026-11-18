@@ -26,8 +26,9 @@ exports.handler = async (event) => {
 <p><strong>Location:</strong> ${eventLocation}</p>
 <p><strong>Sign-up Deadline:</strong> ${deadlineStr}</p>
 ${description ? `<p>${description}</p>` : ""}
-<p>Log in to the SDKB portal to sign up: <a href="https://sdkbportal.org">sdkbportal.org</a></p>`;
-        const text = `New Event: ${eventName}\nDate: ${eventDateStr}\nLocation: ${eventLocation}\nSign-up Deadline: ${deadlineStr}${description ? `\n\n${description}` : ""}\n\nLog in to the SDKB portal to sign up: https://sdkbportal.org`;
+<p>Log in to the SDKB portal to sign up: <a href="https://sdkbportal.org">sdkbportal.org</a></p>
+<p style="color:#888;font-size:0.85em;margin-top:1.5em;">This is an automated message. Please do not reply to this email.</p>`;
+        const text = `New Event: ${eventName}\nDate: ${eventDateStr}\nLocation: ${eventLocation}\nSign-up Deadline: ${deadlineStr}${description ? `\n\n${description}` : ""}\n\nLog in to the SDKB portal to sign up: https://sdkbportal.org\n\n---\nThis is an automated message. Please do not reply to this email.`;
 
         await sendEmails(emails, subject, html, text);
     } catch (err) {

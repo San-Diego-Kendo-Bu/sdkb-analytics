@@ -87,8 +87,8 @@ exports.handler = async (event) => {
                 });
                 const amount = `$${parseFloat(payment.payment_value).toFixed(2)}`;
                 const subject = `Payment Assigned: ${payment.title}`;
-                const html = `<p>A payment has been assigned to your account.</p><p><strong>Title:</strong> ${payment.title}</p><p><strong>Amount:</strong> ${amount}</p><p><strong>Due Date:</strong> ${dueDateStr}</p><p>Log in to the SDKB portal to submit your payment: <a href="https://sdkbportal.org">sdkbportal.org</a></p>`;
-                const text = `Payment Assigned: ${payment.title}\n\nAmount: ${amount}\nDue Date: ${dueDateStr}\n\nLog in to the SDKB portal to submit your payment: https://sdkbportal.org`;
+                const html = `<p>A payment has been assigned to your account.</p><p><strong>Title:</strong> ${payment.title}</p><p><strong>Amount:</strong> ${amount}</p><p><strong>Due Date:</strong> ${dueDateStr}</p><p>Log in to the SDKB portal to submit your payment: <a href="https://sdkbportal.org">sdkbportal.org</a></p><p style="color:#888;font-size:0.85em;margin-top:1.5em;">This is an automated message. Please do not reply to this email.</p>`;
+                const text = `Payment Assigned: ${payment.title}\n\nAmount: ${amount}\nDue Date: ${dueDateStr}\n\nLog in to the SDKB portal to submit your payment: https://sdkbportal.org\n\n---\nThis is an automated message. Please do not reply to this email.`;
                 await sendEmails([memberEmail], subject, html, text);
             } catch (emailErr) {
                 console.error("Payment assignment email error:", emailErr);

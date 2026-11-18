@@ -55,11 +55,11 @@ exports.handler = async () => {
                 ? `Overdue: "${row.title}" payment past due`
                 : `Reminder: "${row.title}" is due in 3 days`;
             const html = isOverdue
-                ? `<p>Hi,</p><p>Your payment <strong>${row.title}</strong> was due on <strong>${dueDateStr}</strong> and is still outstanding.</p><p><strong>Amount:</strong> ${amount}</p><p>Please log in to the SDKB portal to submit your payment as soon as possible: <a href="https://sdkbportal.org">sdkbportal.org</a></p><p>— SDKB Portal</p>`
-                : `<p>Hi,</p><p>This is a friendly reminder that your payment <strong>${row.title}</strong> is due on <strong>${dueDateStr}</strong>.</p><p><strong>Amount:</strong> ${amount}</p><p>Please log in to the SDKB portal to submit your payment before the deadline: <a href="https://sdkbportal.org">sdkbportal.org</a></p><p>— SDKB Portal</p>`;
+                ? `<p>Hi,</p><p>Your payment <strong>${row.title}</strong> was due on <strong>${dueDateStr}</strong> and is still outstanding.</p><p><strong>Amount:</strong> ${amount}</p><p>Please log in to the SDKB portal to submit your payment as soon as possible: <a href="https://sdkbportal.org">sdkbportal.org</a></p><p>— SDKB Portal</p><p style="color:#888;font-size:0.85em;margin-top:1.5em;">This is an automated message. Please do not reply to this email.</p>`
+                : `<p>Hi,</p><p>This is a friendly reminder that your payment <strong>${row.title}</strong> is due on <strong>${dueDateStr}</strong>.</p><p><strong>Amount:</strong> ${amount}</p><p>Please log in to the SDKB portal to submit your payment before the deadline: <a href="https://sdkbportal.org">sdkbportal.org</a></p><p>— SDKB Portal</p><p style="color:#888;font-size:0.85em;margin-top:1.5em;">This is an automated message. Please do not reply to this email.</p>`;
             const text = isOverdue
-                ? `Overdue: "${row.title}" payment past due\n\nDue Date: ${dueDateStr}\nAmount: ${amount}\n\nPlease log in to the SDKB portal to submit your payment as soon as possible: https://sdkbportal.org`
-                : `Reminder: "${row.title}" is due in 3 days\n\nDue Date: ${dueDateStr}\nAmount: ${amount}\n\nPlease log in to the SDKB portal to submit your payment before the deadline: https://sdkbportal.org`;
+                ? `Overdue: "${row.title}" payment past due\n\nDue Date: ${dueDateStr}\nAmount: ${amount}\n\nPlease log in to the SDKB portal to submit your payment as soon as possible: https://sdkbportal.org\n\n---\nThis is an automated message. Please do not reply to this email.`
+                : `Reminder: "${row.title}" is due in 3 days\n\nDue Date: ${dueDateStr}\nAmount: ${amount}\n\nPlease log in to the SDKB portal to submit your payment before the deadline: https://sdkbportal.org\n\n---\nThis is an automated message. Please do not reply to this email.`;
 
             try {
                 await sendEmails([email], subject, html, text);

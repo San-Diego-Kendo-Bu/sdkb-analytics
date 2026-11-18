@@ -11,8 +11,8 @@ async function sendPaymentJob({ emails, title, amount, dueDate }) {
     const dueDateStr = formatDate(dueDate);
     const amountStr = `$${parseFloat(amount).toFixed(2)}`;
     const subject = `Payment Due: ${title}`;
-    const html = `<p>A payment has been assigned to your account.</p><p><strong>Title:</strong> ${title}</p><p><strong>Amount:</strong> ${amountStr}</p><p><strong>Due Date:</strong> ${dueDateStr}</p><p>Log in to the SDKB portal to submit your payment: <a href="https://sdkbportal.org">sdkbportal.org</a></p>`;
-    const text = `Payment Due: ${title}\n\nAmount: ${amountStr}\nDue Date: ${dueDateStr}\n\nLog in at https://sdkbportal.org`;
+    const html = `<p>A payment has been assigned to your account.</p><p><strong>Title:</strong> ${title}</p><p><strong>Amount:</strong> ${amountStr}</p><p><strong>Due Date:</strong> ${dueDateStr}</p><p>Log in to the SDKB portal to submit your payment: <a href="https://sdkbportal.org">sdkbportal.org</a></p><p style="color:#888;font-size:0.85em;margin-top:1.5em;">This is an automated message. Please do not reply to this email.</p>`;
+    const text = `Payment Due: ${title}\n\nAmount: ${amountStr}\nDue Date: ${dueDateStr}\n\nLog in at https://sdkbportal.org\n\n---\nThis is an automated message. Please do not reply to this email.`;
     await sendEmails(emails, subject, html, text);
 }
 
@@ -20,8 +20,8 @@ async function sendNoticeJob({ emails, title, dueDate }) {
     if (!emails?.length) return;
     const dueDateStr = formatDate(dueDate);
     const subject = `Family Payment Notice: ${title}`;
-    const html = `<p>A payment has been issued for your family.</p><p><strong>Title:</strong> ${title}</p><p><strong>Due Date:</strong> ${dueDateStr}</p><p>Log in to the SDKB portal for details: <a href="https://sdkbportal.org">sdkbportal.org</a></p>`;
-    const text = `Family Payment Notice: ${title}\n\nDue Date: ${dueDateStr}\n\nLog in at https://sdkbportal.org`;
+    const html = `<p>A payment has been issued for your family.</p><p><strong>Title:</strong> ${title}</p><p><strong>Due Date:</strong> ${dueDateStr}</p><p>Log in to the SDKB portal for details: <a href="https://sdkbportal.org">sdkbportal.org</a></p><p style="color:#888;font-size:0.85em;margin-top:1.5em;">This is an automated message. Please do not reply to this email.</p>`;
+    const text = `Family Payment Notice: ${title}\n\nDue Date: ${dueDateStr}\n\nLog in at https://sdkbportal.org\n\n---\nThis is an automated message. Please do not reply to this email.`;
     await sendEmails(emails, subject, html, text);
 }
 

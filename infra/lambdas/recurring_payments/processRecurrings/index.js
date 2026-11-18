@@ -68,8 +68,8 @@ async function sendPaymentEmail(emails, title, paymentValue, nextDueDate, templa
         });
         const amount = `$${parseFloat(paymentValue).toFixed(2)}`;
         const subject = `Payment Due: ${title}`;
-        const html = `<p>A payment has been assigned to your account.</p><p><strong>Title:</strong> ${title}</p><p><strong>Amount:</strong> ${amount}</p><p><strong>Due Date:</strong> ${dueDateStr}</p><p>Log in to the SDKB portal to submit your payment: <a href="https://sdkbportal.org">sdkbportal.org</a></p>`;
-        const text = `Payment Due: ${title}\n\nAmount: ${amount}\nDue Date: ${dueDateStr}\n\nLog in at https://sdkbportal.org`;
+        const html = `<p>A payment has been assigned to your account.</p><p><strong>Title:</strong> ${title}</p><p><strong>Amount:</strong> ${amount}</p><p><strong>Due Date:</strong> ${dueDateStr}</p><p>Log in to the SDKB portal to submit your payment: <a href="https://sdkbportal.org">sdkbportal.org</a></p><p style="color:#888;font-size:0.85em;margin-top:1.5em;">This is an automated message. Please do not reply to this email.</p>`;
+        const text = `Payment Due: ${title}\n\nAmount: ${amount}\nDue Date: ${dueDateStr}\n\nLog in at https://sdkbportal.org\n\n---\nThis is an automated message. Please do not reply to this email.`;
         await sendEmails(emails, subject, html, text);
     } catch (emailErr) {
         console.error(`processRecurrings: email error for template ${templateId}:`, emailErr);
@@ -193,8 +193,8 @@ exports.handler = async () => {
                                 weekday: "long", year: "numeric", month: "long", day: "numeric",
                             });
                             const subject = `Family Payment Notice: ${rec.title}`;
-                            const html = `<p>A payment has been issued for your family.</p><p><strong>Title:</strong> ${rec.title}</p><p><strong>Due Date:</strong> ${dueDateStr}</p><p>Log in to the SDKB portal for details: <a href="https://sdkbportal.org">sdkbportal.org</a></p>`;
-                            const text = `Family Payment Notice: ${rec.title}\n\nDue Date: ${dueDateStr}\n\nLog in at https://sdkbportal.org`;
+                            const html = `<p>A payment has been issued for your family.</p><p><strong>Title:</strong> ${rec.title}</p><p><strong>Due Date:</strong> ${dueDateStr}</p><p>Log in to the SDKB portal for details: <a href="https://sdkbportal.org">sdkbportal.org</a></p><p style="color:#888;font-size:0.85em;margin-top:1.5em;">This is an automated message. Please do not reply to this email.</p>`;
+                            const text = `Family Payment Notice: ${rec.title}\n\nDue Date: ${dueDateStr}\n\nLog in at https://sdkbportal.org\n\n---\nThis is an automated message. Please do not reply to this email.`;
                             await sendEmails([...guestFamilyEmails], subject, html, text);
                         } catch (emailErr) {
                             console.error(`processRecurrings: guest email error for template ${rec.template_id}:`, emailErr);
